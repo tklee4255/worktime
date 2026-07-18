@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>순작업시간</title>
+<meta name="theme-color" content="#F5F6F8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="순작업시간">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F6F8;
+    --circle:#FFFFFF;
+    --circle-edge:#E1E5EA;
+    --text:#23292F;
+    --muted:#8A94A0;
+    --run:#F59E1B;
+    --run-deep:#B9750A;
+    --pause:#6B87A3;
+    --danger:#D93B2B;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    color:var(--text);
+    font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo',sans-serif;
+    overflow:hidden;
+    user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  .view{position:absolute;inset:0;display:none;}
+  .view.active{display:flex;}
+
+  /* ===== 홈: 할일 원 목록 ===== */
+  #home{flex-direction:column;}
+  #homeTitle{
+    position:relative;
+    text-align:center;padding:28px 20px 0;
+    font-size:20px;font-weight:700;letter-spacing:1px;
+  }
+  #recordsBtn{
+    position:absolute;top:22px;right:20px;
+    background:none;border:none;color:var(--muted);
+    font-size:16px;cursor:pointer;padding:8px 4px;font-family:inherit;
+  }
+
+  /* ===== 기록 화면 ===== */
+  #records{flex-direction:column;}
+  #recHeader{
+    position:relative;text-align:center;padding:28px 20px 12px;
+    font-size:20px;font-weight:700;letter-spacing:1px;
+  }
+  #recBackBtn{
+    position:absolute;top:22px;left:14px;
+    background:none;border:none;color:var(--muted);
+    font-size:16px;cursor:pointer;padding:8px 10px;font-family:inherit;font-weight:400;
+  }
+  #backupBtn{
+    position:absolute;top:22px;right:14px;
+    background:none;border:none;color:var(--muted);
+    font-size:16px;cursor:pointer;padding:8px 10px;font-family:inherit;font-weight:400;
+  }
+
+  /* ===== 백업 팝업 ===== */
+  #backupBg{
+    position:absolute;inset:0;background:rgba(35,41,47,.35);
+    display:none;align-items:center;justify-content:center;z-index:20;padding:24px;
+  }
+  #backupBox{
+    background:#fff;border-radius:16px;padding:24px 20px;
+    width:min(88vw,340px);display:flex;flex-direction:column;gap:16px;
+    box-shadow:0 8px 30px rgba(35,41,47,.18);
+  }
+  #backupBox .bTitle{
+    font-size:clamp(12px,4.2vw,17px);font-weight:700;text-align:center;
+    white-space:nowrap;overflow:hidden;
+  }
+  #backupBox .bNote{
+    background:var(--bg);border-radius:10px;padding:14px;
+    font-size:13px;line-height:1.6;color:#5A6570;
+  }
+  #backupBox .bNote strong{color:var(--text);font-weight:700;}
+  #backupBox .brow{display:flex;gap:10px;}
+  #backupBox button{
+    flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
+    font-size:15px;font-weight:500;font-family:inherit;
+  }
+  #backupCancel{background:none;color:var(--muted);border:1px solid var(--circle-edge);}
+  #backupSave{background:var(--text);color:#fff;}
+  #backupLoad{background:none;color:var(--text);border:1px solid var(--circle-edge);}
+  #recBody{flex:1;overflow-y:auto;padding:8px 20px 40px;max-width:520px;width:100%;margin:0 auto;}
+  .recCard{
+    background:var(--circle);border:1px solid var(--circle-edge);border-radius:14px;
+    padding:16px;margin-bottom:16px;
+  }
+  .recCard h3{font-size:14px;color:var(--muted);font-weight:500;margin-bottom:10px;}
+  .rangeRow{display:flex;align-items:center;gap:8px;}
+  .rangeRow input[type="date"]{
+    flex:1;min-width:0;font-family:inherit;font-size:14px;color:var(--text);
+    background:var(--bg);border:1px solid var(--circle-edge);border-radius:8px;padding:8px 10px;
+  }
+  .rangeRow span{color:var(--muted);}
+  #rangeResult{margin-top:12px;}
+  .recRow{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 2px;font-size:15px;
+  }
+  .recRow + .recRow{border-top:1px solid var(--bg);}
+  .recRow .rName{font-weight:500;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .recRow .rTime{color:var(--muted);font-variant-numeric:tabular-nums;}
+  .recDate{font-size:14px;color:var(--muted);font-weight:700;margin:18px 2px 6px;}
+  .recEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
+
+  #grid{
+    flex:1;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;
+    gap:28px;padding:24px 24px 120px;overflow-y:auto;
+  }
+  .circle{
+    position:relative;
+    width:148px;height:148px;border-radius:50%;
+    background:var(--circle);border:1.5px solid var(--circle-edge);
+    box-shadow:0 2px 10px rgba(35,41,47,.05);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    cursor:pointer;transition:transform .12s ease,border-color .2s;
+  }
+  .circle:active{transform:scale(.95);}
+  .circle.editing:active{transform:none;}
+  .circle .name{font-size:17px;font-weight:700;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
+  .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
+  .circle .nameInput{
+    display:none;width:104px;text-align:center;
+    font-size:17px;font-weight:700;font-family:inherit;color:var(--text);
+    background:none;border:none;border-bottom:2px solid var(--run);
+    outline:none;padding:2px 0;
+  }
+  .circle.editing .name{display:none;}
+  .circle.editing .nameInput{display:block;}
+  .circle .delBtn{
+    display:none;position:absolute;top:2px;right:2px;
+    width:30px;height:30px;border-radius:50%;
+    background:var(--danger);color:#fff;border:none;
+    font-size:16px;line-height:1;cursor:pointer;
+    align-items:center;justify-content:center;
+    box-shadow:0 2px 6px rgba(217,59,43,.35);
+  }
+  .circle.editing .delBtn{display:flex;}
+  #empty{
+    position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    color:var(--muted);font-size:15px;pointer-events:none;
+  }
+  #addBtn{
+    position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
+    width:58px;height:58px;border-radius:50%;
+    background:var(--text);color:#fff;border:none;
+    font-size:28px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 14px rgba(35,41,47,.2);
+    transition:transform .12s ease;
+  }
+  #addBtn:active{transform:translateX(-50%) scale(.92);}
+
+  /* ===== 집중: 원 하나만 꽉 차게 ===== */
+  #focus{align-items:center;justify-content:center;}
+  #backBtn{
+    position:absolute;top:20px;left:20px;
+    background:none;border:none;color:var(--muted);
+    font-size:16px;cursor:pointer;padding:10px 14px;
+    display:flex;align-items:center;gap:6px;font-family:inherit;
+  }
+  #resetBtn{
+    position:absolute;top:20px;right:20px;
+    background:none;border:none;color:var(--danger);
+    font-size:16px;cursor:pointer;padding:10px 14px;font-family:inherit;
+  }
+  #bigCircle{
+    width:min(82vw,58vh);height:min(82vw,58vh);border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    cursor:pointer;border:2px solid var(--circle-edge);background:var(--circle);
+    box-shadow:0 4px 20px rgba(35,41,47,.06);
+    transition:background .35s,border-color .35s,box-shadow .35s;
+  }
+  #bigCircle .name{font-size:clamp(20px,5vw,28px);font-weight:700;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #bigCircle .time{font-size:clamp(40px,11vw,64px);font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:1px;}
+  #bigCircle .state{font-size:14px;letter-spacing:2px;color:var(--muted);}
+
+  /* 카운트 중: 호박색으로 살아있음 */
+  #bigCircle.running{
+    background:radial-gradient(circle at 50% 42%, #FFF6E6 0%, #FFEECF 75%);
+    border-color:var(--run);
+    box-shadow:0 0 42px rgba(245,158,27,.28);
+    animation:breathe 2.6s ease-in-out infinite;
+  }
+  #bigCircle.running .time{color:var(--run-deep);}
+  #bigCircle.running .state{color:var(--run);}
+  /* 일시정지: 차분한 청회색 */
+  #bigCircle.paused{border-color:var(--pause);}
+  #bigCircle.paused .time{color:var(--pause);}
+  @keyframes breathe{
+    0%,100%{box-shadow:0 0 42px rgba(245,158,27,.28);}
+    50%{box-shadow:0 0 70px rgba(245,158,27,.45);}
+  }
+  /* ===== 초기화 확인창 ===== */
+  #confirmBg{
+    position:absolute;inset:0;background:rgba(35,41,47,.35);
+    display:none;align-items:center;justify-content:center;z-index:20;
+  }
+  #confirmBox{
+    background:#fff;border-radius:16px;padding:24px;
+    width:min(80vw,300px);display:flex;flex-direction:column;gap:18px;
+    box-shadow:0 8px 30px rgba(35,41,47,.18);
+  }
+  #confirmBox p{font-size:clamp(12px,4.2vw,16px);text-align:center;white-space:nowrap;overflow:hidden;}
+  #confirmBox .row{display:flex;gap:10px;}
+  #confirmBox button{
+    flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
+    font-size:15px;font-weight:500;font-family:inherit;
+  }
+  #confirmNo{background:none;color:var(--muted);border:1px solid var(--circle-edge);}
+  #confirmYes{background:var(--danger);color:#fff;}
+
+  @media (prefers-reduced-motion: reduce){
+    #bigCircle.running{animation:none;}
+    .circle,.circle:active,#addBtn{transition:none;transform:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- 홈 화면 -->
+<div id="home" class="view active">
+  <div id="homeTitle">순작업시간<button id="recordsBtn">기록</button></div>
+  <div id="grid"></div>
+  <div id="empty">+ 버튼을 눌러 할 일을 추가하세요</div>
+  <button id="addBtn" aria-label="할 일 추가">+</button>
+</div>
+
+<!-- 기록 화면 -->
+<div id="records" class="view">
+  <div id="recHeader">기록<button id="recBackBtn">← 뒤로가기</button><button id="backupBtn">백업</button></div>
+  <div id="recBody">
+    <div class="recCard">
+      <h3>기간별 합계</h3>
+      <div class="rangeRow">
+        <input type="date" id="rangeStart"><span>~</span><input type="date" id="rangeEnd">
+      </div>
+      <div id="rangeResult"></div>
+    </div>
+    <div id="dailyList"></div>
+  </div>
+</div>
+
+<!-- 집중 화면 -->
+<div id="focus" class="view">
+  <button id="backBtn">← 뒤로가기</button>
+  <button id="resetBtn">초기화</button>
+  <div id="bigCircle">
+    <div class="name"></div>
+    <div class="time">0:00</div>
+    <div class="state"></div>
+  </div>
+</div>
+
+<!-- 초기화 확인창 -->
+<div id="confirmBg">
+  <div id="confirmBox">
+    <p>초기화 하시겠습니까?</p>
+    <div class="row">
+      <button id="confirmNo">취소</button>
+      <button id="confirmYes">초기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- 백업 팝업 -->
+<div id="backupBg">
+  <div id="backupBox">
+    <div class="bTitle">기록을 파일로 저장하시겠습니까?</div>
+    <div class="bNote">
+      <strong>왜 필요한가요?</strong><br>
+      기록은 이 폰 안에만 저장돼요. 인터넷 사용 기록을 지우거나 폰을 바꾸면 기록이 사라질 수 있어요. 파일로 저장해두면 안전하게 보관할 수 있어요.<br><br>
+      <strong>저장하기</strong><br>
+      아래 '파일로 저장'을 누르면 기록 파일 하나가 폰에 저장돼요. 그 파일을 카톡 '나에게 보내기' 등에 보관해두세요.<br><br>
+      <strong>되살리기</strong><br>
+      나중에 '불러오기'를 눌러 저장해둔 파일을 고르면 기록이 그대로 돌아와요.
+    </div>
+    <div class="brow">
+      <button id="backupSave">파일로 저장</button>
+      <button id="backupLoad">불러오기</button>
+    </div>
+    <button id="backupCancel">닫기</button>
+    <input type="file" id="backupFile" accept="application/json,.json" style="display:none">
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---- 상태 + 로컬 저장 ----
+  // 스마트폰(브라우저)의 localStorage에 저장. 저장이 막힌 환경(이 미리보기 등)에서는
+  // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
+  const STORAGE_KEY = 'sunwork-v1';
+  let tasks = [{ id: 1, name: '할 일', accMs: 0 }];
+  let nextId = 2;
+  let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
+  let taskNames = { 1: '할 일' }; // 삭제된 할일의 이름도 기록용으로 유지
+  let focusId = null;       // 집중 화면에 떠 있는 할일
+  let runningSince = null;  // 카운트 중이면 시작 timestamp
+  let editingId = null;     // 인라인 수정 중인 할일
+
+  function save(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        tasks, nextId, records, taskNames, focusId, runningSince
+      }));
+    } catch(e) { /* 저장 불가 환경: 메모리 모드 */ }
+  }
+  (function load(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (Array.isArray(d.tasks)) tasks = d.tasks;
+      if (typeof d.nextId === 'number') nextId = d.nextId;
+      if (d.records) records = d.records;
+      if (d.taskNames) taskNames = d.taskNames;
+      if (typeof d.focusId === 'number') focusId = d.focusId;
+      if (typeof d.runningSince === 'number') runningSince = d.runningSince;
+      // 카운트 중이던 할일이 삭제된 비정상 데이터 방어
+      if (focusId !== null && !tasks.find(t => t.id === focusId)) { focusId = null; runningSince = null; }
+    } catch(e) { /* 손상된 데이터는 무시하고 새로 시작 */ }
+  })();
+
+  const grid = document.getElementById('grid');
+  const emptyMsg = document.getElementById('empty');
+  const home = document.getElementById('home');
+  const focus = document.getElementById('focus');
+  const big = document.getElementById('bigCircle');
+  const bigName = big.querySelector('.name');
+  const bigTime = big.querySelector('.time');
+  const bigState = big.querySelector('.state');
+
+  function fmt(ms){
+    const s = Math.floor(ms/1000);
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+    const p = n => String(n).padStart(2,'0');
+    return h > 0 ? h + ':' + p(m) + ':' + p(sec) : m + ':' + p(sec);
+  }
+  function currentMs(t){
+    return t.accMs + (focusId === t.id && runningSince ? Date.now() - runningSince : 0);
+  }
+
+  // ---- 홈 화면 렌더 ----
+  function renderHome(){
+    grid.innerHTML = '';
+    emptyMsg.style.display = tasks.length ? 'none' : 'flex';
+    tasks.forEach(t => {
+      const c = document.createElement('div');
+      c.className = 'circle';
+      c.dataset.id = t.id;
+      c.innerHTML =
+        '<button class="delBtn" aria-label="삭제">✕</button>' +
+        '<div class="name"></div>' +
+        '<input class="nameInput" maxlength="20">' +
+        '<div class="time"></div>';
+      c.querySelector('.name').textContent = t.name;
+      c.querySelector('.time').textContent = fmt(t.accMs);
+
+      const input = c.querySelector('.nameInput');
+
+      // 탭 = 집중 시작 / 꾹 누르기 = 그 자리에서 수정 모드
+      let pressTimer = null, longPressed = false;
+      c.addEventListener('pointerdown', e => {
+        if (editingId === t.id) return; // 수정 중엔 길게누름/이동 없음
+        longPressed = false;
+        pressTimer = setTimeout(() => { longPressed = true; startEdit(t, c, input); }, 550);
+      });
+      const cancel = () => clearTimeout(pressTimer);
+      c.addEventListener('pointerleave', cancel);
+      c.addEventListener('pointercancel', cancel);
+      c.addEventListener('pointerup', e => {
+        cancel();
+        if (editingId === t.id) return;      // 수정 중인 원은 이동 안 함
+        if (!longPressed) {
+          if (editingId !== null) { finishEdit(); return; } // 다른 원 수정 중이면 먼저 저장
+          enterFocus(t.id);
+        }
+      });
+      c.addEventListener('contextmenu', e => e.preventDefault());
+
+      // 삭제 (빨간 X)
+      c.querySelector('.delBtn').addEventListener('pointerup', e => {
+        e.stopPropagation();
+        tasks = tasks.filter(x => x.id !== t.id);
+        editingId = null;
+        save();
+        renderHome();
+      });
+      c.querySelector('.delBtn').addEventListener('pointerdown', e => e.stopPropagation());
+
+      // 입력창: Enter로 저장, 터치가 원으로 전파되지 않게
+      input.addEventListener('pointerdown', e => e.stopPropagation());
+      input.addEventListener('pointerup', e => e.stopPropagation());
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') finishEdit(); });
+
+      grid.appendChild(c);
+    });
+  }
+
+  function startEdit(t, c, input){
+    if (editingId !== null) finishEdit();
+    editingId = t.id;
+    c.classList.add('editing');
+    input.value = t.name;
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  }
+  function finishEdit(){
+    if (editingId === null) return;
+    const c = grid.querySelector('.circle[data-id="' + editingId + '"]');
+    const t = tasks.find(x => x.id === editingId);
+    if (c && t) {
+      const v = c.querySelector('.nameInput').value.trim();
+      if (v) { t.name = v; taskNames[t.id] = v; save(); }
+    }
+    editingId = null;
+    renderHome();
+  }
+  // 원 바깥을 탭하면 수정 저장·종료
+  document.addEventListener('pointerdown', e => {
+    if (editingId !== null && !e.target.closest('.circle')) finishEdit();
+  });
+
+  // ---- 집중 화면 ----
+  function enterFocus(id){
+    focusId = id;
+    home.classList.remove('active');
+    focus.classList.add('active');
+    startCount(); // 누르는 순간 카운트 시작
+  }
+  function startCount(){
+    runningSince = Date.now();
+    save();
+    big.classList.add('running');
+    big.classList.remove('paused');
+    bigState.textContent = '진행 중';
+    renderFocus();
+  }
+  // 경과 구간을 자정 기준으로 쪼개 날짜별 기록에 반영
+  function dateKey(ts){
+    const d = new Date(ts);
+    const p = n => String(n).padStart(2,'0');
+    return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+  }
+  function nextMidnight(ts){
+    const d = new Date(ts);
+    d.setHours(24,0,0,0);
+    return d.getTime();
+  }
+  function commitRecord(taskId, startTs, endTs){
+    let s = startTs;
+    while (s < endTs) {
+      const boundary = Math.min(nextMidnight(s), endTs);
+      const key = dateKey(s);
+      if (!records[key]) records[key] = {};
+      records[key][taskId] = (records[key][taskId] || 0) + (boundary - s);
+      s = boundary;
+    }
+  }
+
+  function pauseCount(){
+    const t = tasks.find(t => t.id === focusId);
+    if (t && runningSince) {
+      const now = Date.now();
+      t.accMs += now - runningSince;
+      commitRecord(t.id, runningSince, now);
+    }
+    runningSince = null;
+    save();
+    big.classList.remove('running');
+    big.classList.add('paused');
+    bigState.textContent = '일시정지';
+    renderFocus();
+  }
+  big.addEventListener('click', () => {
+    runningSince ? pauseCount() : startCount();
+  });
+  document.getElementById('backBtn').addEventListener('click', () => {
+    if (runningSince) pauseCount(); // 카운트 중이면 자동 일시정지 후 복귀
+    focusId = null;
+    save();
+    focus.classList.remove('active');
+    big.classList.remove('running','paused');
+    home.classList.add('active');
+    renderHome();
+  });
+  // 초기화: 확인창 → 확인 시 시간 0으로 + 일시정지
+  const confirmBg = document.getElementById('confirmBg');
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!focusId) return;
+    confirmBg.style.display = 'flex';
+  });
+  document.getElementById('confirmNo').addEventListener('click', () => {
+    confirmBg.style.display = 'none';
+  });
+  document.getElementById('confirmYes').addEventListener('click', () => {
+    const t = tasks.find(t => t.id === focusId);
+    if (t) {
+      if (runningSince) pauseCount(); // 카운트 중이면 멈추고
+      t.accMs = 0;                    // 시간 0으로
+      save();
+      renderFocus();
+    }
+    confirmBg.style.display = 'none';
+  });
+  confirmBg.addEventListener('click', e => { if (e.target === confirmBg) confirmBg.style.display = 'none'; });
+  function renderFocus(){
+    const t = tasks.find(t => t.id === focusId);
+    if (!t) return;
+    bigName.textContent = t.name;
+    bigTime.textContent = fmt(currentMs(t));
+  }
+  setInterval(() => { if (focusId && runningSince) renderFocus(); }, 250);
+
+  // ---- 추가 ----
+  document.getElementById('addBtn').addEventListener('click', () => {
+    if (editingId !== null) finishEdit();
+    taskNames[nextId] = '할 일';
+    tasks.push({ id: nextId++, name: '할 일', accMs: 0 });
+    save();
+    renderHome();
+  });
+
+  // ---- 기록 화면 ----
+  const recordsView = document.getElementById('records');
+  const dailyList = document.getElementById('dailyList');
+  const rangeStart = document.getElementById('rangeStart');
+  const rangeEnd = document.getElementById('rangeEnd');
+  const rangeResult = document.getElementById('rangeResult');
+
+  document.getElementById('recordsBtn').addEventListener('click', () => {
+    if (editingId !== null) finishEdit();
+    home.classList.remove('active');
+    recordsView.classList.add('active');
+    renderRecords();
+  });
+  document.getElementById('recBackBtn').addEventListener('click', () => {
+    recordsView.classList.remove('active');
+    home.classList.add('active');
+    renderHome();
+  });
+
+  function fmtDateHeader(key){
+    const [y,m,d] = key.split('-').map(Number);
+    const day = ['일','월','화','수','목','금','토'][new Date(y, m-1, d).getDay()];
+    return y + '.' + String(m).padStart(2,'0') + '.' + String(d).padStart(2,'0') + ' (' + day + ')';
+  }
+  function nameOf(id){ return taskNames[id] || '할 일'; }
+
+  function renderRecords(){
+    // 날짜별 목록 (최신 날짜가 위)
+    dailyList.innerHTML = '';
+    const keys = Object.keys(records).sort().reverse();
+    if (!keys.length) {
+      dailyList.innerHTML = '<div class="recEmpty">아직 기록이 없습니다</div>';
+    } else {
+      keys.forEach(key => {
+        const h = document.createElement('div');
+        h.className = 'recDate';
+        h.textContent = fmtDateHeader(key);
+        dailyList.appendChild(h);
+        const card = document.createElement('div');
+        card.className = 'recCard';
+        const entries = Object.entries(records[key]).sort((a,b) => b[1]-a[1]);
+        entries.forEach(([id, ms]) => {
+          const row = document.createElement('div');
+          row.className = 'recRow';
+          row.innerHTML = '<span class="rName"></span><span class="rTime"></span>';
+          row.querySelector('.rName').textContent = nameOf(id);
+          row.querySelector('.rTime').textContent = fmt(ms);
+          card.appendChild(row);
+        });
+        dailyList.appendChild(card);
+      });
+    }
+    renderRange();
+  }
+
+  // 기간별 합계
+  function renderRange(){
+    rangeResult.innerHTML = '';
+    const s = rangeStart.value, e = rangeEnd.value;
+    if (!s || !e) return;
+    if (s > e) {
+      rangeResult.innerHTML = '<div class="recEmpty" style="padding:14px 0;">시작 날짜가 끝 날짜보다 늦습니다</div>';
+      return;
+    }
+    const totals = {};
+    Object.keys(records).forEach(key => {
+      if (key >= s && key <= e) {
+        Object.entries(records[key]).forEach(([id, ms]) => {
+          totals[id] = (totals[id] || 0) + ms;
+        });
+      }
+    });
+    const entries = Object.entries(totals).sort((a,b) => b[1]-a[1]);
+    if (!entries.length) {
+      rangeResult.innerHTML = '<div class="recEmpty" style="padding:14px 0;">이 기간에는 기록이 없습니다</div>';
+      return;
+    }
+    entries.forEach(([id, ms]) => {
+      const row = document.createElement('div');
+      row.className = 'recRow';
+      row.innerHTML = '<span class="rName"></span><span class="rTime"></span>';
+      row.querySelector('.rName').textContent = nameOf(id);
+      row.querySelector('.rTime').textContent = fmt(ms);
+      rangeResult.appendChild(row);
+    });
+  }
+  rangeStart.addEventListener('change', renderRange);
+  rangeEnd.addEventListener('change', renderRange);
+
+  // ---- 백업 (파일 저장 / 불러오기) ----
+  const backupBg = document.getElementById('backupBg');
+  document.getElementById('backupBtn').addEventListener('click', () => {
+    backupBg.style.display = 'flex';
+  });
+  document.getElementById('backupCancel').addEventListener('click', () => {
+    backupBg.style.display = 'none';
+  });
+  backupBg.addEventListener('click', e => { if (e.target === backupBg) backupBg.style.display = 'none'; });
+
+  document.getElementById('backupSave').addEventListener('click', () => {
+    const data = JSON.stringify({ tasks, nextId, records, taskNames });
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const p = n => String(n).padStart(2,'0');
+    const fname = '순작업시간_백업_' + now.getFullYear() + p(now.getMonth()+1) + p(now.getDate()) + '.json';
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  const backupFile = document.getElementById('backupFile');
+  document.getElementById('backupLoad').addEventListener('click', () => backupFile.click());
+  backupFile.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(reader.result);
+        if (!d || !Array.isArray(d.tasks) || !d.records) throw new Error('형식 오류');
+        tasks = d.tasks;
+        nextId = typeof d.nextId === 'number' ? d.nextId : (Math.max(0, ...tasks.map(t=>t.id)) + 1);
+        records = d.records;
+        taskNames = d.taskNames || {};
+        focusId = null; runningSince = null; editingId = null;
+        save();
+        backupBg.style.display = 'none';
+        renderRecords();
+      } catch(err) {
+        alert('이 파일은 불러올 수 없어요. 저장해둔 기록 파일이 맞는지 확인해 주세요.');
+      }
+      backupFile.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  // 시작: 카운트 중에 앱이 닫혔었다면 집중 화면으로 복원 (시간은 timestamp 기반이라 정확)
+  if (focusId !== null && runningSince) {
+    home.classList.remove('active');
+    focus.classList.add('active');
+    big.classList.add('running');
+    bigState.textContent = '진행 중';
+    renderFocus();
+  } else {
+    focusId = null;
+    renderHome();
+  }
+})();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
