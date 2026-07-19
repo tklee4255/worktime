@@ -111,6 +111,16 @@
     display:flex;justify-content:space-between;align-items:center;
     padding:8px 2px;font-size:15px;
   }
+  .rLeft{display:flex;align-items:center;min-width:0;gap:10px;}
+  .recRow .chk{
+    display:none;flex:0 0 auto;width:21px;height:21px;border-radius:6px;
+    border:1.5px solid #C6CDD5;background:#fff;
+    align-items:center;justify-content:center;
+    font-size:13px;color:#fff;line-height:1;
+  }
+  #records.selecting .recRow.selectable .chk{display:flex;}
+  .recRow.sel .chk{background:var(--run);border-color:var(--run);}
+  #recHeader.selecting #backupBtn{color:var(--danger);font-weight:700;}
   .recRow + .recRow{border-top:1px solid var(--bg);}
   .recRow .rName{font-weight:500;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .recRow .rTime{color:var(--muted);font-variant-numeric:tabular-nums;}
@@ -335,6 +345,20 @@
     } catch(e) { /* 손상된 데이터는 무시하고 새로 시작 */ }
   })();
 
+  // ---- 화면 이동 스택: 폰의 뒤로가기 / 아이폰 가장자리 스와이프 대응 ----
+  const layers = [];
+  function pushLayer(close){
+    layers.push(close);
+    history.pushState({ depth: layers.length }, '');
+  }
+  function popLayer(){
+    if (layers.length) history.back();   // popstate가 실제 닫기를 실행
+  }
+  window.addEventListener('popstate', () => {
+    const close = layers.pop();
+    if (close) close();
+  });
+
   const grid = document.getElementById('grid');
   const emptyMsg = document.getElementById('empty');
   const home = document.getElementById('home');
@@ -435,10 +459,13 @@
   });
 
   // ---- 집중 화면 ----
+  let focusEnteredAt = 0;   // 진입 직후 같은 터치가 큰 원에 다시 먹히는 것 방지
   function enterFocus(id){
     focusId = id;
+    focusEnteredAt = Date.now();
     home.classList.remove('active');
     focus.classList.add('active');
+    pushLayer(closeFocus);
     startCount(); // 누르는 순간 카운트 시작
   }
   function startCount(){
@@ -486,9 +513,10 @@
     renderFocus();
   }
   big.addEventListener('click', () => {
+    if (Date.now() - focusEnteredAt < 500) return; // 화면 진입시킨 그 터치는 무시
     runningSince ? pauseCount() : startCount();
   });
-  document.getElementById('backBtn').addEventListener('click', () => {
+  function closeFocus(){
     if (runningSince) pauseCount(); // 카운트 중이면 자동 일시정지 후 복귀
     focusId = null;
     save();
@@ -496,16 +524,17 @@
     big.classList.remove('running','paused');
     home.classList.add('active');
     renderHome();
-  });
+  }
+  document.getElementById('backBtn').addEventListener('click', popLayer);
   // 초기화: 확인창 → 확인 시 시간 0으로 + 일시정지
   const confirmBg = document.getElementById('confirmBg');
+  function closeConfirm(){ confirmBg.style.display = 'none'; }
   document.getElementById('resetBtn').addEventListener('click', () => {
     if (!focusId) return;
     confirmBg.style.display = 'flex';
+    pushLayer(closeConfirm);
   });
-  document.getElementById('confirmNo').addEventListener('click', () => {
-    confirmBg.style.display = 'none';
-  });
+  document.getElementById('confirmNo').addEventListener('click', popLayer);
   document.getElementById('confirmYes').addEventListener('click', () => {
     const t = tasks.find(t => t.id === focusId);
     if (t) {
@@ -514,9 +543,9 @@
       save();
       renderFocus();
     }
-    confirmBg.style.display = 'none';
+    popLayer();
   });
-  confirmBg.addEventListener('click', e => { if (e.target === confirmBg) confirmBg.style.display = 'none'; });
+  confirmBg.addEventListener('click', e => { if (e.target === confirmBg) popLayer(); });
   function renderFocus(){
     const t = tasks.find(t => t.id === focusId);
     if (!t) return;
@@ -541,17 +570,81 @@
   const rangeEnd = document.getElementById('rangeEnd');
   const rangeResult = document.getElementById('rangeResult');
 
+  const recHeader = document.getElementById('recHeader');
+  const recBackBtn = document.getElementById('recBackBtn');
+  const backupBtn = document.getElementById('backupBtn');
+
   document.getElementById('recordsBtn').addEventListener('click', () => {
     if (editingId !== null) finishEdit();
     home.classList.remove('active');
     recordsView.classList.add('active');
+    pushLayer(closeRecords);
     renderRecords();
   });
-  document.getElementById('recBackBtn').addEventListener('click', () => {
+  function closeRecords(){
     recordsView.classList.remove('active');
     home.classList.add('active');
     renderHome();
-  });
+  }
+  recBackBtn.addEventListener('click', popLayer);
+
+  // ---- 선택 모드 (기록 한 줄씩 삭제) ----
+  let selecting = false;
+  const selected = new Set();
+
+  function enterSelectMode(){
+    selecting = true;
+    recordsView.classList.add('selecting');
+    recHeader.classList.add('selecting');
+    recBackBtn.textContent = '취소';
+    backupBtn.textContent = '삭제';
+    pushLayer(exitSelectMode);
+  }
+  function exitSelectMode(){
+    selecting = false;
+    selected.clear();
+    recordsView.classList.remove('selecting');
+    recHeader.classList.remove('selecting');
+    recBackBtn.textContent = '← 뒤로가기';
+    backupBtn.textContent = '백업';
+    renderRecords();
+  }
+  function toggleRow(row, key, id){
+    const k = key + '|' + id;
+    if (selected.has(k)) { selected.delete(k); row.classList.remove('sel'); }
+    else { selected.add(k); row.classList.add('sel'); }
+  }
+  function bindRowSelect(row, key, id){
+    let timer = null, long = false;
+    row.addEventListener('pointerdown', () => {
+      long = false;
+      timer = setTimeout(() => {
+        long = true;
+        if (!selecting) enterSelectMode();
+        toggleRow(row, key, id);
+      }, 550);
+    });
+    const cancel = () => clearTimeout(timer);
+    row.addEventListener('pointerleave', cancel);
+    row.addEventListener('pointercancel', cancel);
+    row.addEventListener('pointerup', () => {
+      cancel();
+      if (!long && selecting) toggleRow(row, key, id);
+    });
+    row.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  function deleteSelected(){
+    selected.forEach(k => {
+      const i = k.lastIndexOf('|');
+      const key = k.slice(0, i), id = k.slice(i + 1);
+      if (records[key]) {
+        delete records[key][id];
+        if (!Object.keys(records[key]).length) delete records[key];
+      }
+    });
+    save();
+    popLayer();   // 선택 모드 종료 (내부에서 renderRecords 실행)
+  }
 
   function fmtDateHeader(key){
     const [y,m,d] = key.split('-').map(Number);
@@ -577,10 +670,13 @@
         const entries = Object.entries(records[key]).sort((a,b) => b[1]-a[1]);
         entries.forEach(([id, ms]) => {
           const row = document.createElement('div');
-          row.className = 'recRow';
-          row.innerHTML = '<span class="rName"></span><span class="rTime"></span>';
+          row.className = 'recRow selectable';
+          row.dataset.key = key; row.dataset.tid = id;
+          row.innerHTML = '<span class="rLeft"><span class="chk">✓</span><span class="rName"></span></span><span class="rTime"></span>';
           row.querySelector('.rName').textContent = nameOf(id);
           row.querySelector('.rTime').textContent = fmt(ms);
+          if (selected.has(key + '|' + id)) row.classList.add('sel');
+          bindRowSelect(row, key, id);
           card.appendChild(row);
         });
         dailyList.appendChild(card);
@@ -625,13 +721,14 @@
 
   // ---- 백업 (파일 저장 / 불러오기) ----
   const backupBg = document.getElementById('backupBg');
-  document.getElementById('backupBtn').addEventListener('click', () => {
+  function closeBackup(){ backupBg.style.display = 'none'; }
+  backupBtn.addEventListener('click', () => {
+    if (selecting) { deleteSelected(); return; }   // 선택 모드에서는 '삭제'
     backupBg.style.display = 'flex';
+    pushLayer(closeBackup);
   });
-  document.getElementById('backupCancel').addEventListener('click', () => {
-    backupBg.style.display = 'none';
-  });
-  backupBg.addEventListener('click', e => { if (e.target === backupBg) backupBg.style.display = 'none'; });
+  document.getElementById('backupCancel').addEventListener('click', popLayer);
+  backupBg.addEventListener('click', e => { if (e.target === backupBg) popLayer(); });
 
   document.getElementById('backupSave').addEventListener('click', () => {
     const data = JSON.stringify({ tasks, nextId, records, taskNames });
@@ -662,7 +759,7 @@
         taskNames = d.taskNames || {};
         focusId = null; runningSince = null; editingId = null;
         save();
-        backupBg.style.display = 'none';
+        popLayer();
         renderRecords();
       } catch(err) {
         alert('이 파일은 불러올 수 없어요. 저장해둔 기록 파일이 맞는지 확인해 주세요.');
@@ -678,6 +775,7 @@
     focus.classList.add('active');
     big.classList.add('running');
     bigState.textContent = '진행 중';
+    pushLayer(closeFocus);
     renderFocus();
   } else {
     focusId = null;

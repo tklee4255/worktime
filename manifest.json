@@ -1,7 +1,7 @@
 {
   "name": "순작업시간",
   "short_name": "순작업시간",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
