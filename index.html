@@ -130,7 +130,7 @@
   .recRow + .recRow{border-top:1px solid var(--bg);}
   .recRow .rName{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .badge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;}
-  .badge.goal{width:1em;height:1em;border-radius:50%;background:var(--run);}
+  .badge.goal{width:.92em;height:.92em;border-radius:50%;border:.19em solid var(--run);box-sizing:border-box;}
   .badge.check{color:#2E9E5B;font-size:1em;line-height:1;font-weight:700;}
   .recRow.expandable{cursor:pointer;}
   .recDetail{
@@ -147,7 +147,9 @@
   .recEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
 
   #grid{
-    flex:1 1 auto;min-height:0;display:flex;flex-wrap:wrap;align-content:center;justify-content:center;
+    flex:1 1 auto;min-height:0;display:flex;flex-wrap:wrap;justify-content:center;
+    align-content:center;
+    align-content:safe center;
     gap:28px;padding:24px 24px 120px;overflow-y:auto;
   }
   .circle{
@@ -368,7 +370,7 @@
 
 <!-- 홈 화면 -->
 <div id="home" class="view active">
-  <div id="homeTitle"><button id="recordsBtn">기록</button>순작업시간<button id="resetAllBtn">모두 초기화</button></div>
+  <div id="homeTitle"><button id="recordsBtn">기록</button>순작업시간<button id="resetAllBtn">초기화</button></div>
   <div id="grid"></div>
   <div id="empty">+ 버튼을 눌러 할 일을 추가하세요</div>
   <button id="addBtn" aria-label="할 일 추가">+</button>
@@ -875,8 +877,8 @@
     // 목표시간 표시
     if (t.goalMs) {
       const done = goalDone(t);
-      goalView.textContent = '목표 ' + fmtGoal(t.goalMs) + ' · ' +
-        (done ? '달성' : fmtGoal(Math.max(0, t.goalMs - todayMs(t))) + ' 남음');
+      goalView.textContent = '목표 ' + fmtGoal(t.goalMs) +
+        ' (' + (done ? '달성' : fmtGoal(Math.max(0, t.goalMs - todayMs(t))) + ' 남음') + ')';
       goalView.classList.toggle('done', done);
       goalView.style.display = '';
     } else {
@@ -1131,8 +1133,8 @@
             detail.style.display = 'none';
             let html = '';
             if (gMs > 0) {
-              html += '<div class="dGoal">목표 ' + fmtGoal(gMs) + ' · ' +
-                (goalMet ? '달성' : '미달성 (' + fmt(ms) + ')') + '</div>';
+              html += '<div class="dGoal">목표 ' + fmtGoal(gMs) +
+                ' (' + (goalMet ? '달성' : '미달성') + ')</div>';
             }
             items.forEach(it => {
               const d = document.createElement('div');
