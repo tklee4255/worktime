@@ -498,10 +498,12 @@
   function save(){
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        tasks, nextId, records, taskNames, focusId, runningSince, dayLog, nextItemId
+        tasks, nextId, records, taskNames, focusId, runningSince, dayLog, nextItemId,
+        cleaned_v6: true
       }));
     } catch(e) { /* 저장 불가 환경: 메모리 모드 */ }
   }
+  let needCleanSave = false;
   (function load(){
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -518,6 +520,19 @@
       if (typeof d.runningSince === 'number') runningSince = d.runningSince;
       // 카운트 중이던 할일이 삭제된 비정상 데이터 방어
       if (focusId !== null && !tasks.find(t => t.id === focusId)) { focusId = null; runningSince = null; }
+      // 이전 버전에서 남은 잘못된 달성 기록 정리 (시간 기록이 없는 날짜의 잔재 제거)
+      if (!d.cleaned_v6) {
+        Object.keys(dayLog).forEach(k => {
+          Object.keys(dayLog[k]).forEach(id => {
+            const hasTime = records[k] && records[k][id];
+            const e = dayLog[k][id];
+            const empty = !e.goalMs && !Object.keys(e.checks || {}).length;
+            if (!hasTime || empty) delete dayLog[k][id];
+          });
+          if (!Object.keys(dayLog[k]).length) delete dayLog[k];
+        });
+        needCleanSave = true;
+      }
     } catch(e) { /* 손상된 데이터는 무시하고 새로 시작 */ }
   })();
 
@@ -607,10 +622,19 @@
     const k = todayKey();
     const e = dayEntry(k, t.id);
     e.goalMs = t.goalMs || 0;
-    todayItems(t).forEach(it => {
+    const alive = todayItems(t);
+    alive.forEach(it => {
       if (!e.checks[it.id]) e.checks[it.id] = { text: it.text, daily: !!it.daily, done: false };
       else e.checks[it.id].text = it.text;
     });
+    // 지워진 항목의 완료 기록은 오늘 기준으로 함께 삭제
+    const aliveIds = new Set(alive.map(it => String(it.id)));
+    Object.keys(e.checks).forEach(id => { if (!aliveIds.has(String(id))) delete e.checks[id]; });
+    // 목표시간도 체크리스트도 없으면 그날 항목 자체를 비움
+    if (!e.goalMs && !Object.keys(e.checks).length) {
+      delete dayLog[k][t.id];
+      if (!Object.keys(dayLog[k]).length) delete dayLog[k];
+    }
   }
 
   // ---- 홈 화면 렌더 ----
@@ -983,7 +1007,7 @@
     // 오늘 이후로 유지될 항목만 남김 (지난 날의 일회성 항목은 그대로 보존)
     const keptOld = (t.checklist || []).filter(it => !it.daily && it.created !== todayKey());
     t.checklist = keptOld.concat(draft.items);
-    syncDayLog(t);
+    syncDayLog(t);   // 지워진 항목의 완료 기록까지 정리
     save();
     popLayer();          // 편집 레이어 정리 → closeAttrEdit 실행
     renderFocus();
@@ -1075,6 +1099,10 @@
       if (records[key]) {
         delete records[key][id];
         if (!Object.keys(records[key]).length) delete records[key];
+      }
+      if (dayLog[key]) {   // 목표·체크리스트 달성 기록도 함께 삭제
+        delete dayLog[key][id];
+        if (!Object.keys(dayLog[key]).length) delete dayLog[key];
       }
     });
     save();
@@ -1244,6 +1272,8 @@
     };
     reader.readAsText(file);
   });
+
+  if (needCleanSave) save();   // 정리된 결과를 저장
 
   // 시작: 카운트 중에 앱이 닫혔었다면 집중 화면으로 복원 (시간은 timestamp 기반이라 정확)
   if (focusId !== null && runningSince) {
