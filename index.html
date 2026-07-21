@@ -531,7 +531,8 @@
     <div class="nBody">
       지금은 화면 맨 위에서 타이머를 멈추거나 시작할 수 없어요. 앱에서는 그대로 다 됩니다.<br><br>
       나중에 켜고 싶으면 폰에서 이렇게 하면 돼요.<br>
-      <strong>설정 → 알림 → 앱 알림 → 순작업시간</strong>
+      <strong>설정 → 애플리케이션 → 순작업시간 → 알림</strong><br>
+      '알림 허용'을 켜 주세요. 기록은 그대로 남아요.
     </div>
     <div class="nRow">
       <button id="notiOffOk">확인</button>
@@ -1004,7 +1005,9 @@
     try {
       Notification.requestPermission().then(res => {
         if (res === 'granted') updateNotification();
-        else showNotiOff();           // 거부하면 켜는 방법을 안내
+        else if (res === 'denied') showNotiOff();   // 실제로 거부했을 때만 안내
+        // 그 외(권한 창을 그냥 닫음)는 아직 정하지 않은 상태로 두고,
+        // 앱을 다시 켰을 때 사전 안내부터 다시 보여줌
       });
     } catch(e) { /* 지원하지 않는 환경 */ }
   });
