@@ -1,4 +1,4 @@
-const CACHE = 'sunwork-v18';
+const CACHE = 'sunwork-v19';
 const ASSETS = [
   './',
   './index.html',
@@ -23,24 +23,88 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request))
-  );
+  e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request)));
 });
 
-// 알림의 버튼을 눌렀을 때 (앱이 꺼져 있어도 동작)
+// ---- 앱과 공유하는 작은 저장소 (앱이 꺼져 있어도 서비스워커가 읽고 쓸 수 있음) ----
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('sunwork', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('kv'); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbGet(key){
+  return openDB().then(db => new Promise((res, rej) => {
+    const q = db.transaction('kv', 'readonly').objectStore('kv').get(key);
+    q.onsuccess = () => res(q.result);
+    q.onerror = () => rej(q.error);
+  }));
+}
+function dbSet(key, val){
+  return openDB().then(db => new Promise((res, rej) => {
+    const t = db.transaction('kv', 'readwrite');
+    t.objectStore('kv').put(val, key);
+    t.oncomplete = () => res();
+    t.onerror = () => rej(t.error);
+  }));
+}
+
+const NOTI_TAG = 'sunwork-timer';
+
+function showTimerNotification(view){
+  if (!view || !view.active) return self.registration.getNotifications({ tag: NOTI_TAG })
+    .then(list => list.forEach(n => n.close()));
+  return self.registration.showNotification('순작업시간', {
+    tag: NOTI_TAG,
+    body: view.name + ' - ' + (view.running ? '진행 중' : '일시정지'),
+    icon: 'icon-192.png',
+    badge: 'icon-badge.png',
+    silent: true,
+    renotify: false,
+    requireInteraction: true,
+    actions: view.running
+      ? [{ action: 'pause', title: '일시정지' }]
+      : [{ action: 'resume', title: '시작' }]
+  });
+}
+
+// 알림의 버튼을 눌렀을 때: 앱을 열지 않고 여기서 처리
 self.addEventListener('notificationclick', e => {
-  const action = e.action;          // 'pause' | 'resume' | '' (알림 본체 탭)
-  const ts = Date.now();            // 누른 그 시각을 기준으로 처리
+  const action = e.action;      // 'pause' | 'resume' | '' (알림 본체를 탭)
+  const ts = Date.now();        // 누른 그 시각을 기록
   e.notification.close();
+
+  // 버튼이 아니라 알림 본체를 탭한 경우에만 앱을 염
+  if (!action) {
+    e.waitUntil((async () => {
+      const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      if (list.length && 'focus' in list[0]) await list[0].focus();
+      else await self.clients.openWindow('./');
+    })());
+    return;
+  }
+
   e.waitUntil((async () => {
-    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    if (list.length) {
-      list[0].postMessage({ type: 'timer-action', action: action, ts: ts });
-      if ('focus' in list[0]) await list[0].focus();
-    } else {
-      // 앱이 완전히 꺼져 있으면, 누른 시각을 주소에 담아 열면서 처리
-      await self.clients.openWindow('./?act=' + (action || 'open') + '&t=' + ts);
+    // 1) "몇 시에 무엇을 눌렀다"를 쪽지로 남김 (앱이 나중에 그 시각 그대로 반영)
+    let pending = [];
+    try { pending = (await dbGet('pending')) || []; } catch(err) {}
+    if (!Array.isArray(pending)) pending = [];
+    pending.push({ action: action, ts: ts });
+    try { await dbSet('pending', pending); } catch(err) {}
+
+    // 2) 알림 표시를 즉시 바꿔서 눌린 티가 나게 함
+    let view = null;
+    try { view = await dbGet('view'); } catch(err) {}
+    if (view && view.active) {
+      view.running = (action === 'resume');
+      try { await dbSet('view', view); } catch(err) {}
+      await showTimerNotification(view);
     }
+
+    // 3) 앱이 떠 있다면 곧바로 반영하도록 알려줌 (화면을 앞으로 끌어오지는 않음)
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    list.forEach(c => c.postMessage({ type: 'pending' }));
   })());
 });

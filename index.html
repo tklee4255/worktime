@@ -586,6 +586,7 @@
         cleaned_v6: true
       }));
     } catch(e) { /* 저장 불가 환경: 메모리 모드 */ }
+    try { syncView(); } catch(e) {}
   }
   let needCleanSave = false;
   (function load(){
@@ -979,6 +980,55 @@
   const NOTI_TAG = 'sunwork-timer';
   let notifyAsked = false;
 
+  // 앱이 꺼져 있어도 서비스워커가 읽고 쓸 수 있는 작은 저장소
+  function openDB(){
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('sunwork', 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore('kv'); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  function dbGet(key){
+    return openDB().then(db => new Promise((res, rej) => {
+      const q = db.transaction('kv', 'readonly').objectStore('kv').get(key);
+      q.onsuccess = () => res(q.result);
+      q.onerror = () => rej(q.error);
+    }));
+  }
+  function dbSet(key, val){
+    return openDB().then(db => new Promise((res, rej) => {
+      const t = db.transaction('kv', 'readwrite');
+      t.objectStore('kv').put(val, key);
+      t.oncomplete = () => res();
+      t.onerror = () => rej(t.error);
+    }));
+  }
+
+  // 지금 무엇이 진행 중인지를 서비스워커도 볼 수 있게 남겨둠
+  function syncView(){
+    const t = tasks.find(x => x.id === focusId);
+    const view = t
+      ? { active: true, name: t.name, running: !!runningSince }
+      : { active: false };
+    dbSet('view', view).catch(() => {});
+  }
+
+  // 알림 버튼으로 남겨진 쪽지를 그 시각 그대로 반영
+  let draining = false;
+  function drainPending(){
+    if (draining) return;
+    draining = true;
+    dbGet('pending').then(list => {
+      if (!Array.isArray(list) || !list.length) { draining = false; return; }
+      return dbSet('pending', []).then(() => {
+        list.sort((a, b) => a.ts - b.ts);
+        list.forEach(a => applyNotifyAction(a.action, a.ts));
+        draining = false;
+      });
+    }).catch(() => { draining = false; });
+  }
+
   const notiBg = document.getElementById('notiBg');
   const notiOffBg = document.getElementById('notiOffBg');
 
@@ -1060,10 +1110,12 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', ev => {
       const d = ev.data || {};
-      if (d.type !== 'timer-action') return;
-      applyNotifyAction(d.action, d.ts);
+      if (d.type === 'pending') drainPending();
     });
   }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') drainPending();
+  });
 
   function applyNotifyAction(action, ts){
     if (focusId === null) return;
@@ -1512,14 +1564,6 @@
 
   if (needCleanSave) save();   // 정리된 결과를 저장
 
-  // 앱이 꺼진 상태에서 알림 버튼을 눌러 열린 경우: 누른 시각 기준으로 처리
-  let pendingAct = null;
-  try {
-    const q = new URLSearchParams(location.search);
-    const act = q.get('act'), ts = parseInt(q.get('t'), 10);
-    if (act && ts) pendingAct = { act: act, ts: ts };
-    if (act) history.replaceState(null, '', location.pathname);   // 주소 정리
-  } catch(e) {}
 
   // 시작: 타이머 화면에 있던 중 앱이 닫혔다면 그 화면으로 복원
   // (진행 중이든 일시정지든 모두 복원해야 알림의 '시작' 버튼이 살아있음)
@@ -1536,8 +1580,8 @@
     pushLayer(closeFocus);
     renderFocus();
     renderAttr();
-    if (pendingAct) applyNotifyAction(pendingAct.act, pendingAct.ts);
-    else updateNotification();
+    drainPending();          // 알림으로 눌러둔 것이 있으면 그 시각 그대로 반영
+    updateNotification();
   } else {
     renderHome();
   }
