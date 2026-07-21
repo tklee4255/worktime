@@ -223,7 +223,7 @@
   }
   #bigCircle{
     position:relative;flex:0 0 auto;
-    width:min(78vw,52vh);height:min(78vw,52vh);border-radius:50%;
+    width:min(70vw,50vh);height:min(70vw,50vh);border-radius:50%;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
     cursor:pointer;border:2px solid var(--circle-edge);background:var(--circle);
     box-shadow:0 4px 20px rgba(35,41,47,.06);
@@ -254,6 +254,22 @@
   /* 일시정지: 차분한 청회색 */
   #bigCircle.paused{border-color:var(--pause);}
   #bigCircle.paused .time{color:var(--pause);}
+
+  /* ===== 목표 달성 발광 ===== */
+  .flame{
+    position:absolute;inset:-13.9%;width:127.8%;height:127.8%;
+    overflow:visible;pointer-events:none;display:none;
+  }
+  .goalDone > .flame{display:block;}
+  .flame .halo{animation:glowBreath 2.4s ease-in-out infinite;}
+  .flame .halo2{animation:glowBreath 2.4s ease-in-out infinite;animation-delay:.7s;}
+  @keyframes glowBreath{
+    0%,100%{opacity:.34;}
+    50%{opacity:.72;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flame .halo,.flame .halo2{animation:none;opacity:.55;}
+  }
 
   /* ===== 속성 영역 (목표시간 / 체크리스트) ===== */
   #attrArea{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;}
@@ -369,6 +385,17 @@
 <body>
 
 <!-- 홈 화면 -->
+<svg id="fxDefs" aria-hidden="true" style="position:absolute;width:0;height:0;">
+  <defs>
+    <filter id="glowWide" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <filter id="glowTight" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+</svg>
+
 <div id="home" class="view active">
   <div id="homeTitle"><button id="recordsBtn">기록</button>순작업시간<button id="resetAllBtn">초기화</button></div>
   <div id="grid"></div>
@@ -588,6 +615,14 @@
   }
   function goalDone(t){ return !!t.goalMs && todayMs(t) >= t.goalMs; }
 
+  // 목표 달성 시 원에 두르는 은은한 발광
+  function flameMarkup(){
+    return '<svg class="flame" viewBox="0 0 124 124" aria-hidden="true">' +
+             '<circle class="halo" cx="62" cy="62" r="48.5" fill="none" stroke="#F59E1B" stroke-width="8" filter="url(#glowWide)"/>' +
+             '<circle class="halo2" cx="62" cy="62" r="48.5" fill="none" stroke="#FFC048" stroke-width="4" filter="url(#glowTight)"/>' +
+           '</svg>';
+  }
+
   function fmtGoal(ms){
     const m = Math.round(ms / 60000);
     const h = Math.floor(m / 60), mm = m % 60;
@@ -661,6 +696,10 @@
         const ring = c.querySelector('.ring circle');
         ring.style.strokeDasharray = CIRC;
         ring.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
+        if (goalDone(t)) {                    // 달성하면 불꽃
+          c.classList.add('goalDone');
+          c.insertAdjacentHTML('afterbegin', flameMarkup());
+        }
       }
 
       const input = c.querySelector('.nameInput');
@@ -862,11 +901,28 @@
   // 타이머 원 테두리를 오늘 진행률만큼 채움
   const ringPath = document.getElementById('ringPath');
   function renderRing(t){
-    if (!t.goalMs) { big.classList.remove('hasGoal'); return; }
+    if (!t.goalMs) {
+      big.classList.remove('hasGoal');
+      setBigFlame(false);
+      return;
+    }
     big.classList.add('hasGoal');
     const CIRC = 2 * Math.PI * 48.5;
     ringPath.style.strokeDasharray = CIRC;
     ringPath.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
+    setBigFlame(goalDone(t));
+  }
+  function setBigFlame(on){
+    const has = big.classList.contains('goalDone');
+    if (on === has) return;                  // 상태가 같으면 다시 그리지 않음
+    if (on) {
+      big.classList.add('goalDone');
+      big.insertAdjacentHTML('afterbegin', flameMarkup());
+    } else {
+      big.classList.remove('goalDone');
+      const f = big.querySelector(':scope > .flame');
+      if (f) f.remove();
+    }
   }
   let lastGoalDone = null;
   setInterval(() => {
@@ -901,8 +957,7 @@
     // 목표시간 표시
     if (t.goalMs) {
       const done = goalDone(t);
-      goalView.textContent = '목표 ' + fmtGoal(t.goalMs) +
-        ' (' + (done ? '달성' : fmtGoal(Math.max(0, t.goalMs - todayMs(t))) + ' 남음') + ')';
+      goalView.textContent = '목표 ' + fmtGoal(t.goalMs);
       goalView.classList.toggle('done', done);
       goalView.style.display = '';
     } else {
