@@ -1054,9 +1054,15 @@
     popLayer();                       // 안내 팝업 닫고 곧바로 폰의 권한 창으로
     try {
       Notification.requestPermission().then(res => {
-        if (res === 'granted') updateNotification();
-        else if (res === 'denied') showNotiOff();   // 실제로 거부했을 때만 안내
-        // 그 외(권한 창을 그냥 닫음)는 아직 정하지 않은 상태로 두고,
+        // 권한 창을 그냥 닫으면 폰이 '거부'라고 답하기도 해서,
+        // 실제로 폰에 기록된 상태를 한 번 더 확인함
+        let perm = res;
+        try {
+          if (typeof Notification.permission === 'string') perm = Notification.permission;
+        } catch(e) {}
+        if (perm === 'granted') updateNotification();
+        else if (perm === 'denied') showNotiOff();   // 정말로 차단된 경우만 안내
+        // 'default'(아직 안 정함)이면 아무것도 하지 않고,
         // 앱을 다시 켰을 때 사전 안내부터 다시 보여줌
       });
     } catch(e) { /* 지원하지 않는 환경 */ }
