@@ -73,6 +73,33 @@
     font-size:16px;cursor:pointer;padding:8px 10px;font-family:inherit;font-weight:400;
   }
 
+  /* ===== 알림 안내 팝업 ===== */
+  #notiBg, #notiOffBg{
+    position:absolute;inset:0;background:rgba(35,41,47,.35);
+    display:none;align-items:center;justify-content:center;z-index:25;padding:24px;
+  }
+  #notiBox, #notiOffBox{
+    background:#fff;border-radius:16px;padding:24px 20px;
+    width:min(88vw,340px);display:flex;flex-direction:column;gap:14px;
+    box-shadow:0 8px 30px rgba(35,41,47,.18);
+  }
+  #notiBox .nTitle, #notiOffBox .nTitle{
+    font-size:clamp(13px,4.4vw,17px);font-weight:700;text-align:center;
+    white-space:nowrap;overflow:hidden;
+  }
+  #notiBox .nBody, #notiOffBox .nBody{
+    background:var(--bg);border-radius:10px;padding:14px;
+    font-size:13px;line-height:1.65;color:#5A6570;
+  }
+  #notiBox .nBody strong, #notiOffBox .nBody strong{color:var(--text);font-weight:700;}
+  #notiBox .nRow, #notiOffBox .nRow{display:flex;gap:10px;}
+  #notiBox button, #notiOffBox button{
+    flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
+    font-size:15px;font-weight:500;font-family:inherit;
+  }
+  #notiOk{background:var(--text);color:#fff;}
+  #notiOffOk{background:var(--text);color:#fff;}
+
   /* ===== 백업 팝업 ===== */
   #backupBg{
     position:absolute;inset:0;background:rgba(35,41,47,.35);
@@ -223,7 +250,7 @@
   }
   #bigCircle{
     position:relative;flex:0 0 auto;
-    width:min(70vw,50vh);height:min(70vw,50vh);border-radius:50%;
+    width:min(78vw,52vh);height:min(78vw,52vh);border-radius:50%;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
     cursor:pointer;border:2px solid var(--circle-edge);background:var(--circle);
     box-shadow:0 4px 20px rgba(35,41,47,.06);
@@ -479,6 +506,35 @@
     <div class="row">
       <button id="confirmAllNo">취소</button>
       <button id="confirmAllYes">모두 초기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- 알림 안내 팝업 -->
+<div id="notiBg">
+  <div id="notiBox">
+    <div class="nTitle">알림을 켜면 이렇게 편해져요</div>
+    <div class="nBody">
+      타이머가 도는 동안 화면 맨 위에서 바로 멈추고 다시 시작할 수 있어요.<br><br>
+      할 일을 하다가 잠깐 멈춰야 할 때, 앱을 찾아 들어가지 않아도 돼요.
+    </div>
+    <div class="nRow">
+      <button id="notiOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 알림 거부 안내 팝업 -->
+<div id="notiOffBg">
+  <div id="notiOffBox">
+    <div class="nTitle">알림이 꺼져 있어요</div>
+    <div class="nBody">
+      지금은 화면 맨 위에서 타이머를 멈추거나 시작할 수 없어요. 앱에서는 그대로 다 됩니다.<br><br>
+      나중에 켜고 싶으면 폰에서 이렇게 하면 돼요.<br>
+      <strong>설정 → 알림 → 앱 알림 → 순작업시간</strong>
+    </div>
+    <div class="nRow">
+      <button id="notiOffOk">확인</button>
     </div>
   </div>
 </div>
@@ -792,13 +848,15 @@
     renderAttr();
     startCount(); // 누르는 순간 카운트 시작
   }
-  function startCount(){
-    runningSince = Date.now();
+  function startCount(atTs){
+    runningSince = Math.min(atTs || Date.now(), Date.now());
     save();
+    askNotifyPermission();   // 처음 타이머를 시작할 때 알림 권한을 물어봄
     big.classList.add('running');
     big.classList.remove('paused');
     bigState.textContent = '진행 중';
     renderFocus();
+    updateNotification();
   }
   // 경과 구간을 자정 기준으로 쪼개 날짜별 기록에 반영
   function dateKey(ts){
@@ -824,10 +882,10 @@
     }
   }
 
-  function pauseCount(){
+  function pauseCount(atTs){
     const t = tasks.find(t => t.id === focusId);
     if (t && runningSince) {
-      const now = Date.now();
+      const now = Math.max(runningSince, Math.min(atTs || Date.now(), Date.now()));
       t.accMs += now - runningSince;
       commitRecord(t.id, runningSince, now);
     }
@@ -838,6 +896,7 @@
     bigState.textContent = '일시정지';
     renderFocus();
     renderAttr();
+    updateNotification();
   }
   big.addEventListener('click', () => {
     if (Date.now() - focusEnteredAt < 500) return; // 화면 진입시킨 그 터치는 무시
@@ -851,6 +910,7 @@
     focus.classList.remove('active');
     big.classList.remove('running','paused');
     home.classList.add('active');
+    clearNotification();
     renderHome();
   }
   document.getElementById('backBtn').addEventListener('click', popLayer);
@@ -891,6 +951,99 @@
     renderHome();
   });
   confirmAllBg.addEventListener('click', e => { if (e.target === confirmAllBg) popLayer(); });
+
+  // ---- 알림 (안드로이드) ----
+  const NOTI_TAG = 'sunwork-timer';
+  let notifyAsked = false;
+
+  const notiBg = document.getElementById('notiBg');
+  const notiOffBg = document.getElementById('notiOffBg');
+
+  function askNotifyPermission(){
+    if (notifyAsked) return;          // 앱을 켠 동안 한 번만
+    notifyAsked = true;
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') { updateNotification(); return; }
+    if (Notification.permission === 'denied') return;   // 이미 거부했으면 조르지 않음
+    // 아직 정하지 않았으면 먼저 이유부터 설명
+    notiBg.style.display = 'flex';
+    pushLayer(closeNotiPrime);
+  }
+  function closeNotiPrime(){ notiBg.style.display = 'none'; }
+
+  // 팝업을 그냥 닫으면(뒤로가기·바깥 탭) 다음에 앱을 켤 때 다시 안내함
+  notiBg.addEventListener('click', e => { if (e.target === notiBg) popLayer(); });
+
+  document.getElementById('notiOk').addEventListener('click', () => {
+    popLayer();                       // 안내 팝업 닫고 곧바로 폰의 권한 창으로
+    try {
+      Notification.requestPermission().then(res => {
+        if (res === 'granted') updateNotification();
+        else showNotiOff();           // 거부하면 켜는 방법을 안내
+      });
+    } catch(e) { /* 지원하지 않는 환경 */ }
+  });
+
+  function showNotiOff(){
+    notiOffBg.style.display = 'flex';
+    pushLayer(closeNotiOff);
+  }
+  function closeNotiOff(){ notiOffBg.style.display = 'none'; }
+  document.getElementById('notiOffOk').addEventListener('click', popLayer);
+  notiOffBg.addEventListener('click', e => { if (e.target === notiOffBg) popLayer(); });
+
+  function swReady(){
+    if (!('serviceWorker' in navigator)) return null;
+    return navigator.serviceWorker.ready;
+  }
+
+  // 타이머 화면에 있을 때만 알림을 띄우고, 상태가 바뀌면 내용을 갱신
+  function updateNotification(){
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const reg = swReady();
+    if (!reg) return;
+    const t = tasks.find(x => x.id === focusId);
+    if (!t) { clearNotification(); return; }
+    const running = !!runningSince;
+    reg.then(r => {
+      r.showNotification('순작업시간', {
+        tag: NOTI_TAG,
+        body: t.name + ' - ' + (running ? '진행 중' : '일시정지'),
+        icon: 'icon-192.png',
+        badge: 'icon-badge.png',
+        silent: true,
+        renotify: false,
+        requireInteraction: true,
+        actions: running
+          ? [{ action: 'pause', title: '일시정지' }]
+          : [{ action: 'resume', title: '시작' }]
+      }).catch(() => {});
+    });
+  }
+
+  function clearNotification(){
+    const reg = swReady();
+    if (!reg) return;
+    reg.then(r => r.getNotifications({ tag: NOTI_TAG })
+      .then(list => list.forEach(n => n.close()))).catch(() => {});
+  }
+
+  // 알림 버튼이 눌렸을 때 (앱이 떠 있는 경우)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', ev => {
+      const d = ev.data || {};
+      if (d.type !== 'timer-action') return;
+      applyNotifyAction(d.action, d.ts);
+    });
+  }
+
+  function applyNotifyAction(action, ts){
+    if (focusId === null) return;
+    if (action === 'pause' && runningSince) pauseCount(ts);
+    else if (action === 'resume' && !runningSince) startCount(ts);
+    else updateNotification();
+  }
+
   function renderFocus(){
     const t = tasks.find(t => t.id === focusId);
     if (!t) return;
@@ -910,7 +1063,7 @@
     const CIRC = 2 * Math.PI * 48.5;
     ringPath.style.strokeDasharray = CIRC;
     ringPath.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
-    setBigFlame(goalDone(t));
+    setBigFlame(false);   // 타이머 화면은 링만으로 충분
   }
   function setBigFlame(on){
     const has = big.classList.contains('goalDone');
@@ -1330,17 +1483,33 @@
 
   if (needCleanSave) save();   // 정리된 결과를 저장
 
-  // 시작: 카운트 중에 앱이 닫혔었다면 집중 화면으로 복원 (시간은 timestamp 기반이라 정확)
-  if (focusId !== null && runningSince) {
+  // 앱이 꺼진 상태에서 알림 버튼을 눌러 열린 경우: 누른 시각 기준으로 처리
+  let pendingAct = null;
+  try {
+    const q = new URLSearchParams(location.search);
+    const act = q.get('act'), ts = parseInt(q.get('t'), 10);
+    if (act && ts) pendingAct = { act: act, ts: ts };
+    if (act) history.replaceState(null, '', location.pathname);   // 주소 정리
+  } catch(e) {}
+
+  // 시작: 타이머 화면에 있던 중 앱이 닫혔다면 그 화면으로 복원
+  // (진행 중이든 일시정지든 모두 복원해야 알림의 '시작' 버튼이 살아있음)
+  if (focusId !== null) {
     home.classList.remove('active');
     focus.classList.add('active');
-    big.classList.add('running');
-    bigState.textContent = '진행 중';
+    if (runningSince) {
+      big.classList.add('running');
+      bigState.textContent = '진행 중';
+    } else {
+      big.classList.add('paused');
+      bigState.textContent = '일시정지';
+    }
     pushLayer(closeFocus);
     renderFocus();
     renderAttr();
+    if (pendingAct) applyNotifyAction(pendingAct.act, pendingAct.ts);
+    else updateNotification();
   } else {
-    focusId = null;
     renderHome();
   }
 })();
