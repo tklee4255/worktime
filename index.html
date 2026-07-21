@@ -1084,11 +1084,11 @@
     if (!t) { clearNotification(); return; }
     const running = !!runningSince;
     reg.then(r => {
-      r.showNotification('순작업시간', {
+      r.showNotification(running ? '진행 중' : '일시정지', {
         tag: NOTI_TAG,
         body: t.name + ' - ' + (running ? '진행 중' : '일시정지'),
-        icon: 'icon-192.png',
-        badge: 'icon-badge.png',
+        icon: running ? 'icon-192.png' : 'icon-pause-192.png',
+        badge: running ? 'icon-badge.png' : 'icon-badge-pause.png',
         silent: true,
         renotify: false,
         requireInteraction: true,
@@ -1115,6 +1115,8 @@
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') drainPending();
+    // 앱 밖으로 나갔을 때(홈 버튼 등) 알림이 사라져 있으면 다시 띄움
+    updateNotification();
   });
 
   function applyNotifyAction(action, ts){

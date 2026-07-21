@@ -1,4 +1,4 @@
-const CACHE = 'sunwork-v19';
+const CACHE = 'sunwork-v20';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,9 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png',
-  './icon-badge.png'
+  './icon-badge.png',
+  './icon-pause-192.png',
+  './icon-badge-pause.png'
 ];
 
 self.addEventListener('install', e => {
@@ -56,15 +58,16 @@ const NOTI_TAG = 'sunwork-timer';
 function showTimerNotification(view){
   if (!view || !view.active) return self.registration.getNotifications({ tag: NOTI_TAG })
     .then(list => list.forEach(n => n.close()));
-  return self.registration.showNotification('순작업시간', {
+  const run = !!view.running;
+  return self.registration.showNotification(run ? '진행 중' : '일시정지', {
     tag: NOTI_TAG,
-    body: view.name + ' - ' + (view.running ? '진행 중' : '일시정지'),
-    icon: 'icon-192.png',
-    badge: 'icon-badge.png',
+    body: view.name + ' - ' + (run ? '진행 중' : '일시정지'),
+    icon: run ? 'icon-192.png' : 'icon-pause-192.png',
+    badge: run ? 'icon-badge.png' : 'icon-badge-pause.png',
     silent: true,
     renotify: false,
     requireInteraction: true,
-    actions: view.running
+    actions: run
       ? [{ action: 'pause', title: '일시정지' }]
       : [{ action: 'resume', title: '시작' }]
   });
