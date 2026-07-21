@@ -1045,6 +1045,29 @@
   }
   function closeNotiPrime(){ notiBg.style.display = 'none'; }
 
+  // 폰에 실제로 저장된 알림 권한 상태를 조회 ('granted' | 'denied' | 'prompt')
+  function readStoredPermission(){
+    return new Promise(resolve => {
+      const fallback = () => {
+        // 조회 창구가 없는 환경: 잠시 뒤 값을 읽어 순간적인 오답을 피함
+        setTimeout(() => {
+          let p = 'prompt';
+          try {
+            if (Notification.permission === 'granted') p = 'granted';
+            else if (Notification.permission === 'denied') p = 'denied';
+          } catch(e) {}
+          resolve(p);
+        }, 500);
+      };
+      try {
+        if (!navigator.permissions || !navigator.permissions.query) return fallback();
+        navigator.permissions.query({ name: 'notifications' })
+          .then(st => resolve(st.state))
+          .catch(fallback);
+      } catch(e) { fallback(); }
+    });
+  }
+
   // 팝업을 그냥 닫으면(뒤로가기·바깥 탭) 다음에 앱을 켤 때 다시 안내함
   notiBg.addEventListener('click', e => {
     if (e.target === notiBg) popLayer();
@@ -1054,16 +1077,15 @@
     popLayer();                       // 안내 팝업 닫고 곧바로 폰의 권한 창으로
     try {
       Notification.requestPermission().then(res => {
-        // 권한 창을 그냥 닫으면 폰이 '거부'라고 답하기도 해서,
-        // 실제로 폰에 기록된 상태를 한 번 더 확인함
-        let perm = res;
-        try {
-          if (typeof Notification.permission === 'string') perm = Notification.permission;
-        } catch(e) {}
-        if (perm === 'granted') updateNotification();
-        else if (perm === 'denied') showNotiOff();   // 정말로 차단된 경우만 안내
-        // 'default'(아직 안 정함)이면 아무것도 하지 않고,
-        // 앱을 다시 켰을 때 사전 안내부터 다시 보여줌
+        if (res === 'granted') { updateNotification(); return; }
+        // 권한 창을 그냥 닫아도 폰이 순간적으로 '거부'라고 답하는 경우가 있어서,
+        // 실제로 저장된 상태를 따로 조회해서 판단함
+        readStoredPermission().then(state => {
+          if (state === 'granted') updateNotification();
+          else if (state === 'denied') showNotiOff();   // 정말로 차단된 경우만 안내
+          // 'prompt'(아직 안 정함)이면 아무것도 하지 않고,
+          // 앱을 다시 켰을 때 사전 안내부터 다시 보여줌
+        });
       });
     } catch(e) { /* 지원하지 않는 환경 */ }
   });
