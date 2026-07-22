@@ -191,6 +191,37 @@
   .circle.editing:active{transform:none;}
   .circle .name{font-size:17px;font-weight:700;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
   .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
+  /* 편집 모드: 모든 원에 드래그 손잡이 */
+  .circle .grip{
+    display:none;position:absolute;left:-6px;top:50%;transform:translateY(-50%);
+    width:34px;height:44px;border-radius:12px;
+    background:#fff;border:1.5px solid var(--circle-edge);
+    box-shadow:0 2px 8px rgba(35,41,47,.12);
+    align-items:center;justify-content:center;
+    color:var(--muted);font-size:15px;line-height:1;
+    cursor:grab;touch-action:none;z-index:3;
+  }
+  #grid.reorder .circle .grip{display:flex;}
+  .circle.dragging{opacity:.35;}
+  .circle.dropTarget{border-color:var(--run);}
+  #dragGhost{
+    position:fixed;z-index:60;pointer-events:none;
+    width:148px;height:148px;border-radius:50%;
+    background:var(--circle);border:2px solid var(--run);
+    box-shadow:0 10px 26px rgba(35,41,47,.22);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    transform:translate(-50%,-50%) scale(1.05);
+  }
+  #dragGhost .name{font-size:17px;font-weight:700;}
+  #dragGhost .time{font-size:14px;color:var(--muted);}
+
+  /* 홈 화면에서 진행 중인 원 */
+  .circle.running{
+    background:radial-gradient(circle at 50% 42%, #FFF6E6 0%, #FFEECF 78%);
+    border-color:var(--run);
+  }
+  .circle.running .time{color:var(--run-deep);font-weight:500;}
+
   .circle .ring{
     position:absolute;inset:-1.5px;width:calc(100% + 3px);height:calc(100% + 3px);
     pointer-events:none;transform:rotate(-90deg);display:none;
@@ -575,7 +606,8 @@
   // { 'YYYY-MM-DD': { taskId: { goalMs: n, checks: { itemId: {text, daily, done} } } } }
   let dayLog = {};
   let nextItemId = 1;
-  let focusId = null;       // 집중 화면에 떠 있는 할일
+  let focusId = null;       // 지금 세션 중인 할일 (홈으로 나가도 유지됨)
+  let showFocus = false;    // 타이머 화면을 보고 있는지
   let runningSince = null;  // 카운트 중이면 시작 timestamp
   let editingId = null;     // 인라인 수정 중인 할일
 
@@ -583,7 +615,7 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         tasks, nextId, records, taskNames, focusId, runningSince, dayLog, nextItemId,
-        cleaned_v6: true
+        showFocus, cleaned_v6: true
       }));
     } catch(e) { /* 저장 불가 환경: 메모리 모드 */ }
     try { syncView(); } catch(e) {}
@@ -602,9 +634,10 @@
       if (typeof d.nextItemId === 'number') nextItemId = d.nextItemId;
       tasks.forEach(t => { if (!Array.isArray(t.checklist)) t.checklist = []; });
       if (typeof d.focusId === 'number') focusId = d.focusId;
+      showFocus = !!d.showFocus;
       if (typeof d.runningSince === 'number') runningSince = d.runningSince;
       // 카운트 중이던 할일이 삭제된 비정상 데이터 방어
-      if (focusId !== null && !tasks.find(t => t.id === focusId)) { focusId = null; runningSince = null; }
+      if (focusId !== null && !tasks.find(t => t.id === focusId)) { focusId = null; runningSince = null; showFocus = false; }
       // 이전 버전에서 남은 잘못된 달성 기록 정리 (시간 기록이 없는 날짜의 잔재 제거)
       if (!d.cleaned_v6) {
         Object.keys(dayLog).forEach(k => {
@@ -763,12 +796,19 @@
       c.dataset.id = t.id;
       c.innerHTML =
         '<svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48.5"></circle></svg>' +
+        '<div class="grip" aria-label="순서 이동">⇕</div>' +
         '<button class="delBtn" aria-label="삭제">✕</button>' +
         '<div class="name"></div>' +
         '<input class="nameInput" maxlength="20">' +
         '<div class="time"></div>';
       c.querySelector('.name').textContent = t.name;
-      c.querySelector('.time').textContent = fmt(t.accMs);
+      c.querySelector('.time').textContent = fmt(currentMs(t));
+      if (focusId === t.id && runningSince) c.classList.add('running');
+      if (editingId === t.id) {                 // 편집 중이던 원은 상태 유지
+        c.classList.add('editing');
+        c.querySelector('.nameInput').value = t.name;
+      }
+      bindGrip(c.querySelector('.grip'), t);
 
       // 목표시간이 있으면 오늘 진행률만큼 링을 채움
       if (t.goalMs) {
@@ -826,10 +866,81 @@
     });
   }
 
+
+  // ---- 순서 바꾸기: 편집 모드에서 손잡이를 잡고 드래그 ----
+  let dragTask = null, ghost = null, dropIdx = -1;
+
+  function circleAtPoint(x, y){
+    const list = Array.from(grid.querySelectorAll('.circle'));
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i].getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return { el: list[i], idx: i };
+    }
+    return null;
+  }
+
+  function bindGrip(grip, t){
+    if (!grip) return;
+    grip.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (editingId === null) return;          // 편집 모드에서만
+      dragTask = t;
+      grip.setPointerCapture(e.pointerId);
+
+      const src = grid.querySelector('.circle[data-id="' + t.id + '"]');
+      if (src) src.classList.add('dragging');
+
+      ghost = document.createElement('div');
+      ghost.id = 'dragGhost';
+      ghost.innerHTML = '<div class="name"></div><div class="time"></div>';
+      ghost.querySelector('.name').textContent = t.name;
+      ghost.querySelector('.time').textContent = fmt(currentMs(t));
+      document.body.appendChild(ghost);
+      moveGhost(e.clientX, e.clientY);
+    });
+
+    grip.addEventListener('pointermove', e => {
+      if (!dragTask) return;
+      e.preventDefault();
+      moveGhost(e.clientX, e.clientY);
+    });
+
+    const finish = e => {
+      if (!dragTask) return;
+      const hit = circleAtPoint(e.clientX, e.clientY);
+      const from = tasks.findIndex(x => x.id === dragTask.id);
+      if (hit && from >= 0 && hit.idx !== from) {
+        const moved = tasks.splice(from, 1)[0];
+        tasks.splice(hit.idx, 0, moved);
+        save();
+      }
+      cleanupDrag();
+      renderHome();
+      if (editingId !== null) grid.classList.add('reorder');   // 편집 모드 유지
+    };
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', () => { cleanupDrag(); renderHome();
+      if (editingId !== null) grid.classList.add('reorder'); });
+  }
+
+  function moveGhost(x, y){
+    if (ghost) { ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; }
+    const hit = circleAtPoint(x, y);
+    grid.querySelectorAll('.circle.dropTarget').forEach(el => el.classList.remove('dropTarget'));
+    if (hit && dragTask && hit.el.dataset.id !== String(dragTask.id)) hit.el.classList.add('dropTarget');
+  }
+
+  function cleanupDrag(){
+    dragTask = null; dropIdx = -1;
+    if (ghost) { ghost.remove(); ghost = null; }
+  }
+
   function startEdit(t, c, input){
     if (editingId !== null) finishEdit();
     swallowNextClick();   // 손 뗀 자리에 나타난 버튼이 눌리지 않게
     editingId = t.id;
+    grid.classList.add('reorder');      // 모든 원에 순서 이동 손잡이
     c.classList.add('editing');
     input.value = t.name;
     setTimeout(() => { input.focus(); input.select(); }, 0);
@@ -852,6 +963,7 @@
       if (v) { t.name = v; taskNames[t.id] = v; save(); }
     }
     editingId = null;
+    grid.classList.remove('reorder');
     if (!suppressEditPop) popLayer();  // 버튼/바깥탭으로 끝낸 경우 레이어도 정리
     renderHome();
   }
@@ -862,16 +974,27 @@
 
   // ---- 집중 화면 ----
   function enterFocus(id){
-    focusId = id;
     swallowNextClick();   // 이 터치로 생길 클릭이 다음 화면에 먹히지 않게
+    // 다른 할일이 돌고 있었다면 먼저 멈춤 (한 번에 하나만)
+    if (focusId !== null && focusId !== id && runningSince) pauseCount();
+    focusId = id;
+    showFocus = true;
     home.classList.remove('active');
     focus.classList.add('active');
+    big.classList.remove('running','paused');
     pushLayer(closeFocus);
     attrArea.classList.remove('editing');
     const ft = tasks.find(x => x.id === id);
     if (ft && (ft.goalMs || (ft.checklist || []).length)) { syncDayLog(ft); save(); }
     renderAttr();
-    startCount(); // 누르는 순간 카운트 시작
+    if (runningSince) {          // 이미 돌고 있던 할일이면 그대로 이어서 보여줌
+      big.classList.add('running');
+      bigState.textContent = '진행 중';
+      renderFocus();
+      save();
+    } else {
+      startCount();              // 아니면 누르는 순간 카운트 시작
+    }
   }
   function startCount(atTs){
     runningSince = Math.min(atTs || Date.now(), Date.now());
@@ -928,13 +1051,16 @@
   });
   function closeFocus(){
     attrArea.classList.remove('editing');
-    if (runningSince) pauseCount(); // 카운트 중이면 자동 일시정지 후 복귀
-    focusId = null;
+    showFocus = false;
+    if (!runningSince) {          // 멈춘 상태로 나가면 세션 종료
+      focusId = null;
+      clearNotification();
+    }
     save();
     focus.classList.remove('active');
     big.classList.remove('running','paused');
     home.classList.add('active');
-    clearNotification();
+    updateNotification();         // 계속 돌고 있으면 알림 유지
     renderHome();
   }
   document.getElementById('backBtn').addEventListener('click', popLayer);
@@ -1156,6 +1282,12 @@
   let lastGoalDone = null;
   setInterval(() => {
     if (!focusId || !runningSince) return;
+    if (!showFocus) {                 // 홈 화면일 때는 그 원의 시간만 갱신
+      const c = grid.querySelector('.circle[data-id="' + focusId + '"] .time');
+      const tk = tasks.find(x => x.id === focusId);
+      if (c && tk) c.textContent = fmt(currentMs(tk));
+      return;
+    }
     renderFocus();
     const t = tasks.find(t => t.id === focusId);
     if (!t) return;
@@ -1566,7 +1698,7 @@
 
   // 시작: 타이머 화면에 있던 중 앱이 닫혔다면 그 화면으로 복원
   // (진행 중이든 일시정지든 모두 복원해야 알림의 '시작' 버튼이 살아있음)
-  if (focusId !== null) {
+  if (focusId !== null && showFocus) {
     home.classList.remove('active');
     focus.classList.add('active');
     if (runningSince) {
@@ -1576,13 +1708,21 @@
       big.classList.add('paused');
       bigState.textContent = '일시정지';
     }
-    // 페이지가 막 열리는 순간에 등록하면 폰이 무시하는 경우가 있어 한 박자 늦춤
-    setTimeout(() => pushLayer(closeFocus), 0);
+    // 화면을 한 번도 건드리지 않은 상태에서 등록한 화면 기록은
+    // 크롬이 뒤로가기에서 건너뛰기 때문에, 첫 터치 때 등록함
+    const armFocusLayer = () => {
+      document.removeEventListener('pointerdown', armFocusLayer, true);
+      if (focusId !== null && !layers.length) pushLayer(closeFocus);
+    };
+    document.addEventListener('pointerdown', armFocusLayer, true);
     renderFocus();
     renderAttr();
     drainPending();          // 알림으로 눌러둔 것이 있으면 그 시각 그대로 반영
     updateNotification();
   } else {
+    showFocus = false;
+    drainPending();
+    updateNotification();    // 홈 화면이어도 진행 중이면 알림 유지
     renderHome();
   }
 })();
