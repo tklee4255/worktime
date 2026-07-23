@@ -174,6 +174,7 @@
   .recEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
 
   #grid{
+    position:relative;
     flex:1 1 auto;min-height:0;display:flex;flex-wrap:wrap;justify-content:center;
     align-content:center;
     align-content:safe center;
@@ -193,17 +194,21 @@
   .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
   /* 편집 모드: 모든 원에 드래그 손잡이 */
   .circle .grip{
-    display:none;position:absolute;left:-6px;top:50%;transform:translateY(-50%);
-    width:34px;height:44px;border-radius:12px;
-    background:#fff;border:1.5px solid var(--circle-edge);
-    box-shadow:0 2px 8px rgba(35,41,47,.12);
+    display:none;position:absolute;left:-8px;top:50%;transform:translateY(-50%);
+    width:38px;height:50px;border-radius:12px;
+    background:#E7EAEE;border:1.5px solid #D2D8DF;
+    box-shadow:0 2px 8px rgba(35,41,47,.14);
     align-items:center;justify-content:center;
-    color:var(--muted);font-size:15px;line-height:1;
+    color:#5F6B78;font-size:26px;line-height:1;font-weight:700;
     cursor:grab;touch-action:none;z-index:3;
   }
   #grid.reorder .circle .grip{display:flex;}
   .circle.dragging{opacity:.35;}
-  .circle.dropTarget{border-color:var(--run);}
+  #dropLine{
+    position:absolute;height:4px;border-radius:2px;
+    background:var(--run);box-shadow:0 0 8px rgba(245,158,27,.5);
+    pointer-events:none;display:none;z-index:4;
+  }
   #dragGhost{
     position:fixed;z-index:60;pointer-events:none;
     width:148px;height:148px;border-radius:50%;
@@ -868,15 +873,59 @@
 
 
   // ---- 순서 바꾸기: 편집 모드에서 손잡이를 잡고 드래그 ----
-  let dragTask = null, ghost = null, dropIdx = -1;
+  let dragTask = null, ghost = null, dropLine = null;
+  let lastX = 0, lastY = 0;
+  let scrollDir = 0, scrollTimer = null;
 
-  function circleAtPoint(x, y){
-    const list = Array.from(grid.querySelectorAll('.circle'));
-    for (let i = 0; i < list.length; i++) {
-      const r = list[i].getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return { el: list[i], idx: i };
+  // 지금 손가락 위치가 어느 자리에 끼어들지 계산 (끌고 있는 원은 제외)
+  function insertIndexAt(y){
+    const others = Array.from(grid.querySelectorAll('.circle'))
+      .filter(el => el.dataset.id !== String(dragTask.id));
+    for (let i = 0; i < others.length; i++) {
+      const r = others[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) return { idx: i, list: others };
     }
-    return null;
+    return { idx: others.length, list: others };
+  }
+
+  // 끼어들 자리에 호박색 가로줄 표시
+  function showDropLine(y){
+    if (!dropLine) return;
+    const { idx, list } = insertIndexAt(y);
+    const gr = grid.getBoundingClientRect();
+    let top, left, width;
+    if (!list.length) { dropLine.style.display = 'none'; return; }
+    if (idx === 0) {
+      const r = list[0].getBoundingClientRect();
+      top = r.top - 14; left = r.left; width = r.width;
+    } else {
+      const r = list[idx - 1].getBoundingClientRect();
+      top = r.bottom + 12; left = r.left; width = r.width;
+    }
+    dropLine.style.display = 'block';
+    dropLine.style.top = (top - gr.top + grid.scrollTop) + 'px';
+    dropLine.style.left = (left - gr.left) + 'px';
+    dropLine.style.width = width + 'px';
+  }
+
+  // 화면 위/아래 가장자리에서 천천히 스크롤
+  function autoScroll(y){
+    const r = grid.getBoundingClientRect();
+    const zone = 90;
+    if (y < r.top + zone) scrollDir = -1;
+    else if (y > r.bottom - zone) scrollDir = 1;
+    else scrollDir = 0;
+    if (scrollDir === 0) { stopAutoScroll(); return; }
+    if (!scrollTimer) {
+      scrollTimer = setInterval(() => {
+        grid.scrollTop += scrollDir * 6;      // 천천히
+        if (ghost) showDropLine(lastY);
+      }, 16);
+    }
+  }
+  function stopAutoScroll(){
+    if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; }
+    scrollDir = 0;
   }
 
   function bindGrip(grip, t){
@@ -891,28 +940,37 @@
       const src = grid.querySelector('.circle[data-id="' + t.id + '"]');
       if (src) src.classList.add('dragging');
 
+      dropLine = document.createElement('div');
+      dropLine.id = 'dropLine';
+      grid.appendChild(dropLine);
+
       ghost = document.createElement('div');
       ghost.id = 'dragGhost';
       ghost.innerHTML = '<div class="name"></div><div class="time"></div>';
       ghost.querySelector('.name').textContent = t.name;
       ghost.querySelector('.time').textContent = fmt(currentMs(t));
       document.body.appendChild(ghost);
-      moveGhost(e.clientX, e.clientY);
+      lastX = e.clientX; lastY = e.clientY;
+      moveGhost(lastX, lastY);
     });
 
     grip.addEventListener('pointermove', e => {
       if (!dragTask) return;
+      e.stopPropagation();
       e.preventDefault();
-      moveGhost(e.clientX, e.clientY);
+      lastX = e.clientX; lastY = e.clientY;
+      moveGhost(lastX, lastY);
+      autoScroll(lastY);
     });
 
     const finish = e => {
+      e.stopPropagation();                    // 원에게 전달돼 편집 모드가 끝나는 것 방지
       if (!dragTask) return;
-      const hit = circleAtPoint(e.clientX, e.clientY);
+      const { idx } = insertIndexAt(lastY);
       const from = tasks.findIndex(x => x.id === dragTask.id);
-      if (hit && from >= 0 && hit.idx !== from) {
+      if (from >= 0) {
         const moved = tasks.splice(from, 1)[0];
-        tasks.splice(hit.idx, 0, moved);
+        tasks.splice(idx, 0, moved);
         save();
       }
       cleanupDrag();
@@ -920,20 +978,24 @@
       if (editingId !== null) grid.classList.add('reorder');   // 편집 모드 유지
     };
     grip.addEventListener('pointerup', finish);
-    grip.addEventListener('pointercancel', () => { cleanupDrag(); renderHome();
-      if (editingId !== null) grid.classList.add('reorder'); });
+    grip.addEventListener('pointercancel', e => {
+      e.stopPropagation();
+      cleanupDrag();
+      renderHome();
+      if (editingId !== null) grid.classList.add('reorder');
+    });
   }
 
   function moveGhost(x, y){
     if (ghost) { ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; }
-    const hit = circleAtPoint(x, y);
-    grid.querySelectorAll('.circle.dropTarget').forEach(el => el.classList.remove('dropTarget'));
-    if (hit && dragTask && hit.el.dataset.id !== String(dragTask.id)) hit.el.classList.add('dropTarget');
+    showDropLine(y);
   }
 
   function cleanupDrag(){
-    dragTask = null; dropIdx = -1;
+    dragTask = null;
+    stopAutoScroll();
     if (ghost) { ghost.remove(); ghost = null; }
+    if (dropLine) { dropLine.remove(); dropLine = null; }
   }
 
   function startEdit(t, c, input){
@@ -967,10 +1029,19 @@
     if (!suppressEditPop) popLayer();  // 버튼/바깥탭으로 끝낸 경우 레이어도 정리
     renderHome();
   }
-  // 원 바깥을 탭하면 수정 저장·종료
+  // 원 바깥을 '탭'하면 수정 저장·종료 (스크롤이나 드래그는 종료시키지 않음)
+  let outTap = null;
   document.addEventListener('pointerdown', e => {
-    if (editingId !== null && !e.target.closest('.circle')) finishEdit();
+    if (editingId === null || e.target.closest('.circle')) { outTap = null; return; }
+    outTap = { x: e.clientX, y: e.clientY };
   });
+  document.addEventListener('pointerup', e => {
+    if (!outTap || editingId === null) { outTap = null; return; }
+    const moved = Math.abs(e.clientX - outTap.x) + Math.abs(e.clientY - outTap.y);
+    outTap = null;
+    if (moved < 12 && !e.target.closest('.circle')) finishEdit();   // 거의 안 움직였으면 탭
+  });
+  document.addEventListener('pointercancel', () => { outTap = null; });
 
   // ---- 집중 화면 ----
   function enterFocus(id){
