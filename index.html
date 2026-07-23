@@ -393,6 +393,12 @@
     background:var(--bg);border-radius:8px;padding:9px 10px;
   }
   #editList li .txt{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #editList li input.itemInput{
+    font-family:inherit;font-size:15px;color:var(--text);
+    background:none;border:none;border-bottom:1.5px solid transparent;
+    outline:none;padding:2px 0;
+  }
+  #editList li input.itemInput:focus{border-bottom-color:var(--run);}
   #editList li .tag{
     flex:0 0 auto;font-size:11px;color:var(--run-deep);
     border:1px solid var(--run);border-radius:20px;padding:2px 8px;
@@ -1474,10 +1480,22 @@
     const sorted = draft.items.slice().sort((a,b) => (b.daily?1:0) - (a.daily?1:0));
     sorted.forEach(it => {
       const li = document.createElement('li');
-      li.innerHTML = '<span class="txt"></span>' +
+      li.innerHTML = '<input class="txt itemInput" maxlength="40">' +
         (it.daily ? '<span class="tag">매일</span>' : '') +
         '<button class="del" aria-label="삭제">✕</button>';
-      li.querySelector('.txt').textContent = it.text;
+      const inp = li.querySelector('.itemInput');
+      inp.value = it.text;
+      // 누르면 그 자리에서 이름 수정
+      inp.addEventListener('input', () => {
+        const v = inp.value;
+        const target = draft.items.find(x => x.id === it.id);
+        if (target) target.text = v;
+      });
+      inp.addEventListener('blur', () => {
+        const target = draft.items.find(x => x.id === it.id);
+        if (target && !target.text.trim()) { inp.value = it.text; target.text = it.text; }
+      });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
       li.querySelector('.del').addEventListener('click', () => {
         draft.items = draft.items.filter(x => x.id !== it.id);
         renderEditList();
