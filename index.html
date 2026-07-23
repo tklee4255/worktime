@@ -1353,17 +1353,32 @@
   let lastGoalDone = null;
   setInterval(() => {
     if (!focusId || !runningSince) return;
-    if (!showFocus) {                 // 홈 화면일 때는 그 원의 시간만 갱신
-      const c = grid.querySelector('.circle[data-id="' + focusId + '"] .time');
-      const tk = tasks.find(x => x.id === focusId);
-      if (c && tk) c.textContent = fmt(currentMs(tk));
+    const t = tasks.find(x => x.id === focusId);
+    if (!t) return;
+    const nowDone = goalDone(t);
+
+    if (!showFocus) {                 // 홈 화면
+      const el = grid.querySelector('.circle[data-id="' + focusId + '"]');
+      if (el) {
+        const tm = el.querySelector('.time');
+        if (tm) tm.textContent = fmt(currentMs(t));
+        // 진행률 링을 계속 채우고, 목표를 넘기는 순간 발광을 켬
+        if (t.goalMs) {
+          const CIRC = 2 * Math.PI * 48.5;
+          const ring = el.querySelector('.ring circle');
+          if (ring) ring.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
+          if (nowDone && !el.classList.contains('goalDone')) {
+            el.classList.add('goalDone');
+            el.insertAdjacentHTML('afterbegin', flameMarkup());
+          }
+        }
+      }
+      lastGoalDone = nowDone;
       return;
     }
+
     renderFocus();
-    const t = tasks.find(t => t.id === focusId);
-    if (!t) return;
-    const now = goalDone(t);
-    if (now !== lastGoalDone) { lastGoalDone = now; renderAttr(); }
+    if (nowDone !== lastGoalDone) { lastGoalDone = nowDone; renderAttr(); }
   }, 250);
 
   // ---- 속성: 목표시간 / 체크리스트 ----
