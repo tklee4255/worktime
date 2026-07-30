@@ -412,8 +412,7 @@
     flex:0 0 auto;background:none;border:none;color:var(--danger);
     font-size:15px;cursor:pointer;padding:2px 4px;font-family:inherit;
   }
-  #editList li{transition:transform .12s;}
-  #editList li.itemDragging{touch-action:none;}
+  #editList li{transition:transform .12s;touch-action:none;}
   #editList li.itemDragging{
     background:#fff;box-shadow:0 6px 18px rgba(35,41,47,.2);
     transform:scale(1.03);position:relative;z-index:5;
@@ -1608,12 +1607,18 @@
       }, 350);
     });
 
+    let lastMoveY = 0;
     li.addEventListener('pointermove', e => {
       if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 8) {
-        moved = true;
-        if (!longActive) clearTimeout(pressTimer);   // 살짝 움직이면 탭도 드래그도 아님(스크롤)
+        if (!moved) { moved = true; lastMoveY = e.clientY; }
+        if (!longActive) clearTimeout(pressTimer);   // 드래그 대기 취소
       }
-      if (!longActive || !itemDrag) return;
+      if (!longActive) {
+        // 드래그가 아니면 손가락 움직인 만큼 목록을 직접 스크롤
+        if (moved) { focus.scrollTop -= (e.clientY - lastMoveY); lastMoveY = e.clientY; e.preventDefault(); }
+        return;
+      }
+      if (!itemDrag) return;
       e.preventDefault();
       itemAutoScroll(e.clientY);
       const rows = Array.from(editList.querySelectorAll('li'));
