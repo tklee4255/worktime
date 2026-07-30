@@ -194,12 +194,12 @@
   .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
   /* 편집 모드: 모든 원에 드래그 손잡이 */
   .circle .grip{
-    display:none;position:absolute;left:-8px;top:50%;transform:translateY(-50%);
+    display:none;position:absolute;left:-26px;top:50%;transform:translateY(-50%);
     width:38px;height:50px;border-radius:12px;
     background:#E7EAEE;border:1.5px solid #D2D8DF;
     box-shadow:0 2px 8px rgba(35,41,47,.14);
     align-items:center;justify-content:center;
-    color:#5F6B78;font-size:26px;line-height:1;font-weight:700;
+    color:#5F6B78;font-size:24px;line-height:1;font-weight:300;
     cursor:grab;touch-action:none;z-index:3;
   }
   #grid.reorder .circle .grip{display:flex;}
@@ -400,8 +400,9 @@
   #editList li input.itemInput{
     font-family:inherit;font-size:15px;color:var(--text);
     background:none;border:none;border-bottom:1.5px solid transparent;
-    outline:none;padding:2px 0;
+    outline:none;padding:2px 0;min-width:0;flex:1 1 auto;
   }
+  #editList li input.itemInput[readonly]{cursor:default;pointer-events:none;}
   #editList li input.itemInput:focus{border-bottom-color:var(--run);}
   #editList li .tag{
     flex:0 0 auto;font-size:11px;color:var(--run-deep);
@@ -1532,7 +1533,7 @@
     draft.items.forEach(it => {
       const li = document.createElement('li');
       li.dataset.id = it.id;
-      li.innerHTML = '<input class="txt itemInput" maxlength="40">' +
+      li.innerHTML = '<input class="txt itemInput" maxlength="40" readonly>' +
         (it.daily ? '<span class="tag">매일</span>' : '') +
         '<button class="del" aria-label="삭제">✕</button>';
       const inp = li.querySelector('.itemInput');
@@ -1542,6 +1543,7 @@
         if (target) target.text = inp.value;
       });
       inp.addEventListener('blur', () => {
+        inp.setAttribute('readonly', '');      // 편집 끝나면 다시 잠금
         const target = draft.items.find(x => x.id === it.id);
         if (target && !target.text.trim()) { inp.value = it.text; target.text = it.text; }
       });
@@ -1555,23 +1557,29 @@
     });
   }
 
-  // 세부목표 드래그 정렬: 타일을 꾹 눌러 잡고 위아래로 이동 (같은 그룹 안에서만)
+  // 세부목표: 탭하면 이름 편집, 꾹 누르면 드래그 정렬 (같은 그룹 안에서만)
   let itemDrag = null;
   function bindItemDrag(li, it){
-    let pressTimer = null, longActive = false, startY = 0;
+    let pressTimer = null, longActive = false, moved = false, downX = 0, downY = 0;
 
     li.addEventListener('pointerdown', e => {
-      if (e.target.closest('.del') || e.target.closest('.itemInput')) return; // 삭제·이름수정은 제외
-      startY = e.clientY;
-      pressTimer = setTimeout(() => {
+      if (e.target.closest('.del')) return;
+      moved = false; downX = e.clientX; downY = e.clientY;
+      const inp = li.querySelector('.itemInput');
+      pressTimer = setTimeout(() => {           // 길게 누름 → 드래그 시작
         longActive = true;
+        if (inp) inp.blur();
         itemDrag = { it: it, li: li };
         li.classList.add('itemDragging');
         li.setPointerCapture(e.pointerId);
-      }, 400);
+      }, 350);
     });
 
     li.addEventListener('pointermove', e => {
+      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 8) {
+        moved = true;
+        if (!longActive) clearTimeout(pressTimer);   // 살짝 움직이면 탭도 드래그도 아님(스크롤)
+      }
       if (!longActive || !itemDrag) return;
       e.preventDefault();
       const rows = Array.from(editList.querySelectorAll('li'));
@@ -1582,23 +1590,34 @@
       if (!over || over === itemDrag.li) return;
       const dragIt = draft.items.find(x => x.id === itemDrag.it.id);
       const overIt = draft.items.find(x => x.id === over.dataset.id);
-      if (!dragIt || !overIt) return;
-      if (dragIt.daily !== overIt.daily) return;   // 매일/일반 그룹을 넘지 않음
+      if (!dragIt || !overIt || dragIt.daily !== overIt.daily) return;
       const from = draft.items.indexOf(dragIt);
       const to = draft.items.indexOf(overIt);
       draft.items.splice(from, 1);
       draft.items.splice(to, 0, dragIt);
-      // DOM만 살짝 옮겨 부드럽게
       if (to > from) over.after(itemDrag.li); else over.before(itemDrag.li);
     });
 
-    const end = () => {
+    const end = e => {
       clearTimeout(pressTimer);
-      if (longActive) { longActive = false; if (itemDrag) itemDrag.li.classList.remove('itemDragging'); itemDrag = null; renderEditList(); }
+      if (longActive) {                          // 드래그 종료
+        longActive = false;
+        if (itemDrag) itemDrag.li.classList.remove('itemDragging');
+        itemDrag = null;
+        renderEditList();
+      } else if (!moved && !e.target.closest('.del') && !e.target.closest('.tag')) {
+        // 짧게 탭 → 이름 편집
+        const inp = li.querySelector('.itemInput');
+        if (inp) {
+          inp.removeAttribute('readonly');
+          inp.focus();
+          const v = inp.value; inp.value = ''; inp.value = v;   // 커서 끝으로
+        }
+      }
     };
     li.addEventListener('pointerup', end);
-    li.addEventListener('pointercancel', end);
-    li.addEventListener('pointerleave', () => clearTimeout(pressTimer));
+    li.addEventListener('pointercancel', () => { clearTimeout(pressTimer);
+      if (longActive) { longActive = false; if (itemDrag) itemDrag.li.classList.remove('itemDragging'); itemDrag = null; renderEditList(); } });
   }
 
   function addDraftItem(){
