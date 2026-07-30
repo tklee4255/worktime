@@ -190,7 +190,7 @@
   }
   .circle:active{transform:scale(.95);}
   .circle.editing:active{transform:none;}
-  .circle .name{font-size:17px;font-weight:700;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
+  .circle .name{font-weight:700;max-width:118px;text-align:center;line-height:1.15;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
   /* 편집 모드: 모든 원에 드래그 손잡이 */
   .circle .grip{
@@ -217,7 +217,7 @@
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
     transform:translate(-50%,-50%) scale(1.05);
   }
-  #dragGhost .name{font-size:17px;font-weight:700;}
+  #dragGhost .name{font-weight:700;max-width:118px;text-align:center;line-height:1.15;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   #dragGhost .time{font-size:14px;color:var(--muted);}
 
   /* 홈 화면에서 진행 중인 원 */
@@ -412,7 +412,7 @@
     flex:0 0 auto;background:none;border:none;color:var(--danger);
     font-size:15px;cursor:pointer;padding:2px 4px;font-family:inherit;
   }
-  #editList li{transition:transform .12s;touch-action:none;}
+  #editList li{transition:transform .12s;touch-action:pan-y;}
   #editList li.itemDragging{
     background:#fff;box-shadow:0 6px 18px rgba(35,41,47,.2);
     transform:scale(1.03);position:relative;z-index:5;
@@ -857,6 +857,15 @@
   }
 
   // ---- 홈 화면 렌더 ----
+  // 이름 길이에 따라 홈 원 글자 크기 조절 (짧으면 크게, 길면 작게 — 두 줄까지는 CSS가 허용)
+  function nameFontSize(name){
+    const n = (name || '').length;
+    if (n <= 6) return 17;
+    if (n <= 9) return 15;
+    if (n <= 12) return 13;
+    if (n <= 15) return 12;
+    return 11;
+  }
   function renderHome(){
     grid.innerHTML = '';
     emptyMsg.style.display = tasks.length ? 'none' : 'flex';
@@ -871,7 +880,9 @@
         '<div class="name"></div>' +
         '<input class="nameInput" maxlength="20">' +
         '<div class="time"></div>';
-      c.querySelector('.name').textContent = t.name;
+      const nameEl = c.querySelector('.name');
+      nameEl.textContent = t.name;
+      nameEl.style.fontSize = nameFontSize(t.name) + 'px';
       c.querySelector('.time').textContent = fmt(currentMs(t));
       if (focusId === t.id && runningSince) c.classList.add('running');
       if (editingId === t.id) {                 // 편집 중이던 원은 상태 유지
@@ -1009,7 +1020,9 @@
       ghost = document.createElement('div');
       ghost.id = 'dragGhost';
       ghost.innerHTML = '<div class="name"></div><div class="time"></div>';
-      ghost.querySelector('.name').textContent = t.name;
+      const gName = ghost.querySelector('.name');
+      gName.textContent = t.name;
+      gName.style.fontSize = nameFontSize(t.name) + 'px';
       ghost.querySelector('.time').textContent = fmt(currentMs(t));
       document.body.appendChild(ghost);
       lastX = e.clientX; lastY = e.clientY;
@@ -1602,22 +1615,18 @@
         if (inp) inp.blur();
         itemDrag = { it: it, li: li };
         li.classList.add('itemDragging');
-        editList.style.touchAction = 'none';   // 드래그 동안 스크롤 잠금
+        li.style.touchAction = 'none';         // 드래그 동안 이 타일의 스크롤만 잠금
         try { li.setPointerCapture(e.pointerId); } catch(_) {}
       }, 350);
     });
 
-    let lastMoveY = 0;
     li.addEventListener('pointermove', e => {
       if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 8) {
-        if (!moved) { moved = true; lastMoveY = e.clientY; }
-        if (!longActive) clearTimeout(pressTimer);   // 드래그 대기 취소
+        moved = true;
+        if (!longActive) clearTimeout(pressTimer);   // 움직이면 드래그 대기 취소 → 스크롤로
       }
-      if (!longActive) {
-        // 드래그가 아니면 손가락 움직인 만큼 목록을 직접 스크롤
-        if (moved) { focus.scrollTop -= (e.clientY - lastMoveY); lastMoveY = e.clientY; e.preventDefault(); }
-        return;
-      }
+      // 드래그가 아니면 브라우저 기본 스크롤(관성 포함)에 그대로 맡김
+      if (!longActive) return;
       if (!itemDrag) return;
       e.preventDefault();
       itemAutoScroll(e.clientY);
@@ -1628,7 +1637,7 @@
       });
       if (!over || over === itemDrag.li) return;
       const dragIt = draft.items.find(x => x.id === itemDrag.it.id);
-      const overIt = draft.items.find(x => x.id === over.dataset.id);
+      const overIt = draft.items.find(x => String(x.id) === over.dataset.id);
       if (!dragIt || !overIt || dragIt.daily !== overIt.daily) return;
       const from = draft.items.indexOf(dragIt);
       const to = draft.items.indexOf(overIt);
@@ -1639,7 +1648,7 @@
 
     const end = e => {
       clearTimeout(pressTimer);
-      editList.style.touchAction = '';
+      li.style.touchAction = '';
       stopItemScroll();
       if (longActive) {                          // 드래그 종료
         longActive = false;
@@ -1658,7 +1667,7 @@
     };
     li.addEventListener('pointerup', end);
     li.addEventListener('pointercancel', () => { clearTimeout(pressTimer);
-      editList.style.touchAction = ''; stopItemScroll();
+      li.style.touchAction = ''; stopItemScroll();
       if (longActive) { longActive = false; if (itemDrag) itemDrag.li.classList.remove('itemDragging'); itemDrag = null; renderEditList(); } });
   }
 
