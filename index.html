@@ -390,7 +390,7 @@
     background:var(--bg);border:1px solid var(--circle-edge);border-radius:8px;padding:9px 6px;
   }
   .goalRow span{color:var(--muted);font-size:14px;}
-  #editList{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+  #editList{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;position:relative;}
   #editList:empty{margin-bottom:0;}
   #editList li{
     display:flex;align-items:center;gap:8px;font-size:15px;
@@ -413,9 +413,24 @@
     font-size:15px;cursor:pointer;padding:2px 4px;font-family:inherit;
   }
   #editList li{transition:transform .12s;touch-action:pan-y;}
-  #editList li.itemDragging{
-    background:#fff;box-shadow:0 6px 18px rgba(35,41,47,.2);
-    transform:scale(1.03);position:relative;z-index:5;
+  #editList li .igrip{
+    flex:0 0 auto;width:30px;align-self:stretch;margin:-9px 6px -9px -6px;
+    display:flex;align-items:center;justify-content:center;
+    color:#9AA4AF;font-size:20px;font-weight:300;line-height:1;
+    cursor:grab;touch-action:none;
+  }
+  #editList li.itemDragging{opacity:.35;}
+  #itemGhost{
+    position:fixed;z-index:60;pointer-events:none;
+    transform:translate(-50%,-50%) scale(1.03);
+    background:#fff;border-radius:8px;
+    box-shadow:0 8px 20px rgba(35,41,47,.22);
+    display:flex;align-items:center;gap:8px;font-size:15px;padding:9px 10px;
+  }
+  #itemDropLine{
+    position:absolute;height:3px;border-radius:2px;
+    background:var(--run);box-shadow:0 0 6px rgba(245,158,27,.5);
+    pointer-events:none;display:none;z-index:4;
   }
   .addRow{display:flex;align-items:center;gap:8px;}
   .addRow input[type="text"]{
@@ -1561,7 +1576,8 @@
     draft.items.forEach(it => {
       const li = document.createElement('li');
       li.dataset.id = it.id;
-      li.innerHTML = '<input class="txt itemInput" maxlength="40" readonly>' +
+      li.innerHTML = '<span class="igrip" aria-label="순서 이동">↕</span>' +
+        '<input class="txt itemInput" maxlength="40" readonly>' +
         (it.daily ? '<span class="tag">매일</span>' : '') +
         '<button class="del" aria-label="삭제">✕</button>';
       const inp = li.querySelector('.itemInput');
@@ -1585,9 +1601,10 @@
     });
   }
 
-  // 세부목표: 탭하면 이름 편집, 꾹 누르면 드래그 정렬 (같은 그룹 안에서만)
-  let itemDrag = null;
+  // 세부목표: 타일을 탭하면 이름 편집, 손잡이(↕)를 잡고 드래그하면 순서 이동 (같은 그룹 안에서만)
+  let itemDrag = null, itemGhost = null, itemDropLine = null, itemLastY = 0;
   let itemScrollDir = 0, itemScrollTimer = null;
+
   function itemAutoScroll(y){
     const r = focus.getBoundingClientRect();
     const zone = 90;
@@ -1596,79 +1613,143 @@
     else itemScrollDir = 0;
     if (itemScrollDir === 0) { stopItemScroll(); return; }
     if (!itemScrollTimer) {
-      itemScrollTimer = setInterval(() => { focus.scrollTop += itemScrollDir * 6; }, 16);
+      itemScrollTimer = setInterval(() => {
+        focus.scrollTop += itemScrollDir * 6;
+        showItemDropLine(itemLastY);
+      }, 16);
     }
   }
   function stopItemScroll(){
     if (itemScrollTimer) { clearInterval(itemScrollTimer); itemScrollTimer = null; }
     itemScrollDir = 0;
   }
+
+  // 끌고 있는 항목과 같은 그룹(매일/일반)이고 자기 자신이 아닌 타일들
+  function itemSiblings(){
+    if (!itemDrag) return [];
+    return Array.from(editList.querySelectorAll('li')).filter(el => {
+      if (el.dataset.id === String(itemDrag.it.id)) return false;
+      const item = draft.items.find(x => String(x.id) === el.dataset.id);
+      return item && (!!item.daily === !!itemDrag.it.daily);
+    });
+  }
+  // 지금 손가락 y가 어느 타일 앞에 끼어들지 (같은 그룹 안에서만)
+  function itemInsertBefore(y){
+    const sibs = itemSiblings();
+    for (const el of sibs){
+      const r = el.getBoundingClientRect();
+      if (y < r.top + r.height / 2) return { before: el, sibs };
+    }
+    return { before: null, sibs };
+  }
+  // 끼어들 자리에 호박색 가로줄 표시
+  function showItemDropLine(y){
+    if (!itemDropLine) return;
+    const { before, sibs } = itemInsertBefore(y);
+    if (!sibs.length){ itemDropLine.style.display = 'none'; return; }
+    const er = editList.getBoundingClientRect();
+    let top, left, width;
+    if (before){
+      const r = before.getBoundingClientRect();
+      top = r.top - 4; left = r.left; width = r.width;
+    } else {
+      const r = sibs[sibs.length - 1].getBoundingClientRect();
+      top = r.bottom + 1; left = r.left; width = r.width;
+    }
+    itemDropLine.style.display = 'block';
+    itemDropLine.style.top = (top - er.top + editList.scrollTop) + 'px';
+    itemDropLine.style.left = (left - er.left) + 'px';
+    itemDropLine.style.width = width + 'px';
+  }
+
+  function moveItemGhost(x, y){
+    if (itemGhost){ itemGhost.style.left = x + 'px'; itemGhost.style.top = y + 'px'; }
+    showItemDropLine(y);
+  }
+  function cleanupItemDrag(){
+    stopItemScroll();
+    if (itemGhost){ itemGhost.remove(); itemGhost = null; }
+    if (itemDropLine){ itemDropLine.remove(); itemDropLine = null; }
+    itemDrag = null;
+  }
+
   function bindItemDrag(li, it){
-    let pressTimer = null, longActive = false, moved = false, downX = 0, downY = 0;
-
-    li.addEventListener('pointerdown', e => {
-      if (e.target.closest('.del')) return;
-      moved = false; downX = e.clientX; downY = e.clientY;
+    // 타일 본체를 탭하면 이름 편집 (손잡이·삭제·꼬리표 제외)
+    li.addEventListener('click', e => {
+      if (e.target.closest('.del') || e.target.closest('.igrip') || e.target.closest('.tag')) return;
       const inp = li.querySelector('.itemInput');
-      pressTimer = setTimeout(() => {           // 길게 누름 → 드래그 시작
-        longActive = true;
-        if (inp) inp.blur();
-        itemDrag = { it: it, li: li };
-        li.classList.add('itemDragging');
-        li.style.touchAction = 'none';         // 드래그 동안 이 타일의 스크롤만 잠금
-        try { li.setPointerCapture(e.pointerId); } catch(_) {}
-      }, 350);
-    });
-
-    li.addEventListener('pointermove', e => {
-      if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 8) {
-        moved = true;
-        if (!longActive) clearTimeout(pressTimer);   // 움직이면 드래그 대기 취소 → 스크롤로
+      if (inp && inp.hasAttribute('readonly')){
+        inp.removeAttribute('readonly');
+        inp.focus();
+        const v = inp.value; inp.value = ''; inp.value = v;   // 커서 끝으로
       }
-      // 드래그가 아니면 브라우저 기본 스크롤(관성 포함)에 그대로 맡김
-      if (!longActive) return;
-      if (!itemDrag) return;
-      e.preventDefault();
-      itemAutoScroll(e.clientY);
-      const rows = Array.from(editList.querySelectorAll('li'));
-      const over = rows.find(r => {
-        const rc = r.getBoundingClientRect();
-        return e.clientY >= rc.top && e.clientY <= rc.bottom;
-      });
-      if (!over || over === itemDrag.li) return;
-      const dragIt = draft.items.find(x => x.id === itemDrag.it.id);
-      const overIt = draft.items.find(x => String(x.id) === over.dataset.id);
-      if (!dragIt || !overIt || dragIt.daily !== overIt.daily) return;
-      const from = draft.items.indexOf(dragIt);
-      const to = draft.items.indexOf(overIt);
-      draft.items.splice(from, 1);
-      draft.items.splice(to, 0, dragIt);
-      if (to > from) over.after(itemDrag.li); else over.before(itemDrag.li);
     });
 
-    const end = e => {
-      clearTimeout(pressTimer);
-      li.style.touchAction = '';
-      stopItemScroll();
-      if (longActive) {                          // 드래그 종료
-        longActive = false;
-        if (itemDrag) itemDrag.li.classList.remove('itemDragging');
-        itemDrag = null;
-        renderEditList();
-      } else if (!moved && !e.target.closest('.del') && !e.target.closest('.tag')) {
-        // 짧게 탭 → 이름 편집
-        const inp = li.querySelector('.itemInput');
-        if (inp) {
-          inp.removeAttribute('readonly');
-          inp.focus();
-          const v = inp.value; inp.value = ''; inp.value = v;   // 커서 끝으로
+    const grip = li.querySelector('.igrip');
+    if (!grip) return;
+
+    grip.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      itemDrag = { it: it, li: li };
+      grip.setPointerCapture(e.pointerId);
+      li.classList.add('itemDragging');
+
+      itemDropLine = document.createElement('div');
+      itemDropLine.id = 'itemDropLine';
+      editList.appendChild(itemDropLine);
+
+      itemGhost = li.cloneNode(true);
+      itemGhost.id = 'itemGhost';
+      itemGhost.classList.remove('itemDragging');
+      itemGhost.style.width = li.offsetWidth + 'px';
+      const gi = itemGhost.querySelector('.itemInput');
+      const oi = li.querySelector('.itemInput');
+      if (gi && oi) gi.value = oi.value;   // cloneNode는 입력값을 복사하지 않음
+      document.body.appendChild(itemGhost);
+
+      itemLastY = e.clientY;
+      moveItemGhost(e.clientX, e.clientY);
+    });
+
+    grip.addEventListener('pointermove', e => {
+      if (!itemDrag) return;
+      e.stopPropagation();
+      e.preventDefault();
+      itemLastY = e.clientY;
+      moveItemGhost(e.clientX, e.clientY);
+      itemAutoScroll(e.clientY);
+    });
+
+    const finish = e => {
+      e.stopPropagation();
+      if (!itemDrag) return;
+      const { before } = itemInsertBefore(itemLastY);
+      const drag = draft.items.find(x => x.id === itemDrag.it.id);
+      if (drag){
+        draft.items = draft.items.filter(x => x.id !== drag.id);
+        if (before){
+          const idx = draft.items.findIndex(x => String(x.id) === before.dataset.id);
+          draft.items.splice(idx, 0, drag);
+        } else {
+          // 같은 그룹의 맨 끝으로
+          let insertAt = draft.items.length;
+          for (let i = 0; i < draft.items.length; i++){
+            if (!!draft.items[i].daily === !!drag.daily) insertAt = i + 1;
+          }
+          draft.items.splice(insertAt, 0, drag);
         }
       }
+      cleanupItemDrag();
+      renderEditList();
     };
-    li.addEventListener('pointerup', end);
-    li.addEventListener('pointercancel', () => { clearTimeout(pressTimer);
-      li.style.touchAction = ''; stopItemScroll();
-      if (longActive) { longActive = false; if (itemDrag) itemDrag.li.classList.remove('itemDragging'); itemDrag = null; renderEditList(); } });
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', e => {
+      e.stopPropagation();
+      cleanupItemDrag();
+      renderEditList();
+    });
   }
 
   function addDraftItem(){
