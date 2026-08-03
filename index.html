@@ -22,6 +22,8 @@
     --run-deep:#B9750A;
     --pause:#6B87A3;
     --danger:#D93B2B;
+    --cool:#4FB0E0;        /* 목표 2배 달성 (불이 더 뜨거워져 하얗게 탄 색) */
+    --cool-deep:#2A7BA8;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -226,6 +228,12 @@
     border-color:var(--run);
   }
   .circle.running .time{color:var(--run-deep);font-weight:500;}
+  /* 목표 2배 달성: 진행 중일 때만 원 안쪽까지 청백 (멈춰 있으면 링만 청백) */
+  .circle.dbl.running{
+    background:radial-gradient(circle at 50% 42%, #F2FBFF 0%, #D9EFFC 78%);
+    border-color:var(--cool);
+  }
+  .circle.dbl.running .time{color:var(--cool-deep);}
 
   .circle .ring{
     position:absolute;inset:-1.5px;width:calc(100% + 3px);height:calc(100% + 3px);
@@ -235,6 +243,7 @@
   .circle .ring circle{
     fill:none;stroke:var(--run);stroke-width:3;stroke-linecap:round;
   }
+  .circle.dbl .ring circle{stroke:var(--cool);}
   .circle .nameInput{
     display:none;width:104px;text-align:center;
     font-size:17px;font-weight:700;font-family:inherit;color:var(--text);
@@ -301,6 +310,7 @@
     fill:none;stroke:var(--run);stroke-width:3;stroke-linecap:round;
     transition:stroke-dashoffset .4s;
   }
+  #bigCircle.dbl #ringPath{stroke:var(--cool);}
   #bigCircle .name{font-size:clamp(20px,5vw,28px);font-weight:700;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #bigCircle .time{font-size:clamp(40px,11vw,64px);font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:1px;}
   #bigCircle .state{font-size:14px;letter-spacing:2px;color:var(--muted);}
@@ -314,6 +324,15 @@
   }
   #bigCircle.running .time{color:var(--run-deep);}
   #bigCircle.running .state{color:var(--run);}
+  /* 목표 2배 달성: 진행 중일 때 원과 발광을 통째로 청백으로 */
+  #bigCircle.dbl.running{
+    background:radial-gradient(circle at 50% 42%, #F2FBFF 0%, #D9EFFC 75%);
+    border-color:var(--cool);
+    box-shadow:0 0 42px rgba(79,176,224,.30);
+    animation:breatheCool 2.6s ease-in-out infinite;
+  }
+  #bigCircle.dbl.running .time{color:var(--cool-deep);}
+  #bigCircle.dbl.running .state{color:var(--cool);}
   /* 일시정지: 차분한 청회색 */
   #bigCircle.paused{border-color:var(--pause);}
   #bigCircle.paused .time{color:var(--pause);}
@@ -350,6 +369,7 @@
     font-variant-numeric:tabular-nums;
   }
   #goalView.done{color:var(--run-deep);font-weight:700;}
+  #goalView.dbl{color:var(--cool-deep);font-weight:700;}
   #checkView{list-style:none;display:flex;flex-direction:column;gap:2px;}
   #checkView li{
     display:flex;align-items:center;gap:10px;
@@ -412,7 +432,7 @@
     flex:0 0 auto;background:none;border:none;color:var(--danger);
     font-size:15px;cursor:pointer;padding:2px 4px;font-family:inherit;
   }
-  #editList li{transition:transform .12s;touch-action:pan-y;}
+  #editList li{touch-action:pan-y;}
   #editList li .igrip{
     flex:0 0 auto;width:30px;align-self:stretch;margin:-9px 6px -9px -6px;
     display:flex;align-items:center;justify-content:center;
@@ -451,6 +471,10 @@
     0%,100%{box-shadow:0 0 42px rgba(245,158,27,.28);}
     50%{box-shadow:0 0 70px rgba(245,158,27,.45);}
   }
+  @keyframes breatheCool{
+    0%,100%{box-shadow:0 0 42px rgba(79,176,224,.30);}
+    50%{box-shadow:0 0 70px rgba(79,176,224,.48);}
+  }
   /* ===== 초기화 확인창 ===== */
   #confirmBg, #confirmAllBg{
     position:absolute;inset:0;background:rgba(35,41,47,.35);
@@ -471,7 +495,7 @@
   #confirmYes, #confirmAllYes{background:var(--danger);color:#fff;}
 
   @media (prefers-reduced-motion: reduce){
-    #bigCircle.running{animation:none;}
+    #bigCircle.running, #bigCircle.dbl.running{animation:none;}
     .circle,.circle:active,#addBtn{transition:none;transform:none;}
   }
 </style>
@@ -913,6 +937,7 @@
         const ring = c.querySelector('.ring circle');
         ring.style.strokeDasharray = CIRC;
         ring.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
+        c.classList.toggle('dbl', goalDouble(t));   // 2배 달성이면 링·원을 청백으로
         applyGlow(c, t);                      // 달성/2배 달성 발광
       }
 
@@ -1419,10 +1444,12 @@
   function renderRing(t){
     if (!t.goalMs) {
       big.classList.remove('hasGoal');
+      big.classList.remove('dbl');
       setBigFlame(false);
       return;
     }
     big.classList.add('hasGoal');
+    big.classList.toggle('dbl', goalDouble(t));   // 2배 달성이면 링·원·발광을 청백으로
     const CIRC = 2 * Math.PI * 48.5;
     ringPath.style.strokeDasharray = CIRC;
     ringPath.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
@@ -1440,12 +1467,12 @@
       if (f) f.remove();
     }
   }
-  let lastGoalDone = null;
+  let lastGoalState = null;     // 0=미달성 1=달성 2=2배 달성
   setInterval(() => {
     if (!focusId || !runningSince) return;
     const t = tasks.find(x => x.id === focusId);
     if (!t) return;
-    const nowDone = goalDone(t);
+    const nowState = goalDouble(t) ? 2 : (goalDone(t) ? 1 : 0);
 
     if (!showFocus) {                 // 홈 화면
       const el = grid.querySelector('.circle[data-id="' + focusId + '"]');
@@ -1457,15 +1484,16 @@
           const CIRC = 2 * Math.PI * 48.5;
           const ring = el.querySelector('.ring circle');
           if (ring) ring.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
+          el.classList.toggle('dbl', goalDouble(t));   // 2배를 넘는 순간 청백으로
           applyGlow(el, t);       // 달성·2배 달성 순간 발광 갱신
         }
       }
-      lastGoalDone = nowDone;
+      lastGoalState = nowState;
       return;
     }
 
     renderFocus();
-    if (nowDone !== lastGoalDone) { lastGoalDone = nowDone; renderAttr(); }
+    if (nowState !== lastGoalState) { lastGoalState = nowState; renderAttr(); }
   }, 250);
 
   // ---- 속성: 목표시간 / 체크리스트 ----
@@ -1490,9 +1518,10 @@
 
     // 목표시간 표시
     if (t.goalMs) {
-      const done = goalDone(t);
-      goalView.textContent = '목표 ' + fmtGoal(t.goalMs);
-      goalView.classList.toggle('done', done);
+      const done = goalDone(t), dbl = goalDouble(t);
+      goalView.textContent = '목표 ' + fmtGoal(t.goalMs) + (dbl ? ' (2배 달성)' : '');
+      goalView.classList.toggle('done', done && !dbl);
+      goalView.classList.toggle('dbl', dbl);
       goalView.style.display = '';
     } else {
       goalView.style.display = 'none';
