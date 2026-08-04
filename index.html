@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <title>순작업시간</title>
 <meta name="theme-color" content="#F5F6F8">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -168,6 +168,8 @@
     display:flex;flex-direction:column;gap:5px;
   }
   .recDetail .dGoal{font-variant-numeric:tabular-nums;}
+  .recDetail .dGoal .mark{color:var(--run-deep);font-weight:700;}      /* 목표 달성 */
+  .recDetail .dGoal .mark.dbl{color:var(--cool-deep);}                 /* 2배 달성 */
   .recDetail .dItem{display:flex;align-items:center;gap:7px;}
   .recDetail .dItem .mk{color:#2E9E5B;font-weight:700;}
   .recDetail .dItem.off .mk{color:#C6CDD5;}
@@ -251,6 +253,8 @@
     background:none;border:none;border-bottom:2px solid var(--run);
     outline:none;padding:2px 0;
   }
+  /* 잠긴 상태(readonly)에서는 터치가 원으로 전달됨 → 원 쪽에서 '이름 자리 탭'을 판정 */
+  .circle .nameInput[readonly]{pointer-events:none;}
   .circle.editing .name{display:none;}
   .circle.editing .nameInput{display:block;}
   .circle .delBtn{
@@ -920,7 +924,7 @@
         '<div class="grip" aria-label="순서 이동">↕</div>' +
         '<button class="delBtn" aria-label="삭제">✕</button>' +
         '<div class="name"></div>' +
-        '<input class="nameInput" maxlength="20">' +
+        '<input class="nameInput" maxlength="20" readonly>' +
         '<div class="time"></div>';
       const nameEl = c.querySelector('.name');
       nameEl.textContent = t.name;
@@ -946,23 +950,35 @@
 
       const input = c.querySelector('.nameInput');
 
-      // 탭 = 집중 시작 / 꾹 누르기 = 그 자리에서 수정 모드
+      // 탭 = 집중 시작 / 꾹 누르기 = 그 자리에서 수정 모드(자판은 아직 올리지 않음)
       let pressTimer = null, longPressed = false;
       c.addEventListener('pointerdown', e => {
         if (editingId === t.id) return; // 수정 중엔 길게누름/이동 없음
         longPressed = false;
-        pressTimer = setTimeout(() => { longPressed = true; startEdit(t, c, input); }, 550);
+        pressTimer = setTimeout(() => { longPressed = true; startEdit(t.id); }, 550);
       });
       const cancel = () => clearTimeout(pressTimer);
       c.addEventListener('pointerleave', cancel);
       c.addEventListener('pointercancel', cancel);
       c.addEventListener('pointerup', e => {
         cancel();
-        if (editingId === t.id) return;      // 수정 중인 원은 이동 안 함
+        if (editingId === t.id) return;      // 수정 중인 원 자신은 아래 click에서 처리
         if (!longPressed) {
-          if (editingId !== null) { finishEdit(); return; } // 다른 원 수정 중이면 먼저 저장
+          // 편집 모드는 유지한 채 편집 대상만 이 원으로 옮김
+          if (editingId !== null) { startEdit(t.id); return; }
           enterFocus(t.id);
         }
+      });
+      // 편집 중인 원에서 '이름 자리'를 탭했을 때만 잠금을 풀고 자판을 올림
+      c.addEventListener('click', e => {
+        if (editingId !== t.id) return;
+        const inp = c.querySelector('.nameInput');
+        if (!inp || !inp.hasAttribute('readonly')) return;
+        const r = inp.getBoundingClientRect();
+        if (e.clientX < r.left - 10 || e.clientX > r.right + 10 ||
+            e.clientY < r.top - 12  || e.clientY > r.bottom + 12) return;
+        inp.removeAttribute('readonly');
+        inp.focus(); inp.select();
       });
       c.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -981,6 +997,7 @@
       // 입력창: Enter로 저장, 터치가 원으로 전파되지 않게
       input.addEventListener('pointerdown', e => e.stopPropagation());
       input.addEventListener('pointerup', e => e.stopPropagation());
+      input.addEventListener('blur', () => { input.setAttribute('readonly', ''); });
       input.addEventListener('keydown', e => { if (e.key === 'Enter') finishEdit(); });
 
       grid.appendChild(c);
@@ -1114,19 +1131,45 @@
     if (dropLine) { dropLine.remove(); dropLine = null; }
   }
 
-  // opts.silent    : 유령 클릭 삼키기 생략 (+ 버튼처럼 클릭으로 들어온 경우)
-  // opts.keepLayer : 이미 열려 있는 편집 레이어를 그대로 재사용 (뒤로가기 스택이 어긋나지 않게)
-  function startEdit(t, c, input, opts){
+  // 자판이 올라오면 화면이 줄어들어 아래쪽 원이 가려질 수 있음 → 자리를 잡은 뒤 다시 보이게
+  function keepVisible(el){
+    const bring = () => {
+      try { el.scrollIntoView({ block: 'center' }); } catch(e) { el.scrollIntoView(); }
+    };
+    bring();
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', bring);
+      setTimeout(() => vv.removeEventListener('resize', bring), 1500);
+    }
+    setTimeout(bring, 300);
+    setTimeout(bring, 700);
+  }
+
+  // opts.silent     : 유령 클릭 삼키기 생략 (+ 버튼처럼 클릭으로 들어온 경우)
+  // opts.keepLayer  : 이미 열려 있는 편집 레이어를 그대로 재사용 (뒤로가기 스택이 어긋나지 않게)
+  // opts.focusInput : 곧바로 이름을 선택하고 자판을 올림 (+ 로 새로 만든 원)
+  function startEdit(id, opts){
     opts = opts || {};
-    if (editingId !== null) finishEdit();
+    // 편집 중이었다면 그 원을 먼저 저장하고 레이어는 그대로 물려받음 (편집 모드는 계속 유지)
+    const wasEditing = editingId !== null;
+    if (wasEditing) { suppressEditPop = true; finishEdit(); suppressEditPop = false; }
+    const t = tasks.find(x => x.id === id);
+    const c = grid.querySelector('.circle[data-id="' + id + '"]');   // finishEdit이 다시 그렸을 수 있음
+    if (!t || !c) return;
     if (!opts.silent) swallowNextClick();   // 손 뗀 자리에 나타난 버튼이 눌리지 않게
-    editingId = t.id;
+    editingId = id;
     grid.classList.add('reorder');      // 모든 원에 순서 이동 손잡이
     c.classList.add('editing');
+    const input = c.querySelector('.nameInput');
     input.value = t.name;
-    input.focus(); input.select();      // 즉시 (안드로이드에서 자판이 바로 올라오게)
-    setTimeout(() => { input.focus(); input.select(); }, 0);
-    if (!opts.keepLayer) pushLayer(commitEditFromLayer);
+    if (opts.focusInput) {              // 그 외에는 잠긴 상태 → 이름 자리를 탭해야 자판이 올라옴
+      input.removeAttribute('readonly');
+      input.focus(); input.select();
+      setTimeout(() => { input.focus(); input.select(); }, 0);
+      keepVisible(c);
+    }
+    if (!wasEditing && !opts.keepLayer) pushLayer(commitEditFromLayer);
   }
   let suppressEditPop = false;   // finishEdit이 직접 호출됐을 때 중복 pop 방지
   function commitEditFromLayer(){
@@ -1829,13 +1872,11 @@
     if (wasEditing) { suppressEditPop = true; finishEdit(); suppressEditPop = false; }
     const id = nextId++;
     taskNames[id] = '할 일';
-    const t = { id: id, name: '할 일', accMs: 0 };
-    tasks.push(t);
+    tasks.push({ id: id, name: '할 일', accMs: 0 });
     save();
     renderHome();
     // 새 원을 바로 이름 편집 상태로 열고 기본 이름을 통째로 선택 → 곧장 타이핑 가능
-    const c = grid.querySelector('.circle[data-id="' + id + '"]');
-    if (c) startEdit(t, c, c.querySelector('.nameInput'), { silent: true, keepLayer: wasEditing });
+    startEdit(id, { silent: true, keepLayer: wasEditing, focusInput: true });
   });
 
   // ---- 기록 화면 ----
@@ -1979,8 +2020,11 @@
             detail.style.display = 'none';
             let html = '';
             if (gMs > 0) {
+              // '목표 1시간'은 회색 그대로 두고 괄호 부분만 색·볼드로 (달성 여부가 한눈에 보이게)
+              const gTxt = goalMet ? (goalDbl ? '2배 달성' : '달성') : '미달성';
+              const gCls = goalMet ? ' class="mark' + (goalDbl ? ' dbl' : '') + '"' : '';
               html += '<div class="dGoal">목표 ' + fmtGoal(gMs) +
-                ' (' + (goalMet ? '달성' : '미달성') + ')</div>';
+                ' <span' + gCls + '>(' + gTxt + ')</span></div>';
             }
             items.forEach(it => {
               const d = document.createElement('div');
