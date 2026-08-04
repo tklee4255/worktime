@@ -168,6 +168,7 @@
     display:flex;flex-direction:column;gap:5px;
   }
   .recDetail .dGoal{font-variant-numeric:tabular-nums;}
+  .recDetail .dGoal .gTxt.done{text-decoration:line-through;}          /* 달성한 목표 */
   .recDetail .dGoal .mark{color:var(--run-deep);font-weight:700;}      /* 목표 달성 */
   .recDetail .dGoal .mark.dbl{color:var(--cool-deep);}                 /* 2배 달성 */
   .recDetail .dItem{display:flex;align-items:center;gap:7px;}
@@ -2020,11 +2021,11 @@
             detail.style.display = 'none';
             let html = '';
             if (gMs > 0) {
-              // '목표 1시간'은 회색 그대로 두고 괄호 부분만 색·볼드로 (달성 여부가 한눈에 보이게)
+              // 체크리스트와 같은 모양: 목표 글자에 취소선, 괄호는 색·볼드로 달성 표시
               const gTxt = goalMet ? (goalDbl ? '2배 달성' : '달성') : '미달성';
               const gCls = goalMet ? ' class="mark' + (goalDbl ? ' dbl' : '') + '"' : '';
-              html += '<div class="dGoal">목표 ' + fmtGoal(gMs) +
-                ' <span' + gCls + '>(' + gTxt + ')</span></div>';
+              html += '<div class="dGoal"><span class="gTxt' + (goalMet ? ' done' : '') + '">목표 ' +
+                fmtGoal(gMs) + '</span> <span' + gCls + '>(' + gTxt + ')</span></div>';
             }
             items.forEach(it => {
               const d = document.createElement('div');
