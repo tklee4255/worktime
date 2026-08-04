@@ -160,6 +160,7 @@
   .recRow .rName{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .badge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;}
   .badge.goal{width:.92em;height:.92em;border-radius:50%;border:.19em solid var(--run);box-sizing:border-box;}
+  .badge.goal.dbl{border-color:var(--cool);}   /* 목표 2배 달성 */
   .badge.check{color:#2E9E5B;font-size:1em;line-height:1;font-weight:700;}
   .recRow.expandable{cursor:pointer;}
   .recDetail{
@@ -907,6 +908,8 @@
   }
   function renderHome(){
     grid.innerHTML = '';
+    // 손잡이(↕)는 편집 중일 때만. 어떤 경로로 편집이 끝나도 여기서 항상 맞춰짐
+    grid.classList.toggle('reorder', editingId !== null);
     emptyMsg.style.display = tasks.length ? 'none' : 'flex';
     tasks.forEach(t => {
       const c = document.createElement('div');
@@ -1089,15 +1092,13 @@
         save();
       }
       cleanupDrag();
-      renderHome();
-      if (editingId !== null) grid.classList.add('reorder');   // 편집 모드 유지
+      renderHome();          // 편집 모드면 손잡이도 그대로 유지됨
     };
     grip.addEventListener('pointerup', finish);
     grip.addEventListener('pointercancel', e => {
       e.stopPropagation();
       cleanupDrag();
       renderHome();
-      if (editingId !== null) grid.classList.add('reorder');
     });
   }
 
@@ -1113,15 +1114,19 @@
     if (dropLine) { dropLine.remove(); dropLine = null; }
   }
 
-  function startEdit(t, c, input){
+  // opts.silent    : 유령 클릭 삼키기 생략 (+ 버튼처럼 클릭으로 들어온 경우)
+  // opts.keepLayer : 이미 열려 있는 편집 레이어를 그대로 재사용 (뒤로가기 스택이 어긋나지 않게)
+  function startEdit(t, c, input, opts){
+    opts = opts || {};
     if (editingId !== null) finishEdit();
-    swallowNextClick();   // 손 뗀 자리에 나타난 버튼이 눌리지 않게
+    if (!opts.silent) swallowNextClick();   // 손 뗀 자리에 나타난 버튼이 눌리지 않게
     editingId = t.id;
     grid.classList.add('reorder');      // 모든 원에 순서 이동 손잡이
     c.classList.add('editing');
     input.value = t.name;
+    input.focus(); input.select();      // 즉시 (안드로이드에서 자판이 바로 올라오게)
     setTimeout(() => { input.focus(); input.select(); }, 0);
-    pushLayer(commitEditFromLayer);
+    if (!opts.keepLayer) pushLayer(commitEditFromLayer);
   }
   let suppressEditPop = false;   // finishEdit이 직접 호출됐을 때 중복 pop 방지
   function commitEditFromLayer(){
@@ -1819,11 +1824,18 @@
 
   // ---- 추가 ----
   document.getElementById('addBtn').addEventListener('click', () => {
-    if (editingId !== null) finishEdit();
-    taskNames[nextId] = '할 일';
-    tasks.push({ id: nextId++, name: '할 일', accMs: 0 });
+    // 편집 중에 추가한 경우: 뒤로가기 스택을 흔들지 않도록 레이어를 그대로 물려받음
+    const wasEditing = editingId !== null;
+    if (wasEditing) { suppressEditPop = true; finishEdit(); suppressEditPop = false; }
+    const id = nextId++;
+    taskNames[id] = '할 일';
+    const t = { id: id, name: '할 일', accMs: 0 };
+    tasks.push(t);
     save();
     renderHome();
+    // 새 원을 바로 이름 편집 상태로 열고 기본 이름을 통째로 선택 → 곧장 타이핑 가능
+    const c = grid.querySelector('.circle[data-id="' + id + '"]');
+    if (c) startEdit(t, c, c.querySelector('.nameInput'), { silent: true, keepLayer: wasEditing });
   });
 
   // ---- 기록 화면 ----
@@ -1943,13 +1955,14 @@
           const gMs = e ? (e.goalMs || 0) : 0;
           const items = e ? Object.values(e.checks || {}) : [];
           const goalMet = gMs > 0 && ms >= gMs;
+          const goalDbl = gMs > 0 && ms >= gMs * 2;   // 2배 달성이면 배지를 청백색으로
           const checkMet = items.length > 0 && items.every(it => it.done);
 
           const row = document.createElement('div');
           row.className = 'recRow selectable';
           row.dataset.key = key; row.dataset.tid = id;
           row.innerHTML = '<span class="rLeft"><span class="chk">✓</span><span class="rName"></span>' +
-            (goalMet ? '<span class="badge goal"></span>' : '') +
+            (goalMet ? '<span class="badge goal' + (goalDbl ? ' dbl' : '') + '"></span>' : '') +
             (checkMet ? '<span class="badge check">✓</span>' : '') +
             '</span><span class="rTime"></span>';
           row.querySelector('.rName').textContent = nameOf(id);
