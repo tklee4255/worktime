@@ -1490,31 +1490,18 @@
   }
   // 타이머 원 테두리를 오늘 진행률만큼 채움
   const ringPath = document.getElementById('ringPath');
+  // 타이머 화면에는 목표 달성 발광이 없음(링만으로 충분). 발광은 홈 원에서만 씀
   function renderRing(t){
     if (!t.goalMs) {
       big.classList.remove('hasGoal');
       big.classList.remove('dbl');
-      setBigFlame(false);
       return;
     }
     big.classList.add('hasGoal');
-    big.classList.toggle('dbl', goalDouble(t));   // 2배 달성이면 링·원·발광을 청백으로
+    big.classList.toggle('dbl', goalDouble(t));   // 2배 달성이면 링·원을 청백으로
     const CIRC = 2 * Math.PI * 48.5;
     ringPath.style.strokeDasharray = CIRC;
     ringPath.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
-    setBigFlame(false);   // 타이머 화면은 링만으로 충분
-  }
-  function setBigFlame(on){
-    const has = big.classList.contains('goalDone');
-    if (on === has) return;                  // 상태가 같으면 다시 그리지 않음
-    if (on) {
-      big.classList.add('goalDone');
-      big.insertAdjacentHTML('afterbegin', flameMarkup());
-    } else {
-      big.classList.remove('goalDone');
-      const f = big.querySelector(':scope > .flame');
-      if (f) f.remove();
-    }
   }
   let lastGoalState = null;     // 0=미달성 1=달성 2=2배 달성
   setInterval(() => {
@@ -1975,12 +1962,20 @@
   }
   function nameOf(id){ return taskNames[id] || '할 일'; }
 
+  // 잘못 눌렀거나 시험 삼아 눌러본 흔적을 걸러내는 기준.
+  // 이 미만은 기록 화면(날짜별 목록·기간별 합계)에 나타나지 않음.
+  // 시간 자체는 그대로 쌓이므로, 같은 날 더 해서 1분을 넘기면 그때 총합으로 나타남.
+  const MIN_REC_MS = 60000;
+
   let expandables = [];
   function renderRecords(){
     // 날짜별 목록 (최신 날짜가 위)
     dailyList.innerHTML = '';
     expandables = [];
-    const keys = Object.keys(records).sort().reverse();
+    // 1분을 넘긴 기록이 하나라도 있는 날짜만 (그날 전부 1분 미만이면 날짜 자체를 띄우지 않음)
+    const keys = Object.keys(records).sort()
+      .filter(k => Object.values(records[k]).some(ms => ms >= MIN_REC_MS))
+      .reverse();
     if (!keys.length) {
       dailyList.innerHTML = '<div class="recEmpty">아직 기록이 없습니다</div>';
     } else {
@@ -1991,7 +1986,9 @@
         dailyList.appendChild(h);
         const card = document.createElement('div');
         card.className = 'recCard';
-        const entries = Object.entries(records[key]).sort((a,b) => b[1]-a[1]);
+        const entries = Object.entries(records[key])
+          .filter(([, ms]) => ms >= MIN_REC_MS)     // 1분 미만은 숨김
+          .sort((a,b) => b[1]-a[1]);
         entries.forEach(([id, ms]) => {
           const e = (dayLog[key] && dayLog[key][id]) || null;
           const gMs = e ? (e.goalMs || 0) : 0;
@@ -2065,6 +2062,7 @@
     Object.keys(records).forEach(key => {
       if (key >= s && key <= e) {
         Object.entries(records[key]).forEach(([id, ms]) => {
+          if (ms < MIN_REC_MS) return;   // 날짜별 목록과 같은 기준으로 걸러냄
           totals[id] = (totals[id] || 0) + ms;
         });
       }
