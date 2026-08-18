@@ -135,13 +135,76 @@
     padding:16px;margin-bottom:16px;
   }
   .recCard h3{font-size:14px;color:var(--muted);font-weight:500;margin-bottom:10px;}
-  .rangeRow{display:flex;align-items:center;gap:8px;}
-  .rangeRow input[type="date"]{
-    flex:1;min-width:0;font-family:inherit;font-size:14px;color:var(--text);
-    background:var(--bg);border:1px solid var(--circle-edge);border-radius:8px;padding:8px 10px;
+  .cardHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cardHead h3{margin-bottom:0;}
+  #rangeClear{
+    flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:none;
+    background:var(--danger);color:#fff;font-size:12px;line-height:1;
+    font-family:inherit;cursor:pointer;
+    display:none;align-items:center;justify-content:center;
   }
-  .rangeRow span{color:var(--muted);}
+  #rangeBtn{
+    width:100%;text-align:center;font-family:inherit;font-size:15px;color:var(--text);
+    background:var(--bg);border:1px solid var(--circle-edge);border-radius:8px;
+    padding:11px 10px;font-variant-numeric:tabular-nums;cursor:pointer;
+  }
+  #rangeBtn.empty{color:var(--muted);}
   #rangeResult{margin-top:12px;}
+
+  /* ===== 기간 선택 캘린더 ===== */
+  #calBg{
+    position:absolute;inset:0;background:rgba(35,41,47,.35);
+    display:none;align-items:center;justify-content:center;z-index:22;padding:20px;
+  }
+  #calBox{
+    background:#fff;border-radius:16px;padding:16px 14px;
+    width:min(92vw,340px);
+    box-shadow:0 8px 30px rgba(35,41,47,.18);
+  }
+  #calBox .calHead{display:flex;align-items:center;justify-content:space-between;padding:0 4px 6px;}
+  #calBox .calHead .mon{font-size:15px;font-weight:700;}
+  #calBox .calHead button{
+    background:none;border:none;color:var(--muted);
+    font-size:22px;line-height:1;padding:2px 12px;font-family:inherit;cursor:pointer;
+  }
+  #calPick{
+    text-align:center;font-size:13px;color:var(--muted);
+    padding:2px 0 10px;font-variant-numeric:tabular-nums;
+  }
+  #calBox .dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
+  #calBox .dow div{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
+  #calBox .dow div:first-child{color:#D9705F;}
+  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);}
+  #calGrid .cell{
+    position:relative;height:42px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-variant-numeric:tabular-nums;
+  }
+  #calGrid .cell.empty{visibility:hidden;}
+  #calGrid .cell .num{
+    position:relative;z-index:2;width:32px;height:32px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+  }
+  /* 고른 기간을 연한 호박색으로 칠함 */
+  #calGrid .cell.mid::before,#calGrid .cell.s::before,#calGrid .cell.e::before{
+    content:'';position:absolute;inset:3px 0;background:#FDEBCE;z-index:1;
+  }
+  #calGrid .cell.s::before{border-radius:10px 0 0 10px;}
+  #calGrid .cell.e::before{border-radius:0 10px 10px 0;}
+  #calGrid .cell.s.e::before{border-radius:10px;}      /* 하루만 고른 경우 */
+  #calGrid .cell.s .num,#calGrid .cell.e .num{background:var(--run);color:#fff;font-weight:700;}
+  /* 오늘: 숫자 아래 작은 점 (고른 날의 동그라미와 헷갈리지 않게) */
+  #calGrid .cell.today::after{
+    content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
+    width:5px;height:5px;border-radius:50%;background:var(--muted);z-index:3;
+  }
+  .calBtns{display:flex;gap:10px;margin-top:14px;}
+  .calBtns button{
+    flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
+    font-size:15px;font-weight:500;font-family:inherit;
+  }
+  #calCancel{background:none;color:var(--muted);border:1px solid var(--circle-edge);}
+  #calOk{background:var(--text);color:#fff;}
   .recRow{
     display:flex;justify-content:space-between;align-items:center;
     padding:8px 2px;font-size:15px;
@@ -176,6 +239,9 @@
   .recDetail .dItem.off .mk{color:#C6CDD5;}
   .recDetail .dItem.on .tx{text-decoration:line-through;}
   .recRow .rTime{color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto;padding-left:12px;}
+  /* 기간별 합계 맨 아래 총합 */
+  .recRow.total{border-top:1px solid var(--circle-edge);margin-top:2px;padding-top:11px;}
+  .recRow.total .rName,.recRow.total .rTime{color:var(--run-deep);font-weight:700;}
   .recDate{font-size:14px;color:var(--muted);font-weight:700;margin:18px 2px 6px;}
   .recEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
 
@@ -532,10 +598,11 @@
   <div id="recHeader">기록<button id="recBackBtn">← 뒤로가기</button><button id="backupBtn">백업</button></div>
   <div id="recBody">
     <div class="recCard">
-      <h3>기간별 합계</h3>
-      <div class="rangeRow">
-        <input type="date" id="rangeStart"><span>~</span><input type="date" id="rangeEnd">
+      <div class="cardHead">
+        <h3>기간별 합계</h3>
+        <button id="rangeClear" aria-label="기간 지우기">✕</button>
       </div>
+      <button id="rangeBtn" class="empty">~</button>
       <div id="rangeResult"></div>
     </div>
     <div id="dailyList"></div>
@@ -633,6 +700,24 @@
     </div>
     <div class="nRow">
       <button id="notiOffOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 기간 선택 캘린더 -->
+<div id="calBg">
+  <div id="calBox">
+    <div class="calHead">
+      <button id="calPrev" aria-label="이전 달">‹</button>
+      <div class="mon" id="calMon"></div>
+      <button id="calNext" aria-label="다음 달">›</button>
+    </div>
+    <div id="calPick">~</div>
+    <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+    <div id="calGrid"></div>
+    <div class="calBtns">
+      <button id="calCancel">취소</button>
+      <button id="calOk">확인</button>
     </div>
   </div>
 </div>
@@ -1870,8 +1955,8 @@
   // ---- 기록 화면 ----
   const recordsView = document.getElementById('records');
   const dailyList = document.getElementById('dailyList');
-  const rangeStart = document.getElementById('rangeStart');
-  const rangeEnd = document.getElementById('rangeEnd');
+  const rangeBtn = document.getElementById('rangeBtn');
+  const rangeClear = document.getElementById('rangeClear');
   const rangeResult = document.getElementById('rangeResult');
 
   const recHeader = document.getElementById('recHeader');
@@ -2050,14 +2135,14 @@
   }
 
   // 기간별 합계
+  let rangeS = null, rangeE = null;      // 확정된 기간 ('YYYY-MM-DD')
   function renderRange(){
     rangeResult.innerHTML = '';
-    const s = rangeStart.value, e = rangeEnd.value;
-    if (!s || !e) return;
-    if (s > e) {
-      rangeResult.innerHTML = '<div class="recEmpty" style="padding:14px 0;">시작 날짜가 끝 날짜보다 늦습니다</div>';
-      return;
-    }
+    rangeBtn.textContent = rangeS ? (fmtDot(rangeS) + ' ~ ' + fmtDot(rangeE)) : '~';
+    rangeBtn.classList.toggle('empty', !rangeS);
+    rangeClear.style.display = rangeS ? 'flex' : 'none';
+    if (!rangeS) return;
+    const s = rangeS, e = rangeE;
     const totals = {};
     Object.keys(records).forEach(key => {
       if (key >= s && key <= e) {
@@ -2072,7 +2157,9 @@
       rangeResult.innerHTML = '<div class="recEmpty" style="padding:14px 0;">이 기간에는 기록이 없습니다</div>';
       return;
     }
+    let sum = 0;
     entries.forEach(([id, ms]) => {
+      sum += ms;
       const row = document.createElement('div');
       row.className = 'recRow';
       row.innerHTML = '<span class="rName"></span><span class="rTime"></span>';
@@ -2080,9 +2167,97 @@
       row.querySelector('.rTime').textContent = fmt(ms);
       rangeResult.appendChild(row);
     });
+    // 맨 아래 총합 (할 일이 하나뿐이어도 자리를 지킴)
+    const tot = document.createElement('div');
+    tot.className = 'recRow total';
+    tot.innerHTML = '<span class="rName">총합</span><span class="rTime"></span>';
+    tot.querySelector('.rTime').textContent = fmt(sum);
+    rangeResult.appendChild(tot);
   }
-  rangeStart.addEventListener('change', renderRange);
-  rangeEnd.addEventListener('change', renderRange);
+  rangeBtn.addEventListener('click', openCal);
+  rangeClear.addEventListener('click', () => {
+    rangeS = null; rangeE = null;
+    renderRange();
+  });
+
+  // ---- 기간 선택 캘린더 ----
+  // 첫 탭 = 시작일, 두 번째 탭 = 종료일. 세 번째 탭부터는 처음부터 다시.
+  // 확인을 눌러야 적용되고, 취소·뒤로가기는 고르던 것을 버림.
+  const calBg = document.getElementById('calBg');
+  const calMon = document.getElementById('calMon');
+  const calPick = document.getElementById('calPick');
+  const calGrid = document.getElementById('calGrid');
+  let tmpS = null, tmpE = null;    // 캘린더에서 고르는 중인 기간
+  let calY = 0, calM = 0;          // 지금 보고 있는 달
+
+  function fmtDot(key){ return key.replace(/-/g, '.'); }
+  function keyOf(y, m, d){
+    const p = n => String(n).padStart(2,'0');
+    return y + '-' + p(m + 1) + '-' + p(d);
+  }
+
+  function openCal(){
+    tmpS = rangeS; tmpE = rangeE;
+    const now = new Date();
+    if (tmpS) {
+      const parts = tmpS.split('-').map(Number);
+      calY = parts[0]; calM = parts[1] - 1;      // 고른 기간이 있으면 그 달부터
+    } else {
+      calY = now.getFullYear(); calM = now.getMonth();
+    }
+    calBg.style.display = 'flex';
+    renderCal();
+    pushLayer(closeCal);
+  }
+  function closeCal(){ calBg.style.display = 'none'; }
+
+  function renderCal(){
+    calMon.textContent = calY + '년 ' + (calM + 1) + '월';
+    calPick.textContent = tmpS ? (fmtDot(tmpS) + ' ~ ' + fmtDot(tmpE || tmpS)) : '~';
+    const firstDow = new Date(calY, calM, 1).getDay();
+    const lastDate = new Date(calY, calM + 1, 0).getDate();
+    const today = todayKey();
+    const s = tmpS, e = tmpE || tmpS;
+    let html = '';
+    for (let i = 0; i < firstDow; i++) html += '<div class="cell empty"></div>';
+    for (let d = 1; d <= lastDate; d++) {
+      const k = keyOf(calY, calM, d);
+      let cls = 'cell';
+      if (s) {
+        if (k === s) cls += ' s';
+        if (k === e) cls += ' e';
+        if (k > s && k < e) cls += ' mid';
+      }
+      if (k === today) cls += ' today';
+      html += '<div class="' + cls + '" data-k="' + k + '"><span class="num">' + d + '</span></div>';
+    }
+    calGrid.innerHTML = html;
+  }
+
+  calGrid.addEventListener('click', ev => {
+    const cell = ev.target.closest('.cell');
+    if (!cell || !cell.dataset.k) return;
+    const k = cell.dataset.k;
+    if (!tmpS || tmpE) { tmpS = k; tmpE = null; }      // 처음 고르기 / 다시 고르기
+    else if (k < tmpS) { tmpE = tmpS; tmpS = k; }      // 거꾸로 눌렀으면 앞뒤를 바꿈
+    else tmpE = k;                                     // 같은 날을 다시 누르면 하루짜리
+    renderCal();
+  });
+  document.getElementById('calPrev').addEventListener('click', () => {
+    calM--; if (calM < 0) { calM = 11; calY--; }
+    renderCal();
+  });
+  document.getElementById('calNext').addEventListener('click', () => {
+    calM++; if (calM > 11) { calM = 0; calY++; }
+    renderCal();
+  });
+  document.getElementById('calCancel').addEventListener('click', popLayer);
+  calBg.addEventListener('click', ev => { if (ev.target === calBg) popLayer(); });
+  document.getElementById('calOk').addEventListener('click', () => {
+    if (tmpS) { rangeS = tmpS; rangeE = tmpE || tmpS; }   // 하나만 골랐으면 그 하루
+    popLayer();
+    renderRange();
+  });
 
   // ---- 백업 (파일 저장 / 불러오기) ----
   const backupBg = document.getElementById('backupBg');
