@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-<title>순작업시간</title>
+<title>순실행시간</title>
 <meta name="theme-color" content="#F5F6F8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="순작업시간">
+<meta name="apple-mobile-web-app-title" content="순실행시간">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -587,7 +587,7 @@
 </svg>
 
 <div id="home" class="view active">
-  <div id="homeTitle"><button id="recordsBtn">기록</button>순작업시간<button id="resetAllBtn">초기화</button></div>
+  <div id="homeTitle"><button id="recordsBtn">기록</button>순실행시간<button id="resetAllBtn">초기화</button></div>
   <div id="grid"></div>
   <div id="empty">+ 버튼을 눌러 할 일을 추가하세요</div>
   <button id="addBtn" aria-label="할 일 추가">+</button>
@@ -695,7 +695,7 @@
     <div class="nBody">
       지금은 화면 맨 위에서 타이머를 멈추거나 시작할 수 없어요. 앱에서는 그대로 다 됩니다.<br><br>
       나중에 켜고 싶으면 폰에서 이렇게 하면 돼요.<br>
-      <strong>설정 → 애플리케이션 → 순작업시간 → 알림</strong><br>
+      <strong>설정 → 애플리케이션 → 순실행시간 → 알림</strong><br>
       '알림 허용'을 켜 주세요. 기록은 그대로 남아요.
     </div>
     <div class="nRow">
@@ -2276,7 +2276,7 @@
     const url = URL.createObjectURL(blob);
     const now = new Date();
     const p = n => String(n).padStart(2,'0');
-    const fname = '순작업시간_백업_' + now.getFullYear() + p(now.getMonth()+1) + p(now.getDate()) + '.json';
+    const fname = '순실행시간_백업_' + now.getFullYear() + p(now.getMonth()+1) + p(now.getDate()) + '.json';
     const a = document.createElement('a');
     a.href = url; a.download = fname;
     document.body.appendChild(a); a.click(); a.remove();
