@@ -47,16 +47,28 @@
     font-size:20px;font-weight:700;letter-spacing:1px;
     background:var(--bg);z-index:5;
   }
-  #recordsBtn{
-    position:absolute;top:22px;left:20px;
-    background:none;border:none;color:var(--muted);
-    font-size:16px;cursor:pointer;padding:8px 4px;font-family:inherit;
+  #menuBtn{
+    position:absolute;top:20px;left:16px;
+    background:none;border:none;cursor:pointer;padding:8px;
+    display:flex;flex-direction:column;justify-content:center;gap:4px;width:36px;height:32px;
   }
-  #resetAllBtn{
-    position:absolute;top:22px;right:20px;
-    background:none;border:none;color:var(--danger);
-    font-size:16px;cursor:pointer;padding:8px 4px;font-family:inherit;
+  #menuBtn span{display:block;width:18px;height:2px;border-radius:1px;background:var(--muted);}
+  /* 메뉴 팝업 */
+  #menuBg{
+    position:absolute;inset:0;background:rgba(35,41,47,.35);
+    display:none;align-items:center;justify-content:center;z-index:21;
   }
+  #menuBox{
+    background:#fff;border-radius:16px;padding:8px;
+    width:min(76vw,280px);display:flex;flex-direction:column;
+    box-shadow:0 8px 30px rgba(35,41,47,.18);
+  }
+  .menuItem{
+    background:none;border:none;font-family:inherit;font-size:16px;color:var(--text);
+    padding:16px 0;cursor:pointer;
+  }
+  .menuItem + .menuItem{border-top:1px solid var(--circle-edge);}
+  .menuItem.danger{color:var(--danger);}
 
   /* ===== 기록 화면 ===== */
   #records{flex-direction:column;}
@@ -589,7 +601,7 @@
   }
   .balCell{flex:1 1 0;min-width:0;text-align:center;}
   .balCell + .balCell{flex:0 0 74px;border-left:1px solid var(--circle-edge);}
-  .balLabel{font-size:12px;color:var(--muted);}
+  .balLabel{font-size:12px;color:var(--muted);height:16px;display:flex;align-items:center;justify-content:center;}
   .balVal{font-size:16px;margin-top:4px;font-variant-numeric:tabular-nums;}
   .rwCard{
     display:flex;align-items:center;gap:10px;
@@ -597,7 +609,8 @@
     border-radius:14px;padding:14px 14px;margin-bottom:10px;
   }
   .rwCard .rwMain{flex:1 1 auto;min-width:0;cursor:pointer;}
-  .rwCard .rwNm{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 이름이 길면 두 줄까지 보이고 그 뒤로만 자른다 (글자 크기는 줄이지 않는다) */
+  .rwCard .rwNm{font-size:15px;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
   .rwCard .rwPrice{font-size:12px;color:var(--muted);margin-top:4px;}
   .rwCard .rwUse{
     flex:0 0 auto;background:none;border:1px solid var(--run);color:var(--run-deep);
@@ -611,13 +624,18 @@
   }
   .walEmpty{text-align:center;color:var(--muted);font-size:14px;padding:18px 0 4px;}
   .ledDate{font-size:13px;color:var(--muted);margin:14px 2px 6px;}
-  .ledCard{background:var(--circle);border:1px solid var(--circle-edge);border-radius:14px;padding:4px 14px;}
-  .ledRow{display:flex;align-items:center;gap:10px;padding:11px 0;}
-  .ledRow + .ledRow{border-top:1px solid #EEF0F3;}
-  .ledRow .lLeft{flex:1 1 auto;min-width:0;}
-  .ledRow .lNm{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .ledRow .lSub{font-size:11px;color:var(--muted);margin-top:3px;}
-  .ledRow .lAmt{flex:0 0 auto;font-size:14px;color:var(--run-deep);font-variant-numeric:tabular-nums;}
+  .ledCard{background:var(--circle);border:1px solid var(--circle-edge);border-radius:14px;padding:2px 14px;}
+  .ledCard > * + *{border-top:1px solid #EEF0F3;}
+  .ledGroup{padding:10px 0;}
+  .ledName{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;}
+  .ledRow{display:flex;align-items:center;gap:8px;padding:4px 0;}
+  .ledCard > .ledRow{padding:12px 0;}
+  .ledRow .lLeft{flex:1 1 auto;min-width:0;font-size:12px;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ledCard > .ledRow .lLeft{font-size:14px;color:var(--text);}
+  /* 금액 자리를 고정폭 + 왼쪽 정렬로 두어 +/− 기호가 모든 줄에서 같은 자리에 선다 */
+  .ledRow .lAmt{flex:0 0 106px;text-align:left;font-size:13px;color:var(--run-deep);
+    display:flex;align-items:center;gap:3px;font-variant-numeric:tabular-nums;}
   .ledRow.out .lAmt{color:var(--pause);}
   /* 난이도 */
   .diffRow{display:flex;gap:8px;}
@@ -649,6 +667,16 @@
   #rwDel{background:none;color:var(--danger);border:1px solid var(--circle-edge);}
   #rwSave{background:var(--text);color:#fff;}
   #rwCancel{background:none;border:none;color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;padding:2px;}
+  #rwRecoBtn{
+    background:none;border:none;color:var(--muted);font-size:13px;font-family:inherit;
+    cursor:pointer;padding:2px 0;text-align:left;margin-top:-6px;
+  }
+  #rwRecoList{display:none;flex-wrap:wrap;gap:6px;margin-top:-4px;}
+  #rwRecoList.open{display:flex;}
+  .recoChip{
+    background:var(--bg);border:1px solid var(--circle-edge);border-radius:14px;
+    padding:6px 11px;font-size:12.5px;font-family:inherit;color:var(--text);cursor:pointer;
+  }
   /* 사용 확인창 */
   #buyBg{
     position:absolute;inset:0;background:rgba(35,41,47,.35);
@@ -659,7 +687,12 @@
     width:min(84vw,320px);display:flex;flex-direction:column;gap:18px;
     box-shadow:0 8px 30px rgba(35,41,47,.18);
   }
-  #buyBox p{font-size:15px;text-align:center;line-height:1.5;}
+  #buyName{font-size:16px;text-align:center;line-height:1.4;}
+  #buyCost{display:flex;flex-direction:column;gap:8px;
+    background:var(--bg);border-radius:10px;padding:12px 14px;}
+  .bcRow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;}
+  .bcLab{color:var(--muted);display:flex;align-items:center;gap:4px;}
+  .bcVal{font-variant-numeric:tabular-nums;}
   #buyBox .row{display:flex;gap:10px;}
   #buyBox button{
     flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
@@ -677,11 +710,6 @@
     max-width:480px;margin:0 auto;
   }
   #toast.on{opacity:1;transform:none;pointer-events:auto;cursor:pointer;}
-  #walletBtn{
-    position:absolute;top:22px;left:62px;
-    background:none;border:none;color:var(--muted);
-    font-size:16px;cursor:pointer;padding:8px 4px;font-family:inherit;
-  }
 
   @media (prefers-reduced-motion: reduce){
     #bigCircle.running, #bigCircle.dbl.running{animation:none;}
@@ -704,7 +732,7 @@
 </svg>
 
 <div id="home" class="view active">
-  <div id="homeTitle"><button id="recordsBtn">기록</button><button id="walletBtn">지갑</button>순실행시간<button id="resetAllBtn">초기화</button></div>
+  <div id="homeTitle"><button id="menuBtn" aria-label="메뉴"><span></span><span></span><span></span></button>순실행시간</div>
   <div id="grid"></div>
   <div id="empty">+ 버튼을 눌러 할 일을 추가하세요</div>
   <button id="addBtn" aria-label="할 일 추가">+</button>
@@ -774,6 +802,15 @@
         <button id="attrDoneBtn">완료</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 메뉴 팝업 -->
+<div id="menuBg">
+  <div id="menuBox">
+    <button class="menuItem" id="menuRecords">기록</button>
+    <button class="menuItem" id="menuWallet">지갑</button>
+    <button class="menuItem danger" id="menuResetAll">모두 초기화</button>
   </div>
 </div>
 
@@ -874,8 +911,8 @@
   <div id="walBody">
     <div class="balRow">
       <div class="balCell"><div class="balLabel">실행시간</div><div class="balVal" id="balTime">0분</div></div>
-      <div class="balCell"><div class="balLabel">배지</div><div class="balVal" id="balBadge">0</div></div>
-      <div class="balCell"><div class="balLabel">체크</div><div class="balVal" id="balCheck">0</div></div>
+      <div class="balCell"><div class="balLabel"><span class="badge goal"></span></div><div class="balVal" id="balBadge">0</div></div>
+      <div class="balCell"><div class="balLabel"><span class="badge check">✓</span></div><div class="balVal" id="balCheck">0</div></div>
     </div>
     <div id="rewardList"></div>
     <button id="addRewardBtn">+ 보상 추가</button>
@@ -892,14 +929,16 @@
 <div id="rewardBg">
   <div id="rewardBox">
     <input type="text" id="rwName" placeholder="보상 이름" maxlength="20">
+    <button id="rwRecoBtn">▸ 추천 보상</button>
+    <div id="rwRecoList"></div>
     <div class="rwLabel">가격</div>
     <div class="goalRow">
       <input type="number" id="rwH" min="0" max="999" placeholder="0"><span>시간</span>
       <input type="number" id="rwM" min="0" max="59" placeholder="0"><span>분</span>
     </div>
     <div class="goalRow">
-      <input type="number" id="rwB" min="0" max="999" placeholder="0"><span>배지</span>
-      <input type="number" id="rwC" min="0" max="999" placeholder="0"><span>체크</span>
+      <input type="number" id="rwB" min="0" max="999" placeholder="0"><span class="badge goal"></span>
+      <input type="number" id="rwC" min="0" max="999" placeholder="0"><span class="badge check">✓</span>
     </div>
     <div class="row">
       <button id="rwDel">삭제</button>
@@ -912,7 +951,8 @@
 <!-- 보상 사용 확인 -->
 <div id="buyBg">
   <div id="buyBox">
-    <p id="buyMsg"></p>
+    <div id="buyName"></div>
+    <div id="buyCost"></div>
     <div class="row">
       <button id="buyNo">취소</button>
       <button id="buyYes">사용</button>
@@ -1185,9 +1225,15 @@
         showToast('목표 달성! 배지 1개');
       }
     }
-    if (checkAllDone(t) && award(t.id, 'check')) {
+    if (checkAllDone(t)) {
+      if (award(t.id, 'check')) {
+        changed = true;
+        if (!silent) showToast('체크리스트 완료! 체크 1개');
+      }
+    } else if (revoke(t.id, 'check')) {
+      // 체크는 1초 만에 눌렀다 풀 수 있다. 완료가 깨지면 되돌린다.
+      // (시간은 되돌릴 수 없으므로 목표 달성 배지에는 이 처리가 없다)
       changed = true;
-      if (!silent) showToast('체크리스트 완료! 체크 1개');
     }
     if (changed) {
       save();
@@ -1196,7 +1242,16 @@
     }
   }
 
-  // 적립 알림: 화면을 옮겨도 2초 동안 유지되고, 겹치면 문구를 합쳐 다시 센다
+  function revoke(taskId, kind){
+    const key = todayKey();
+    const i = wallet.ledger.findIndex(e => e.k === kind && e.d === key && e.task === taskId);
+    if (i < 0) return false;
+    wallet.ledger.splice(i, 1);
+    if (awarded) awarded.delete(key + '|' + taskId + '|' + kind);
+    return true;
+  }
+
+  // 적립 토스트: 화면을 옮겨도 2초 동안 유지되고, 겹치면 문구를 합쳐 다시 센다
   let toastTimer = null, toastParts = [];
   function showToast(part){
     const el = document.getElementById('toast');
@@ -1692,11 +1747,11 @@
   // 모두 초기화: 홈에서 모든 타이머를 0으로 (기록은 보존)
   const confirmAllBg = document.getElementById('confirmAllBg');
   function closeConfirmAll(){ confirmAllBg.style.display = 'none'; }
-  document.getElementById('resetAllBtn').addEventListener('click', () => {
+  function openResetAll(){
     if (editingId !== null) finishEdit();
     confirmAllBg.style.display = 'flex';
     pushLayer(closeConfirmAll);
-  });
+  }
   document.getElementById('confirmAllNo').addEventListener('click', popLayer);
   document.getElementById('confirmAllYes').addEventListener('click', () => {
     tasks.forEach(t => { t.accMs = 0; });
@@ -2252,13 +2307,13 @@
   const recBackBtn = document.getElementById('recBackBtn');
   const backupBtn = document.getElementById('backupBtn');
 
-  document.getElementById('recordsBtn').addEventListener('click', () => {
+  function openRecordsScreen(){
     if (editingId !== null) finishEdit();
     home.classList.remove('active');
     recordsView.classList.add('active');
     pushLayer(closeRecords);
     renderRecords();
-  });
+  }
   function closeRecords(){
     recordsView.classList.remove('active');
     home.classList.add('active');
@@ -2324,6 +2379,10 @@
         delete dayLog[key][id];
         if (!Object.keys(dayLog[key]).length) delete dayLog[key];
       }
+      // 기록을 지운다는 것은 "이 일은 없던 것으로 한다"는 뜻이므로 그 대가도 지운다.
+      // (할일 자체를 삭제하는 것은 "이제 안 한다"는 뜻이라 지갑을 건드리지 않는다)
+      wallet.ledger = wallet.ledger.filter(e => !(e.d === key && String(e.task) === id));
+      awarded = null;
     });
     save();
     popLayer();   // 선택 모드 종료 (내부에서 renderRecords 실행)
@@ -2618,11 +2677,13 @@
   let editingReward = null;   // 편집 중인 보상 (새로 만드는 중이면 null)
   let buying = null;
 
-  function priceText(r){
+  const ICON_BADGE = '<span class="badge goal"></span>';
+  const ICON_CHECK = '<span class="badge check">✓</span>';
+  function priceHTML(r){
     const parts = [];
     if (r.time) parts.push(fmtWal(r.time));
-    if (r.badge) parts.push('배지 ' + r.badge);
-    if (r.check) parts.push('체크 ' + r.check);
+    if (r.badge) parts.push(ICON_BADGE + ' ' + r.badge);
+    if (r.check) parts.push(ICON_CHECK + ' ' + r.check);
     return parts.length ? parts.join(' · ') : '무료';
   }
   function canAfford(r){
@@ -2650,11 +2711,38 @@
       card.innerHTML = '<div class="rwMain"><div class="rwNm"></div><div class="rwPrice"></div></div>' +
                        '<button class="rwUse">사용</button>';
       card.querySelector('.rwNm').textContent = r.name;
-      card.querySelector('.rwPrice').textContent = priceText(r);
+      card.querySelector('.rwPrice').innerHTML = priceHTML(r);
       card.querySelector('.rwMain').addEventListener('click', () => openReward(r));
       card.querySelector('.rwUse').addEventListener('click', () => { if (ok) askBuy(r); });
       rewardList.appendChild(card);
     });
+  }
+
+  // 내역 한 줄. 왼쪽은 무엇인지, 오른쪽은 얼마인지(고정폭이라 +/− 자리가 맞는다)
+  function ledRow(e, standalone){
+    const row = document.createElement('div');
+    row.className = 'ledRow' + (e.k === 'spend' ? ' out' : '');
+    const left = document.createElement('span');
+    left.className = 'lLeft';
+    const amt = document.createElement('span');
+    amt.className = 'lAmt';
+    if (e.k === 'time') {
+      // 난이도가 붙은 날만 잰 시간을 같이 보여준다 (지갑과 기록이 왜 다른지 그 자리에서 보이게)
+      left.textContent = e.ms !== e.raw ? '실행시간 · 잰 시간 ' + fmtWal(e.raw) : '실행시간';
+      amt.textContent = '+' + fmtWal(e.ms);
+    } else if (e.k === 'badge') {
+      left.textContent = '목표 달성';
+      amt.innerHTML = '+' + ICON_BADGE;
+    } else if (e.k === 'check') {
+      left.textContent = '체크리스트 완료';
+      amt.innerHTML = '+' + ICON_CHECK;
+    } else {
+      left.textContent = e.name || '보상';
+      amt.innerHTML = '−' + priceHTML(e);
+    }
+    row.appendChild(left);
+    row.appendChild(amt);
+    return row;
   }
 
   function renderLedger(){
@@ -2675,27 +2763,24 @@
       ledList.appendChild(h);
       const card = document.createElement('div');
       card.className = 'ledCard';
-      byDate[key].slice().reverse().forEach(e => {
-        const row = document.createElement('div');
-        row.className = 'ledRow' + (e.k === 'spend' ? ' out' : '');
-        row.innerHTML = '<span class="lLeft"><span class="lNm"></span><span class="lSub"></span></span>' +
-                        '<span class="lAmt"></span>';
-        const nm = row.querySelector('.lNm'), sub = row.querySelector('.lSub'), amt = row.querySelector('.lAmt');
-        if (e.k === 'time') {
-          nm.textContent = walName(e.task);
-          // 난이도가 붙은 날만 잰 시간을 같이 보여준다 (지갑과 기록이 왜 다른지 그 자리에서 보이게)
-          if (e.ms !== e.raw) sub.textContent = '잰 시간 ' + fmtWal(e.raw); else sub.remove();
-          amt.textContent = '+' + fmtWal(e.ms);
-        } else if (e.k === 'badge') {
-          nm.textContent = walName(e.task); sub.textContent = '목표 달성'; amt.textContent = '+배지 1';
-        } else if (e.k === 'check') {
-          nm.textContent = walName(e.task); sub.textContent = '체크리스트 완료'; amt.textContent = '+체크 1';
-        } else {
-          nm.textContent = e.name || '보상'; sub.remove();
-          amt.textContent = '−' + priceText(e);
-        }
-        card.appendChild(row);
+      // 적립은 할 일 하나에 묶는다. 같은 이름을 세 번 반복하면 읽을 것만 늘어난다
+      const order = [], groups = {}, spends = [];
+      byDate[key].forEach(e => {
+        if (e.k === 'spend') { spends.push(e); return; }
+        if (!groups[e.task]) { groups[e.task] = []; order.push(e.task); }
+        groups[e.task].push(e);
       });
+      order.forEach(tid => {
+        const g = document.createElement('div');
+        g.className = 'ledGroup';
+        const nm = document.createElement('div');
+        nm.className = 'ledName';
+        nm.textContent = walName(tid);
+        g.appendChild(nm);
+        groups[tid].forEach(e => g.appendChild(ledRow(e)));
+        card.appendChild(g);
+      });
+      spends.slice().reverse().forEach(e => card.appendChild(ledRow(e, true)));
       ledList.appendChild(card);
     });
   }
@@ -2712,7 +2797,28 @@
     home.classList.add('active');
     renderHome();
   }
-  document.getElementById('walletBtn').addEventListener('click', openWalletScreen);
+  // ---- 메뉴 팝업 ----
+  // 항목을 고르면 메뉴를 먼저 닫고(뒤로가기 층을 정리하고) 나서 화면을 연다.
+  // 그래야 지갑에서 뒤로가기 한 번에 홈으로 온다.
+  const menuBg = document.getElementById('menuBg');
+  let menuPending = null;
+  function closeMenu(){
+    menuBg.style.display = 'none';
+    const f = menuPending;
+    menuPending = null;
+    if (f) setTimeout(f, 0);
+  }
+  function pickMenu(fn){ menuPending = fn; popLayer(); }
+  document.getElementById('menuBtn').addEventListener('click', () => {
+    if (editingId !== null) finishEdit();
+    menuPending = null;
+    menuBg.style.display = 'flex';
+    pushLayer(closeMenu);
+  });
+  menuBg.addEventListener('click', e => { if (e.target === menuBg) popLayer(); });
+  document.getElementById('menuRecords').addEventListener('click', () => pickMenu(openRecordsScreen));
+  document.getElementById('menuWallet').addEventListener('click', () => pickMenu(openWalletScreen));
+  document.getElementById('menuResetAll').addEventListener('click', () => pickMenu(openResetAll));
   document.getElementById('walBackBtn').addEventListener('click', popLayer);
 
   document.getElementById('ledgerBtn').addEventListener('click', () => {
@@ -2738,10 +2844,28 @@
     rwB.value = (r && r.badge) ? r.badge : '';
     rwC.value = (r && r.check) ? r.check : '';
     document.getElementById('rwDel').style.display = r ? '' : 'none';
+    closeReco();
     rewardBg.style.display = 'flex';
     pushLayer(closeReward);
   }
   function closeReward(){ rewardBg.style.display = 'none'; editingReward = null; }
+  // 빈 지갑 앞에서 "뭘 보상으로 하지"가 첫 장벽이라, 떠올릴 재료를 접어서 붙여 둔다
+  const RECO = ['게임 한 시간', '낮잠', '좋아하는 음식 시켜 먹기', '영화 한 편',
+                '산책', '아무것도 안 하기', '계획 없이 하루 보내기', '당일치기 여행'];
+  const rwRecoBtn = document.getElementById('rwRecoBtn');
+  const rwRecoList = document.getElementById('rwRecoList');
+  RECO.forEach(name => {
+    const chip = document.createElement('button');
+    chip.className = 'recoChip';
+    chip.textContent = name;
+    chip.addEventListener('click', () => { rwName.value = name; closeReco(); });
+    rwRecoList.appendChild(chip);
+  });
+  function closeReco(){ rwRecoList.classList.remove('open'); rwRecoBtn.textContent = '▸ 추천 보상'; }
+  rwRecoBtn.addEventListener('click', () => {
+    const open = rwRecoList.classList.toggle('open');
+    rwRecoBtn.textContent = (open ? '▾' : '▸') + ' 추천 보상';
+  });
   document.getElementById('addRewardBtn').addEventListener('click', () => openReward(null));
   document.getElementById('rwCancel').addEventListener('click', popLayer);
   rewardBg.addEventListener('click', e => { if (e.target === rewardBg) popLayer(); });
@@ -2771,7 +2895,20 @@
   // ---- 보상 사용 ----
   function askBuy(r){
     buying = r;
-    document.getElementById('buyMsg').textContent = r.name + ' — ' + priceText(r) + ' 차감';
+    document.getElementById('buyName').textContent = r.name;
+    const b = balance(), box = document.getElementById('buyCost');
+    box.innerHTML = '';
+    // 카드에 이미 적힌 가격을 되풀이하지 않고, 쓰고 나면 얼마가 남는지를 보여준다
+    const line = (labelHTML, now, after) => {
+      const row = document.createElement('div');
+      row.className = 'bcRow';
+      row.innerHTML = '<span class="bcLab">' + labelHTML + '</span>' +
+                      '<span class="bcVal">' + now + ' → ' + after + '</span>';
+      box.appendChild(row);
+    };
+    if (r.time)  line('실행시간', fmtWal(b.time), fmtWal(b.time - r.time));
+    if (r.badge) line(ICON_BADGE, b.badge, b.badge - r.badge);
+    if (r.check) line(ICON_CHECK, b.check, b.check - r.check);
     buyBg.style.display = 'flex';
     pushLayer(closeBuy);
   }
