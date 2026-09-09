@@ -281,6 +281,16 @@
   .circle.editing:active{transform:none;}
   .circle .name{font-weight:700;max-width:118px;text-align:center;line-height:1.15;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
+  /* 지갑에 쌓기를 켠 할 일에만 붙는다 */
+  .circle .walMark{
+    position:absolute;top:26px;left:50%;transform:translateX(-50%);
+    width:17px;height:12px;border:1.5px solid var(--muted);border-radius:3px;box-sizing:border-box;
+  }
+  .circle .walMark::after{
+    content:'';position:absolute;right:-1.5px;top:2.5px;width:7px;height:5px;
+    border:1.5px solid var(--muted);border-radius:3px 0 0 3px;box-sizing:border-box;
+    background:var(--circle);
+  }
   /* 편집 모드: 모든 원에 드래그 손잡이 */
   .circle .grip{
     display:none;position:absolute;left:-26px;top:50%;transform:translateY(-50%);
@@ -640,6 +650,8 @@
   }
   .rwCard.lack{opacity:.45;}
   .rwCard.lack .rwUse{border-color:var(--circle-edge);color:var(--muted);}
+  #walHint{display:none;line-height:1.5;padding:0 4px 16px;}
+  #walHint.on{display:block;}
   #addRewardBtn{
     display:block;margin:4px auto 0;background:none;border:none;color:var(--muted);
     font-size:15px;cursor:pointer;padding:10px;font-family:inherit;
@@ -967,6 +979,7 @@
       <div class="balCell"><div class="balLabel"><span class="badge goal"></span></div><div class="balVal" id="balBadge">0</div></div>
       <div class="balCell"><div class="balLabel"><span class="badge check">✓</span></div><div class="balVal" id="balCheck">0</div></div>
     </div>
+    <div id="walHint" class="walEmpty">타이머 화면의 '+ 속성 추가'에서 '지갑에 쌓기'를 켜면 쌓이기 시작해요</div>
     <div id="rewardList"></div>
     <button id="addRewardBtn">+ 보상 추가</button>
   </div>
@@ -1225,13 +1238,22 @@
     const v = t && t.diff;
     return (v === 0.8 || v === 1.2) ? v : 1;
   }
-  // 지갑에 쌓을 할 일인가. 기본은 켜짐(false로 명시했을 때만 끈다)
-  function walOn(t){ return !t || t.wal !== false; }
+  // 지갑에 쌓을 할 일인가. 기본은 꺼짐 — 측정이 본체이고 적립은 부가라, 켠 것만 쌓는다
+  function walOn(t){ return !!(t && t.wal === true); }
   function walName(id){ return taskNames[id] || '할 일'; }
+
+  // 잘못 눌렀거나 시험 삼아 눌러본 흔적을 걸러내는 기준. 기록 화면과 지갑이 같은 기준을 쓴다.
+  // 시간 자체는 그대로 쌓이므로, 같은 날 더 해서 1분을 넘기면 그때 총합으로 나타난다.
+  const MIN_REC_MS = 60000;
+
+  // 그날 합계가 1분 미만인 실행시간은 지갑에 반영하지 않는다.
+  // 지우는 것이 아니라 안 세는 것이라, 같은 날 더 해서 1분을 넘기면 통째로 나타난다.
+  function walCounts(e){ return e.k !== 'time' || (e.raw || 0) >= MIN_REC_MS; }
 
   function balance(){
     const b = { time: 0, badge: 0, check: 0 };
     wallet.ledger.forEach(e => {
+      if (!walCounts(e)) return;
       if (e.k === 'time') b.time += e.ms || 0;
       else if (e.k === 'badge') b.badge += 1;
       else if (e.k === 'check') b.check += 1;
@@ -1400,7 +1422,8 @@
         '<button class="delBtn" aria-label="삭제">✕</button>' +
         '<div class="name"></div>' +
         '<input class="nameInput" maxlength="20" readonly>' +
-        '<div class="time"></div>';
+        '<div class="time"></div>' +
+        (walOn(t) ? '<span class="walMark"></span>' : '');
       const nameEl = c.querySelector('.name');
       nameEl.textContent = t.name;
       nameEl.style.fontSize = nameFontSize(t.name) + 'px';
@@ -2330,7 +2353,7 @@
     t.goalMs = (h * 60 + m) * 60000;
     t.diff = draft.diff || 1;
     const walWas = walOn(t);
-    t.wal = draft.wal !== false;
+    t.wal = draft.wal === true;
     const turnedOff = walWas && !t.wal;
     const nowIds = new Set(draft.items.map(it => String(it.id)));
     // 편집 대상이 아니던 항목(다른 날 완료돼 화면에 없던 것)만 보존.
@@ -2346,7 +2369,7 @@
     save();
     // 껐는데 이미 쌓인 것이 있으면 그 자리에서 한 번만 묻는다.
     // (지갑 내역에 상시 삭제 기능을 두지 않기로 했으므로, 비우는 통로는 여기 하나뿐이다)
-    if (turnedOff && wallet.ledger.some(e => e.k !== 'spend' && e.task === t.id)) pendingPurge = t;
+    if (turnedOff && wallet.ledger.some(e => e.k !== 'spend' && e.task === t.id && walCounts(e))) pendingPurge = t;
     popLayer();          // 편집 레이어 정리 → closeAttrEdit 실행
     renderFocus();
   });
@@ -2463,11 +2486,6 @@
     return y + '.' + String(m).padStart(2,'0') + '.' + String(d).padStart(2,'0') + ' (' + day + ')';
   }
   function nameOf(id){ return taskNames[id] || '할 일'; }
-
-  // 잘못 눌렀거나 시험 삼아 눌러본 흔적을 걸러내는 기준.
-  // 이 미만은 기록 화면(날짜별 목록·기간별 합계)에 나타나지 않음.
-  // 시간 자체는 그대로 쌓이므로, 같은 날 더 해서 1분을 넘기면 그때 총합으로 나타남.
-  const MIN_REC_MS = 60000;
 
   let expandables = [];
   function renderRecords(){
@@ -2765,6 +2783,8 @@
     document.getElementById('balTime').textContent = fmtWal(b.time);
     document.getElementById('balBadge').textContent = b.badge;
     document.getElementById('balCheck').textContent = b.check;
+    // 켠 할 일이 하나도 없으면 잔액이 영영 0이므로, 그 상태에서만 이유를 알려준다
+    document.getElementById('walHint').classList.toggle('on', !tasks.some(walOn));
     rewardList.innerHTML = '';
     if (!wallet.rewards.length) {
       const d = document.createElement('div');
@@ -2816,7 +2836,7 @@
 
   function renderLedger(){
     ledList.innerHTML = '';
-    if (!wallet.ledger.length) {
+    if (!wallet.ledger.some(walCounts)) {
       const d = document.createElement('div');
       d.className = 'walEmpty';
       d.textContent = '아직 내역이 없습니다';
@@ -2824,7 +2844,7 @@
       return;
     }
     const byDate = {};
-    wallet.ledger.forEach(e => { (byDate[e.d] = byDate[e.d] || []).push(e); });
+    wallet.ledger.forEach(e => { if (walCounts(e)) (byDate[e.d] = byDate[e.d] || []).push(e); });
     Object.keys(byDate).sort().reverse().forEach(key => {
       const h = document.createElement('div');
       h.className = 'ledDate';
@@ -2872,7 +2892,7 @@
   function closePurge(){ purgeBg.style.display = 'none'; purgeTarget = null; }
   function askPurge(t){
     purgeTarget = t;
-    const mine = wallet.ledger.filter(e => e.k !== 'spend' && e.task === t.id);
+    const mine = wallet.ledger.filter(e => e.k !== 'spend' && e.task === t.id && walCounts(e));
     let ms = 0, badge = 0, check = 0;
     mine.forEach(e => {
       if (e.k === 'time') ms += e.ms || 0;
@@ -3052,7 +3072,7 @@
       b.classList.toggle('on', parseFloat(b.dataset.v) === v);
     });
     // 지갑에 안 쌓는 할 일이면 난이도는 아무 의미가 없으므로 흐리게 잠근다
-    const on = !draft || draft.wal !== false;
+    const on = !!(draft && draft.wal === true);
     document.getElementById('walSwitch').classList.toggle('on', on);
     document.getElementById('diffBlock').classList.toggle('off', !on);
   }
@@ -3065,7 +3085,7 @@
   });
   document.getElementById('walSwitch').addEventListener('click', () => {
     if (!draft) return;
-    draft.wal = draft.wal === false;
+    draft.wal = draft.wal !== true;
     renderDiff();
   });
 
