@@ -281,16 +281,23 @@
   .circle.editing:active{transform:none;}
   .circle .name{font-weight:700;max-width:118px;text-align:center;line-height:1.15;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
-  /* 지갑에 쌓기를 켠 할 일에만 붙는다 */
+  /* 지갑에 쌓기를 켠 할 일에만 붙는다. 원 안이 아니라 윤곽선 위에 얹혀야 훑을 때 먼저 잡힌다.
+     배지는 오른쪽 위 — 상태 표시를 오른쪽 위에 두는 것이 가장 흔한 방식이다 */
   .circle .walMark{
-    position:absolute;top:26px;left:50%;transform:translateX(-50%);
-    width:17px;height:12px;border:1.5px solid var(--muted);border-radius:3px;box-sizing:border-box;
+    position:absolute;top:2px;right:2px;z-index:2;
+    width:30px;height:30px;border-radius:50%;
+    background:var(--run);box-shadow:0 2px 8px rgba(245,158,27,.45);
+  }
+  .circle .walMark::before{
+    content:'';position:absolute;top:10px;left:7px;width:15px;height:11px;
+    border:1.9px solid #fff;border-radius:3px;box-sizing:border-box;
   }
   .circle .walMark::after{
-    content:'';position:absolute;right:-1.5px;top:2.5px;width:7px;height:5px;
-    border:1.5px solid var(--muted);border-radius:3px 0 0 3px;box-sizing:border-box;
-    background:var(--circle);
+    content:'';position:absolute;top:12px;left:20px;width:6px;height:5px;
+    border:1.9px solid #fff;border-radius:3px 0 0 3px;box-sizing:border-box;
   }
+  /* 편집 모드에서는 빨간 ✕이 같은 자리에 오므로 배지를 감춘다 */
+  .circle.editing .walMark{display:none;}
   /* 편집 모드: 모든 원에 드래그 손잡이 */
   .circle .grip{
     display:none;position:absolute;left:-26px;top:50%;transform:translateY(-50%);
@@ -652,6 +659,35 @@
   .rwCard.lack .rwUse{border-color:var(--circle-edge);color:var(--muted);}
   #walHint{display:none;line-height:1.5;padding:0 4px 16px;}
   #walHint.on{display:block;}
+  #rewardList{position:relative;}
+  .rwCard .rwGrip{
+    display:none;flex:0 0 auto;width:28px;align-self:stretch;
+    margin:-14px 2px -14px -4px;
+    align-items:center;justify-content:center;
+    color:#9AA4AF;font-size:20px;font-weight:300;line-height:1;
+    cursor:grab;touch-action:none;
+  }
+  .rwCard .rwDel2{
+    display:none;flex:0 0 auto;background:none;border:none;color:var(--danger);
+    font-size:17px;cursor:pointer;padding:4px 6px;font-family:inherit;
+  }
+  #rewardList.editing .rwGrip{display:flex;}
+  #rewardList.editing .rwDel2{display:block;}
+  #rewardList.editing .rwUse{display:none;}
+  #rewardList.editing .rwCard{touch-action:pan-y;}
+  .rwCard.rwDragging{opacity:.35;}
+  #rwGhost{
+    position:fixed;z-index:60;pointer-events:none;
+    transform:translate(-50%,-50%) scale(1.03);
+    background:#fff;border-radius:14px;padding:14px;
+    box-shadow:0 8px 20px rgba(35,41,47,.22);
+    display:flex;align-items:center;gap:10px;
+  }
+  #rwDropLine{
+    position:absolute;height:3px;border-radius:2px;
+    background:var(--run);box-shadow:0 0 6px rgba(245,158,27,.5);
+    pointer-events:none;display:none;z-index:4;
+  }
   #addRewardBtn{
     display:block;margin:4px auto 0;background:none;border:none;color:var(--muted);
     font-size:15px;cursor:pointer;padding:10px;font-family:inherit;
@@ -712,9 +748,8 @@
     flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
     font-size:15px;font-weight:500;font-family:inherit;
   }
-  #rwDel{background:none;color:var(--danger);border:1px solid var(--circle-edge);}
   #rwSave{background:var(--text);color:#fff;}
-  #rwCancel{background:none;border:none;color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;padding:2px;}
+  #rwCancel{background:none;color:var(--muted);border:1px solid var(--circle-edge);}
   #rwRecoBtn{
     background:none;border:none;color:var(--muted);font-size:13px;font-family:inherit;
     cursor:pointer;padding:2px 0;text-align:left;margin-top:-6px;
@@ -1007,10 +1042,9 @@
       <input type="number" id="rwC" min="0" max="999" placeholder="0"><span class="badge check">✓</span>
     </div>
     <div class="row">
-      <button id="rwDel">삭제</button>
+      <button id="rwCancel">닫기</button>
       <button id="rwSave">저장</button>
     </div>
-    <button id="rwCancel">닫기</button>
   </div>
 </div>
 
@@ -2779,6 +2813,7 @@
   }
 
   function renderWallet(){
+    rewardList.classList.toggle('editing', rwEditing);
     const b = balance();
     document.getElementById('balTime').textContent = fmtWal(b.time);
     document.getElementById('balBadge').textContent = b.badge;
@@ -2797,12 +2832,22 @@
       const ok = canAfford(r);
       const card = document.createElement('div');
       card.className = 'rwCard' + (ok ? '' : ' lack');
-      card.innerHTML = '<div class="rwMain"><div class="rwNm"></div><div class="rwPrice"></div></div>' +
-                       '<button class="rwUse">사용</button>';
+      card.dataset.id = r.id;
+      card.innerHTML = '<span class="rwGrip">↕</span>' +
+                       '<div class="rwMain"><div class="rwNm"></div><div class="rwPrice"></div></div>' +
+                       '<button class="rwUse">사용</button>' +
+                       '<button class="rwDel2" aria-label="삭제">✕</button>';
       card.querySelector('.rwNm').textContent = r.name;
       card.querySelector('.rwPrice').innerHTML = priceHTML(r);
-      card.querySelector('.rwMain').addEventListener('click', () => openReward(r));
-      card.querySelector('.rwUse').addEventListener('click', () => { if (ok) askBuy(r); });
+      card.querySelector('.rwMain').addEventListener('click', () => { if (!rwEditing) openReward(r); });
+      card.querySelector('.rwUse').addEventListener('click', () => { if (!rwEditing && ok) askBuy(r); });
+      card.querySelector('.rwDel2').addEventListener('click', () => {
+        wallet.rewards = wallet.rewards.filter(x => x.id !== r.id);
+        save();
+        renderWallet();
+      });
+      bindRewardPress(card, r);
+      bindRewardDrag(card, r);
       rewardList.appendChild(card);
     });
   }
@@ -2832,6 +2877,153 @@
     row.appendChild(left);
     row.appendChild(amt);
     return row;
+  }
+
+  // ---- 보상 편집 모드 (꾹 누르기 → 손잡이로 이동, ✕로 삭제) ----
+  let rwEditing = false;
+  function enterRwEdit(){
+    if (rwEditing) return;
+    swallowNextClick();          // 손 뗀 자리에 나타난 ✕이 눌리지 않게
+    rwEditing = true;
+    rewardList.classList.add('editing');
+    pushLayer(exitRwEdit);
+  }
+  function exitRwEdit(){
+    rwEditing = false;
+    rewardList.classList.remove('editing');
+    renderWallet();
+  }
+  function bindRewardPress(card, r){
+    let timer = null, long = false;
+    card.addEventListener('pointerdown', e => {
+      if (e.target.closest('.rwGrip') || e.target.closest('.rwDel2')) return;
+      long = false;
+      timer = setTimeout(() => { long = true; enterRwEdit(); }, 550);
+    });
+    const cancel = () => clearTimeout(timer);
+    card.addEventListener('pointerleave', cancel);
+    card.addEventListener('pointercancel', cancel);
+    card.addEventListener('pointerup', cancel);
+    card.addEventListener('contextmenu', e => e.preventDefault());
+  }
+
+  let rwDrag = null, rwGhost = null, rwDropLine = null, rwLastY = 0;
+  let rwScrollDir = 0, rwScrollTimer = null;
+  const walBody = document.getElementById('walBody');
+
+  function rwAutoScroll(y){
+    const r = walBody.getBoundingClientRect(), zone = 90;
+    if (y < r.top + zone) rwScrollDir = -1;
+    else if (y > r.bottom - zone) rwScrollDir = 1;
+    else rwScrollDir = 0;
+    if (rwScrollDir === 0) { stopRwScroll(); return; }
+    if (!rwScrollTimer) {
+      rwScrollTimer = setInterval(() => {
+        walBody.scrollTop += rwScrollDir * 6;
+        showRwDropLine(rwLastY);
+      }, 16);
+    }
+  }
+  function stopRwScroll(){
+    if (rwScrollTimer) { clearInterval(rwScrollTimer); rwScrollTimer = null; }
+    rwScrollDir = 0;
+  }
+  function rwSiblings(){
+    if (!rwDrag) return [];
+    return Array.from(rewardList.querySelectorAll('.rwCard'))
+      .filter(el => el.dataset.id !== String(rwDrag.r.id));
+  }
+  function rwInsertBefore(y){
+    const sibs = rwSiblings();
+    for (const el of sibs){
+      const r = el.getBoundingClientRect();
+      if (y < r.top + r.height / 2) return { before: el, sibs };
+    }
+    return { before: null, sibs };
+  }
+  function showRwDropLine(y){
+    if (!rwDropLine) return;
+    const { before, sibs } = rwInsertBefore(y);
+    if (!sibs.length){ rwDropLine.style.display = 'none'; return; }
+    const lr = rewardList.getBoundingClientRect();
+    let top, left, width;
+    if (before){
+      const r = before.getBoundingClientRect();
+      top = r.top - 5; left = r.left; width = r.width;
+    } else {
+      const r = sibs[sibs.length - 1].getBoundingClientRect();
+      top = r.bottom + 2; left = r.left; width = r.width;
+    }
+    rwDropLine.style.display = 'block';
+    rwDropLine.style.top = (top - lr.top) + 'px';
+    rwDropLine.style.left = (left - lr.left) + 'px';
+    rwDropLine.style.width = width + 'px';
+  }
+  function moveRwGhost(x, y){
+    if (rwGhost){ rwGhost.style.left = x + 'px'; rwGhost.style.top = y + 'px'; }
+    showRwDropLine(y);
+  }
+  function cleanupRwDrag(){
+    stopRwScroll();
+    if (rwGhost){ rwGhost.remove(); rwGhost = null; }
+    if (rwDropLine){ rwDropLine.remove(); rwDropLine = null; }
+    rwDrag = null;
+  }
+  function bindRewardDrag(card, r){
+    const grip = card.querySelector('.rwGrip');
+    if (!grip) return;
+    grip.addEventListener('pointerdown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      rwDrag = { r: r, card: card };
+      grip.setPointerCapture(e.pointerId);
+      card.classList.add('rwDragging');
+
+      rwDropLine = document.createElement('div');
+      rwDropLine.id = 'rwDropLine';
+      rewardList.appendChild(rwDropLine);
+
+      rwGhost = card.cloneNode(true);
+      rwGhost.id = 'rwGhost';
+      rwGhost.classList.remove('rwDragging');
+      rwGhost.style.width = card.offsetWidth + 'px';
+      document.body.appendChild(rwGhost);
+
+      rwLastY = e.clientY;
+      moveRwGhost(e.clientX, e.clientY);
+    });
+    grip.addEventListener('pointermove', e => {
+      if (!rwDrag) return;
+      e.stopPropagation();
+      e.preventDefault();
+      rwLastY = e.clientY;
+      moveRwGhost(e.clientX, e.clientY);
+      rwAutoScroll(e.clientY);
+    });
+    const finish = e => {
+      e.stopPropagation();
+      if (!rwDrag) return;
+      const { before } = rwInsertBefore(rwLastY);
+      const moving = wallet.rewards.find(x => x.id === rwDrag.r.id);
+      if (moving){
+        wallet.rewards = wallet.rewards.filter(x => x.id !== moving.id);
+        if (before){
+          const idx = wallet.rewards.findIndex(x => String(x.id) === before.dataset.id);
+          wallet.rewards.splice(idx, 0, moving);
+        } else {
+          wallet.rewards.push(moving);
+        }
+        save();
+      }
+      cleanupRwDrag();
+      renderWallet();
+    };
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', e => {
+      e.stopPropagation();
+      cleanupRwDrag();
+      renderWallet();
+    });
   }
 
   function renderLedger(){
@@ -2882,6 +3074,8 @@
     renderWallet();
   }
   function closeWallet(){
+    rwEditing = false;
+    rewardList.classList.remove('editing');
     walletView.classList.remove('active');
     home.classList.add('active');
     renderHome();
@@ -2943,6 +3137,9 @@
   document.getElementById('menuWallet').addEventListener('click', () => pickMenu(openWalletScreen));
   document.getElementById('menuResetAll').addEventListener('click', () => pickMenu(openResetAll));
   document.getElementById('walBackBtn').addEventListener('click', popLayer);
+  walBody.addEventListener('click', e => {
+    if (rwEditing && !e.target.closest('.rwCard') && !e.target.closest('#addRewardBtn')) popLayer();
+  });
 
   document.getElementById('ledgerBtn').addEventListener('click', () => {
     walletView.classList.remove('active');
@@ -2966,7 +3163,6 @@
     rwM.value = m ? (m % 60 || '') : '';
     rwB.value = (r && r.badge) ? r.badge : '';
     rwC.value = (r && r.check) ? r.check : '';
-    document.getElementById('rwDel').style.display = r ? '' : 'none';
     closeReco();
     rewardBg.style.display = 'flex';
     pushLayer(closeReward);
@@ -3008,13 +3204,6 @@
     popLayer();
     renderWallet();
   });
-  document.getElementById('rwDel').addEventListener('click', () => {
-    if (editingReward) wallet.rewards = wallet.rewards.filter(x => x.id !== editingReward.id);
-    save();
-    popLayer();
-    renderWallet();
-  });
-
   // ---- 보상 사용 ----
   function askBuy(r){
     buying = r;
