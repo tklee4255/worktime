@@ -469,8 +469,18 @@
   }
   #goalView.done{color:var(--run-deep);font-weight:700;}
   #goalView.dbl{color:var(--cool-deep);font-weight:700;}
-  /* 난이도는 목표 달성 표시와 경쟁하지 않도록 무채색 한 줄로만 */
-  #diffView{text-align:center;font-size:14px;color:var(--muted);}
+  /* 지갑 줄은 목표 달성 표시와 경쟁하지 않도록 무채색 한 줄로만.
+     화폐 이름은 길어서 여기서는 기호만 쓴다 (정식 이름은 속성 편집에 있다) */
+  #walView{
+    display:flex;justify-content:center;align-items:center;
+    gap:5px;flex-wrap:wrap;font-size:14px;color:var(--muted);
+  }
+  #walView .wTag{
+    display:inline-flex;align-items:center;gap:3px;height:22px;
+    font-size:12px;color:var(--muted);line-height:1;white-space:nowrap;
+    border:1px solid var(--circle-edge);border-radius:20px;padding:0 8px;
+  }
+  #walView .wTag.sym{padding:0 7px;}
   #checkView{list-style:none;display:flex;flex-direction:column;gap:2px;}
   #checkView li{
     display:flex;align-items:center;gap:10px;
@@ -493,9 +503,11 @@
     margin-left:auto;flex:0 0 auto;font-size:12px;color:var(--danger);font-weight:500;
   }
   #checkView li .tag + .delay{ margin-left:8px; }
+  /* 위의 목표·지갑 줄과 같은 무채색 글자라 테두리가 없으면 누르는 것으로 안 읽힌다 */
   #attrEditOpen{
-    background:none;border:none;color:var(--muted);
-    font-size:14px;cursor:pointer;padding:6px;font-family:inherit;align-self:center;
+    background:var(--circle);border:1px solid var(--circle-edge);border-radius:10px;
+    color:var(--muted);font-size:14px;cursor:pointer;padding:8px 22px;
+    font-family:inherit;align-self:center;margin-top:4px;
   }
 
   #attrEdit{display:none;width:100%;flex-direction:column;gap:18px;}
@@ -716,6 +728,35 @@
   }
   #walSwitch.on{background:var(--run);}
   #walSwitch.on::after{transform:translateX(19px);}
+  /* 설명 버튼 — 글자와 같은 글꼴·같은 높이라야 가운데가 맞는다 */
+  .walSwitchRow .swLabel{display:inline-flex;align-items:center;height:20px;}
+  #walInfo{
+    flex:0 0 auto;width:20px;height:20px;border-radius:50%;padding:0;
+    border:1.5px solid var(--muted);background:none;color:var(--muted);
+    font-family:inherit;font-size:12px;font-weight:700;line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    margin-right:auto;
+  }
+  #walInfo.on{background:var(--muted);color:#fff;}
+  /* 화폐 칩 — 난이도의 네모 버튼과 모양을 달리한다.
+     난이도는 셋 중 하나를 고르고, 화폐는 여럿을 따로 켠다 */
+  #walKinds{display:none;flex-direction:column;gap:7px;margin-top:12px;}
+  #walKinds.show{display:flex;}
+  .walChip{
+    display:flex;align-items:center;gap:5px;width:100%;
+    background:var(--bg);border:1px solid var(--circle-edge);border-radius:16px;
+    padding:8px 12px;font-size:13.5px;font-family:inherit;color:var(--muted);
+    cursor:pointer;text-align:left;
+  }
+  .walChip.on{border-color:var(--run);color:var(--run-deep);background:#FDF3E2;}
+  #walExpl{
+    display:none;margin-top:12px;background:var(--bg);border-radius:10px;
+    padding:12px 13px;font-size:13px;line-height:1.6;color:var(--muted);
+  }
+  #walExpl.show{display:block;}
+  #walExpl .er + .er{margin-top:9px;}
+  #walExpl .ek{display:flex;align-items:center;gap:4px;font-weight:700;color:var(--text);margin-bottom:1px;}
+  #walExpl .ef{margin-top:10px;padding-top:9px;border-top:1px solid var(--circle-edge);}
   #diffBlock.off{opacity:.4;pointer-events:none;}
   .diffRow{display:flex;gap:8px;}
   .diffBtn{
@@ -849,7 +890,7 @@
 
       <div id="attrView">
         <div id="goalView"></div>
-        <div id="diffView"></div>
+        <div id="walView"></div>
         <ul id="checkView"></ul>
       </div>
 
@@ -873,8 +914,11 @@
         <div class="attrBlock">
           <div class="walSwitchRow">
             <span class="swLabel">지갑에 쌓기</span>
+            <button id="walInfo" aria-label="화폐 설명">i</button>
             <button id="walSwitch" aria-label="지갑에 쌓기"></button>
           </div>
+          <div id="walKinds"></div>
+          <div id="walExpl"></div>
         </div>
         <div class="attrBlock" id="diffBlock">
           <div class="attrLabel">난이도</div>
@@ -1006,7 +1050,7 @@
   <div id="walHeader">지갑<button id="walBackBtn">← 뒤로가기</button><button id="ledgerBtn">내역</button></div>
   <div id="walBody">
     <div class="balRow">
-      <div class="balCell"><div class="balLabel">실행시간</div><div class="balVal" id="balTime">0분</div></div>
+      <div class="balCell"><div class="balLabel">순실행시간</div><div class="balVal" id="balTime">0분</div></div>
       <div class="balCell"><div class="balLabel"><span class="badge goal"></span></div><div class="balVal" id="balBadge">0</div></div>
       <div class="balCell"><div class="balLabel"><span class="badge check">✓</span></div><div class="balVal" id="balCheck">0</div></div>
     </div>
@@ -1270,6 +1314,16 @@
   }
   // 지갑에 쌓을 할 일인가. 기본은 꺼짐 — 측정이 본체이고 적립은 부가라, 켠 것만 쌓는다
   function walOn(t){ return !!(t && t.wal === true); }
+  const ICON_BADGE = '<span class="badge goal"></span>';
+  const ICON_CHECK = '<span class="badge check">✓</span>';
+  // 화폐 정식 이름. 코드 키(time/badge/check)는 이미 쌓인 내역을 읽어야 하므로 바꾸지 않는다
+  const WAL_KINDS = [
+    { k: 'time',  name: '순실행시간',        sym: '' },
+    { k: 'badge', name: '목표시간 달성',     sym: '<span class="badge goal"></span>' },
+    { k: 'check', name: '체크리스트 전부 완료', sym: '<span class="badge check">✓</span>' }
+  ];
+  // 화폐별로 따로 켜고 끈다. walK가 없는 할 일(이전 버전에서 켠 것)은 셋 다 켠 것으로 본다
+  function walKind(t, k){ return walOn(t) && !(t.walK && t.walK[k] === false); }
   function walName(id){ return taskNames[id] || '할 일'; }
 
   // 잘못 눌렀거나 시험 삼아 눌러본 흔적을 걸러내는 기준. 기록 화면과 지갑이 같은 기준을 쓴다.
@@ -1299,7 +1353,7 @@
   function earnTime(taskId, ms, key){
     if (!(ms > 0)) return 0;
     const t = tasks.find(x => x.id === taskId);
-    if (!walOn(t)) return 0;
+    if (!walKind(t, 'time')) return 0;
     const add = Math.round(ms * diffMul(t));
     let e = wallet.ledger.find(x => x.k === 'time' && x.d === key && x.task === taskId);
     if (!e) { e = { d: key, k: 'time', task: taskId, raw: 0, ms: 0 }; wallet.ledger.push(e); }
@@ -1326,17 +1380,17 @@
   function checkAwards(t, silent){
     if (!t || !walOn(t)) return;
     let changed = false;
-    if (goalDone(t) && award(t.id, 'badge')) {
+    if (walKind(t, 'badge') && goalDone(t) && award(t.id, 'badge')) {
       changed = true;
       if (!silent) {
         if (navigator.vibrate) { try { navigator.vibrate([50, 80, 50]); } catch(e) {} }
-        showToast('목표 달성! 배지 1개');
+        showToast(ICON_BADGE + ' 1개가 지갑에 담겼어요');
       }
     }
-    if (checkAllDone(t)) {
+    if (walKind(t, 'check') && checkAllDone(t)) {
       if (award(t.id, 'check')) {
         changed = true;
-        if (!silent) showToast('체크리스트 완료! 체크 1개');
+        if (!silent) showToast(ICON_CHECK + ' 1개가 지갑에 담겼어요');
       }
     } else if (revoke(t.id, 'check')) {
       // 체크는 1초 만에 눌렀다 풀 수 있다. 완료가 깨지면 되돌린다.
@@ -1365,7 +1419,7 @@
     const el = document.getElementById('toast');
     if (!el) return;
     toastParts.push(part);
-    el.textContent = toastParts.join(' · ');
+    el.innerHTML = toastParts.join(' · ');   // 화폐 기호(○·✓)가 들어간다
     el.classList.add('on');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.classList.remove('on'); toastParts = []; }, 2000);
@@ -2106,15 +2160,22 @@
       goalView.style.display = 'none';
     }
 
-    // 난이도 표시 — 지갑에 쌓는 할 일에만. 속성 수정에 들어가지 않고 확인할 수 있어야 한다
-    const diffView = document.getElementById('diffView');
+    // 지갑 줄 — 무엇이 쌓이는지와 난이도를, 속성 수정에 들어가지 않고 확인할 수 있어야 한다.
+    // 기호만 남으면 기록 화면의 달성 표시와 헷갈리므로 '지갑'을 앞에 붙인다
+    const walView = document.getElementById('walView');
     if (walOn(t)) {
-      const mul = diffMul(t);
-      const label = mul === 1.2 ? '어려움 ×1.2' : (mul === 0.8 ? '쉬움 ×0.8' : '보통');
-      diffView.textContent = '난이도 ' + label;
-      diffView.style.display = '';
+      let html = '지갑 ';
+      if (walKind(t, 'time')) {
+        const mul = diffMul(t);
+        const sfx = mul === 1.2 ? ' (어려움 ×1.2)' : (mul === 0.8 ? ' (쉬움 ×0.8)' : '');
+        html += '<span class="wTag">순실행시간' + sfx + '</span>';
+      }
+      if (walKind(t, 'badge')) html += '<span class="wTag sym">' + ICON_BADGE + '</span>';
+      if (walKind(t, 'check')) html += '<span class="wTag sym">' + ICON_CHECK + '</span>';
+      walView.innerHTML = html;
+      walView.style.display = '';
     } else {
-      diffView.style.display = 'none';
+      walView.style.display = 'none';
     }
 
     // 체크리스트 표시
@@ -2176,7 +2237,10 @@
     goalM.value = draft.goalMs ? (totalMin % 60) || '' : '';
     draft.diff = diffMul(t);
     draft.wal = walOn(t);
-    renderDiff();
+    draft.walK = {};
+    WAL_KINDS.forEach(w => { draft.walK[w.k] = walOn(t) ? walKind(t, w.k) : true; });
+    draft.info = false;
+    renderWal();
     newItem.value = ''; newDaily.checked = false;
     attrArea.classList.add('editing');
     attrArea.classList.remove('hasAttr');
@@ -2404,6 +2468,7 @@
     t.diff = draft.diff || 1;
     const walWas = walOn(t);
     t.wal = draft.wal === true;
+    t.walK = { time: draft.walK.time !== false, badge: draft.walK.badge !== false, check: draft.walK.check !== false };
     const turnedOff = walWas && !t.wal;
     const nowIds = new Set(draft.items.map(it => String(it.id)));
     // 편집 대상이 아니던 항목(다른 날 완료돼 화면에 없던 것)만 보존.
@@ -2814,8 +2879,6 @@
   let editingReward = null;   // 편집 중인 보상 (새로 만드는 중이면 null)
   let buying = null;
 
-  const ICON_BADGE = '<span class="badge goal"></span>';
-  const ICON_CHECK = '<span class="badge check">✓</span>';
   function priceHTML(r){
     const parts = [];
     if (r.time) parts.push(fmtWal(r.time));
@@ -2878,13 +2941,13 @@
     amt.className = 'lAmt';
     if (e.k === 'time') {
       // 난이도가 붙은 날만 잰 시간을 같이 보여준다 (지갑과 기록이 왜 다른지 그 자리에서 보이게)
-      left.textContent = e.ms !== e.raw ? '실행시간 · 잰 시간 ' + fmtWal(e.raw) : '실행시간';
+      left.textContent = e.ms !== e.raw ? '순실행시간 · 잰 시간 ' + fmtWal(e.raw) : '순실행시간';
       amt.textContent = '+' + fmtWal(e.ms);
     } else if (e.k === 'badge') {
-      left.textContent = '목표 달성';
+      left.textContent = '목표시간 달성';
       amt.innerHTML = '+' + ICON_BADGE;
     } else if (e.k === 'check') {
-      left.textContent = '체크리스트 완료';
+      left.textContent = '체크리스트 전부 완료';
       amt.innerHTML = '+' + ICON_CHECK;
     } else {
       left.textContent = e.name || '보상';
@@ -3234,7 +3297,7 @@
                       '<span class="bcVal">' + now + ' → ' + after + '</span>';
       box.appendChild(row);
     };
-    if (r.time)  line('실행시간', fmtWal(b.time), fmtWal(b.time - r.time));
+    if (r.time)  line('순실행시간', fmtWal(b.time), fmtWal(b.time - r.time));
     if (r.badge) line(ICON_BADGE, b.badge, b.badge - r.badge);
     if (r.check) line(ICON_CHECK, b.check, b.check - r.check);
     buyBg.style.display = 'flex';
@@ -3271,27 +3334,68 @@
   });
 
   // ---- 난이도 (속성 편집 안) ----
-  function renderDiff(){
+  const WAL_EXPL = [
+    '잰 시간만큼 쌓여요. 난이도 배수가 곱해져요. <b>많이 한 것</b>에 주는 보상에 써요.',
+    '목표시간을 채운 날 하루 한 번 쌓여요. <b>정한 만큼 한 날</b>에 주는 보상에 써요.',
+    '체크리스트를 다 끝낸 날 하루 한 번 쌓여요. <b>할 일을 빠짐없이 한 날</b>에 주는 보상에 써요.'
+  ];
+  function renderWal(){
     const v = (draft && draft.diff) || 1;
     document.querySelectorAll('.diffBtn').forEach(b => {
       b.classList.toggle('on', parseFloat(b.dataset.v) === v);
     });
-    // 지갑에 안 쌓는 할 일이면 난이도는 아무 의미가 없으므로 흐리게 잠근다
     const on = !!(draft && draft.wal === true);
     document.getElementById('walSwitch').classList.toggle('on', on);
-    document.getElementById('diffBlock').classList.toggle('off', !on);
+
+    // 화폐 칩 — 켤 때는 셋 다 켠 채로 나타난다. 따로 끄고 싶은 사람만 끈다
+    const box = document.getElementById('walKinds');
+    box.classList.toggle('show', on);
+    box.innerHTML = WAL_KINDS.map(w =>
+      '<button class="walChip' + (draft && draft.walK[w.k] ? ' on' : '') + '" data-k="' + w.k + '">' +
+      w.sym + w.name + '</button>').join('');
+    box.querySelectorAll('.walChip').forEach(b => {
+      b.addEventListener('click', () => {
+        if (!draft) return;
+        const k = b.dataset.k;
+        draft.walK[k] = !draft.walK[k];
+        // 켜져 있는데 아무것도 안 쌓이는 상태는 만들지 않는다
+        if (WAL_KINDS.every(w => !draft.walK[w.k])) {
+          draft.wal = false;
+          WAL_KINDS.forEach(w => { draft.walK[w.k] = true; });
+        }
+        renderWal();
+      });
+    });
+
+    const expl = document.getElementById('walExpl');
+    const showExpl = !!(draft && draft.info);
+    expl.classList.toggle('show', showExpl);
+    document.getElementById('walInfo').classList.toggle('on', showExpl);
+    expl.innerHTML = WAL_KINDS.map((w, i) =>
+      '<div class="er"><div class="ek">' + w.sym + w.name + '</div><div>' + WAL_EXPL[i] + '</div></div>').join('') +
+      '<div class="ef">양보다 꾸준함이 어려운 일은 목표시간 달성·체크리스트 전부 완료만 켜도 돼요.</div>';
+
+    // 난이도는 순실행시간에만 곱해지므로, 그 화폐를 안 쌓으면 흐리게 잠근다
+    document.getElementById('diffBlock').classList.toggle('off', !(on && draft.walK.time));
   }
   document.querySelectorAll('.diffBtn').forEach(b => {
     b.addEventListener('click', () => {
       if (!draft) return;
       draft.diff = parseFloat(b.dataset.v);
-      renderDiff();
+      renderWal();
     });
   });
   document.getElementById('walSwitch').addEventListener('click', () => {
     if (!draft) return;
     draft.wal = draft.wal !== true;
-    renderDiff();
+    // 켤 때는 항상 셋 다 켠 상태에서 시작한다
+    if (draft.wal) WAL_KINDS.forEach(w => { draft.walK[w.k] = true; });
+    renderWal();
+  });
+  document.getElementById('walInfo').addEventListener('click', () => {
+    if (!draft) return;
+    draft.info = !draft.info;
+    renderWal();
   });
 
   // 앱을 켤 때: 이미 오늘 달성한 것이 있으면 조용히 적립만 맞춘다
