@@ -1,4 +1,4 @@
-const CACHE = 'sunwork-v51';
+const CACHE = 'sunwork-v52';
 const ASSETS = [
   './',
   './index.html',
