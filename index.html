@@ -211,6 +211,9 @@
   #calGrid .cell.e::before{border-radius:0 10px 10px 0;}
   #calGrid .cell.s.e::before{border-radius:10px;}      /* 하루만 고른 경우 */
   #calGrid .cell.s .num,#calGrid .cell.e .num{background:var(--run);color:#fff;font-weight:700;}
+  /* 일정 날짜 고르기: 지난 날은 회색 = 누를 수 없음 */
+  #calGrid .cell.past{cursor:default;}
+  #calGrid .cell.past .num{color:#B4BCC5;}
   /* 오늘: 숫자 아래 작은 점 (고른 날의 동그라미와 헷갈리지 않게) */
   #calGrid .cell.today::after{
     content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
@@ -356,7 +359,7 @@
     color:var(--muted);font-size:15px;pointer-events:none;
   }
   #addBtn{
-    position:absolute;bottom:36px;left:50%;transform:translateX(-50%);
+    position:absolute;bottom:16px;right:16px;      /* 일정 탭과 같은 자리 — 오른쪽 아래, 탭 바 바로 위 */
     width:58px;height:58px;border-radius:50%;
     background:var(--text);color:#fff;border:none;
     font-size:28px;line-height:1;cursor:pointer;
@@ -364,7 +367,7 @@
     box-shadow:0 4px 14px rgba(35,41,47,.2);
     transition:transform .12s ease;
   }
-  #addBtn:active{transform:translateX(-50%) scale(.92);}
+  #addBtn:active{transform:scale(.92);}
 
   /* ===== 집중: 원 하나만 꽉 차게 ===== */
   #focus{align-items:center;justify-content:flex-start;overflow-y:auto;}
@@ -640,7 +643,7 @@
     padding:5px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;
     overflow:hidden;cursor:pointer;transition:box-shadow .15s;
   }
-  .ev .en,.ev .et{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ev .et{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ev.task{background:var(--run);color:#fff;font-weight:700;}
   .ev.task .et{font-size:12px;font-weight:500;color:#fff;}
   .ev.gen{background:#ECEEF1;color:#5A6570;border:1px solid var(--circle-edge);}
@@ -651,8 +654,34 @@
     background:var(--danger);color:#fff;border:none;font-size:16px;line-height:1;font-family:inherit;cursor:pointer;
     display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(217,59,43,.35);
   }
-  #nowLine{position:absolute;left:56px;right:0;height:2px;background:var(--danger);z-index:2;pointer-events:none;}
-  #nowLine::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--danger);}
+  #nowLine{position:absolute;height:2px;background:var(--danger);z-index:2;pointer-events:none;}
+  #nowDot{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--danger);z-index:2;pointer-events:none;}
+  .colLine{position:absolute;top:0;bottom:0;border-left:1px solid var(--circle-edge);pointer-events:none;}
+  /* 보기 바꾸기 [1일·3일·7일] */
+  #schSeg{
+    position:absolute;top:28px;right:14px;width:120px;height:32px;box-sizing:border-box;padding:1px;
+    display:flex;gap:2px;background:#fff;border:1px solid var(--circle-edge);border-radius:10px;
+  }
+  #schSeg button{
+    flex:1 1 0;height:28px;border:none;border-radius:8px;font-family:inherit;font-size:13px;letter-spacing:0;
+    background:none;color:#5A6570;font-weight:400;cursor:pointer;padding:0;
+  }
+  #schSeg button.on{background:var(--run);color:#fff;font-weight:700;}
+  /* 3일·7일 보기의 날짜 줄 = 보이는 날 (일정표 칸과 줄을 맞춘다) */
+  #schWeek.cols{padding:0 4px 10px 60px;}
+  #schWeek.c7 .dn{width:32px;height:32px;}
+  /* 일정 칸 안 — 이름은 줄을 바꾸고 넘치면 마지막 줄 끝에 말줄임 */
+  .ev .en{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;max-width:100%;
+    word-break:keep-all;overflow-wrap:anywhere;white-space:normal;line-height:18px;}
+  .ev.one{padding:4px 10px;}
+  .ev.one .en1{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;}
+  .ev.one.tiny{padding:0 10px;}
+  .ev.one.tiny .en1{font-size:12px;line-height:inherit;}
+  .ev.v3{font-size:13px;padding:4px 6px;}
+  .ev.v3 .en{line-height:17px;}
+  .ev.v7{font-size:12px;padding:3px 3px;border-radius:6px;}
+  .ev.v7 .en{line-height:15px;}
+  .ev.v3.tiny,.ev.v7.tiny{padding-top:0;padding-bottom:0;}
   /* 오른쪽 아래(탭 바 바로 위) — 가운데 두면 일정을 가린다 */
   #schAdd{
     position:absolute;bottom:16px;right:16px;z-index:5;
@@ -712,10 +741,13 @@
     font-variant-numeric:tabular-nums;overflow:hidden;cursor:pointer;white-space:nowrap;
   }
   .tBtn.bad{border-color:var(--danger);}
+  .tBtn{font-family:inherit;}
   .tBtn input{
-    position:absolute;inset:0;width:100%;height:100%;opacity:0;
-    border:none;margin:0;padding:0;font-size:16px;cursor:pointer;
+    position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;
+    border:none;margin:0;padding:0;
   }
+  /* 종료 날짜는 앱이 정하는 값이라 누를 수 없다 — 칸 없이 회색 글자 (시작 날짜 칸과 줄을 맞춤) */
+  .tPlain{font-size:16px;color:var(--muted);padding:9px 12px;border:1px solid transparent;font-variant-numeric:tabular-nums;white-space:nowrap;}
   #edMsg{margin-top:10px;font-size:13px;color:var(--danger);font-weight:500;word-break:keep-all;display:none;}
   .nw{white-space:nowrap;}
   #edFreq{display:flex;gap:8px;}
@@ -851,7 +883,7 @@
 
 <!-- 일정 화면 -->
 <div id="sched" class="view">
-  <div id="schHead"><button id="schMonth"><span id="schMonthTxt"></span><span class="caret">▾</span></button></div>
+  <div id="schHead"><button id="schMonth"><span id="schMonthTxt"></span><span class="caret">▾</span></button><div id="schSeg"><button data-v="1">1일</button><button data-v="3">3일</button><button data-v="7">7일</button></div></div>
   <div id="schWeek"></div>
   <div id="schBody"><div id="schCanvas"></div></div>
   <button id="schAdd" aria-label="일정 만들기">+</button>
@@ -971,9 +1003,9 @@
     <div class="bNote">
       <strong>왜 필요한가요?</strong><br>
       기록은 이 폰 안에만 저장돼요. 인터넷 사용 기록을 지우거나 폰을 바꾸면 기록이 사라질 수 있어요. 파일로 저장해두면 안전하게 보관할 수 있어요.<br><br>
-      <strong>저장하기</strong><br>
+      <strong>파일로 저장</strong><br>
       아래 '파일로 저장'을 누르면 기록 파일 하나가 폰에 저장돼요. 그 파일을 카톡 '나에게 보내기' 등에 보관해두세요.<br><br>
-      <strong>되살리기</strong><br>
+      <strong>불러오기</strong><br>
       나중에 '불러오기'를 눌러 저장해둔 파일을 고르면 기록이 그대로 돌아와요.
     </div>
     <div class="brow">
@@ -1026,6 +1058,7 @@
   let editingId = null;     // 인라인 수정 중인 할일
   let schedules = [];       // 일정 (형식은 아래 '일정' 절)
   let nextSchedId = 1;
+  let schView = 1;          // 일정 보기 1·3·7일 (마지막 고른 것을 기억)
   // 지갑(보상 교환)은 폐지됐다(2026-09-27). 옛 저장본·옛 백업 파일에 남은 지갑 데이터는
   // 읽지 않고 버린다. 할 일에 붙어 있던 지갑 속성(wal·walK·diff)도 여기서 떼어 낸다.
   function dropWalletFields(list){
@@ -1040,7 +1073,7 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         tasks, nextId, records, taskNames, focusId, runningSince, dayLog, nextItemId,
-        schedules, nextSchedId,
+        schedules, nextSchedId, schView,
         showFocus, cleaned_v6: true, migrated_doneDate: true
       }));
     } catch(e) { /* 저장 불가 환경: 메모리 모드 */ }
@@ -1060,6 +1093,7 @@
       if (typeof d.nextItemId === 'number') nextItemId = d.nextItemId;
       if (Array.isArray(d.schedules)) schedules = d.schedules;
       if (typeof d.nextSchedId === 'number') nextSchedId = d.nextSchedId;
+      if ([1, 3, 7].indexOf(d.schView) >= 0) schView = d.schView;
       if (dropWalletFields(tasks) || 'wallet' in d) needCleanSave = true;
       tasks.forEach(t => { if (!Array.isArray(t.checklist)) t.checklist = []; });
       if (typeof d.focusId === 'number') focusId = d.focusId;
@@ -2483,7 +2517,7 @@
   const calGrid = document.getElementById('calGrid');
   let tmpS = null, tmpE = null;    // 캘린더에서 고르는 중인 기간
   let calY = 0, calM = 0;          // 지금 보고 있는 달
-  let calMode = 'range';           // 'range' = 기록의 기간 고르기 / 'day' = 일정의 하루 고르기
+  let calMode = 'range';           // 'range' = 기록의 기간 / 'day' = 일정 탭에서 볼 날 / 'pick' = 새 일정·수정의 날짜(지난 날 못 고름)
 
   function fmtDot(key){ return key.replace(/-/g, '.'); }
   function keyOf(y, m, d){
@@ -2509,7 +2543,7 @@
 
   function renderCal(){
     calMon.textContent = calY + '년 ' + (calM + 1) + '월';
-    if (calMode === 'day') calPick.textContent = tmpS ? fmtMDW(tmpS) : '';
+    if (calMode !== 'range') calPick.textContent = tmpS ? fmtMDW(tmpS) : '';
     else calPick.textContent = tmpS ? (fmtDot(tmpS) + ' ~ ' + fmtDot(tmpE || tmpS)) : '~';
     const firstDow = new Date(calY, calM, 1).getDay();
     const lastDate = new Date(calY, calM + 1, 0).getDate();
@@ -2526,6 +2560,7 @@
         if (k > s && k < e) cls += ' mid';
       }
       if (k === today) cls += ' today';
+      if (calMode === 'pick' && k < today) cls += ' past';
       html += '<div class="' + cls + '" data-k="' + k + '"><span class="num">' + d + '</span></div>';
     }
     calGrid.innerHTML = html;
@@ -2535,7 +2570,8 @@
     const cell = ev.target.closest('.cell');
     if (!cell || !cell.dataset.k) return;
     const k = cell.dataset.k;
-    if (calMode === 'day') { tmpS = k; tmpE = k; renderCal(); return; }   // 하루 고르기
+    if (calMode === 'pick' && k < todayKey()) return;                     // 지난 날은 못 고름
+    if (calMode !== 'range') { tmpS = k; tmpE = k; renderCal(); return; }  // 하루 고르기
     if (!tmpS || tmpE) { tmpS = k; tmpE = null; }      // 처음 고르기 / 다시 고르기
     else if (k < tmpS) { tmpE = tmpS; tmpS = k; }      // 거꾸로 눌렀으면 앞뒤를 바꿈
     else tmpE = k;                                     // 같은 날을 다시 누르면 하루짜리
@@ -2556,6 +2592,12 @@
       if (tmpS) schDay = tmpS;
       popLayer();
       renderSched();
+      return;
+    }
+    if (calMode === 'pick') {      // 시작 날짜만 바뀌고 시각·길이는 그대로
+      if (ed && tmpS && tmpS >= todayKey()) ed.date = tmpS;
+      popLayer();
+      renderEditor();
       return;
     }
     if (tmpS) { rangeS = tmpS; rangeE = tmpE || tmpS; }   // 하나만 골랐으면 그 하루
@@ -2670,7 +2712,6 @@
   function fmtMDW(k){ return fmtMD(k) + ' (' + DOW_KO[dowOf(k)] + ')'; }
   function nowMin(){ const n = new Date(); return n.getHours() * 60 + n.getMinutes() + n.getSeconds() / 60; }
   function nowAbs(){ return dayNum(todayKey()) * 1440 + nowMin(); }
-  function round5(m){ return Math.round(m / 5) * 5; }
   function parseHM(v){ const p = v.split(':').map(Number); return p[0] * 60 + (p[1] || 0); }
   function schedById(id){ return schedules.find(e => e.id === id); }
   function evName(e){ return e.taskId != null ? nameOf(e.taskId) : (e.name || ''); }
@@ -2818,6 +2859,7 @@
   const schAdd = document.getElementById('schAdd');
   const tabHome = document.getElementById('tabHome');
   const tabSched = document.getElementById('tabSched');
+  const schSeg = document.getElementById('schSeg');
   schCanvas.style.height = (TOP_PX + 24 * HOUR_PX + 24) + 'px';
   let schDay = todayKey();      // 고른 날
   let curSegs = [];             // 지금 그린 일정 칸들
@@ -2854,59 +2896,123 @@
     });
     if (group.length) flush();
   }
+  // 보이는 날들 — 1일: 고른 날 / 3일: 고른 날부터 3일 / 7일: 고른 날이 든 주(월~일)
+  function viewDays(){
+    if (schView === 1) return [schDay];
+    const first = schView === 3 ? schDay : addDays(schDay, -((dowOf(schDay) + 6) % 7));
+    const out = [];
+    for (let i = 0; i < schView; i++) out.push(addDays(first, i));
+    return out;
+  }
   function renderSched(){
     const today = todayKey();
+    const days = viewDays(), n = days.length;
     schMonthTxt.textContent = (parseKey(schDay).getMonth() + 1) + '월';
-    // 날짜 줄 — 월요일부터. 달이 바뀌는 주에도 다른 달 날짜를 회색으로 하지 않는다(회색 = 누를 수 없음)
-    const mon = addDays(schDay, -((dowOf(schDay) + 6) % 7));
+    schSeg.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === schView));
+    // 날짜 줄 — 1일: 그 주(월요일부터)에서 고른 날 / 3일·7일: 보이는 날(일정표 칸과 줄을 맞춤, 오늘을 호박으로)
+    const strip = n === 1 ? viewDaysOfWeek() : days;
+    schWeek.className = n === 1 ? '' : (n === 3 ? 'cols c3' : 'cols c7');
+    schWeek.style.gridTemplateColumns = 'repeat(' + strip.length + ', minmax(0, 1fr))';
     let wh = '';
-    for (let i = 0; i < 7; i++) {
-      const k = addDays(mon, i), w = dowOf(k);
-      wh += '<button class="wd' + (w === 0 ? ' sun' : '') + (k === schDay ? ' sel' : '') + (k === today ? ' today' : '') +
+    strip.forEach(k => {
+      const w = dowOf(k);
+      const sel = n === 1 ? k === schDay : k === today;
+      const dot = n === 1 && k === today;
+      wh += '<button class="wd' + (w === 0 ? ' sun' : '') + (sel ? ' sel' : '') + (dot ? ' today' : '') +
         '" data-k="' + k + '"><span class="dw">' + DOW_KO[w] + '</span><span class="dn">' + parseKey(k).getDate() + '</span></button>';
-    }
+    });
     schWeek.innerHTML = wh;
-    const pastDay = schDay < today;
-    schAdd.style.display = pastDay ? 'none' : 'flex';    // 지난 날짜는 보기만
     let h = '';
     for (let i = 0; i < 24; i++) {
       const y = TOP_PX + i * HOUR_PX;
       h += '<div class="hrLbl" style="top:' + (y - 8) + 'px">' + hm(i * 60) + '</div><div class="hrLine" style="top:' + y + 'px"></div>';
     }
     h += '<div class="hrLine" style="top:' + (TOP_PX + 24 * HOUR_PX) + 'px"></div>';
+    for (let i = 1; i < n; i++) h += '<div class="colLine" style="left:' + colX(i, n) + '"></div>';
     schCanvas.innerHTML = h;
-    curSegs = segsOfDay(schDay);
-    layoutCols(curSegs);
+    curSegs = [];
+    days.forEach((k, di) => {
+      const segs = segsOfDay(k);
+      layoutCols(segs);
+      segs.forEach(sg => { sg.di = di; sg.day = k; curSegs.push(sg); });
+    });
     curSegs.forEach((sg, i) => {
-      // 오늘 이전에 시작한 발생과 할 일을 지워 남은 일정은 보기만
-      sg.live = !pastDay && sg.date >= today && isLiveEv(sg.ev);
-      const el = document.createElement('div');
-      el.className = 'ev ' + (sg.ev.taskId != null ? 'task' : 'gen');
-      el.dataset.i = i;
-      const hgt = Math.max(16, (sg.b - sg.a) / 60 * HOUR_PX - 1);
-      el.style.top = (TOP_PX + sg.a / 60 * HOUR_PX + 1) + 'px';
-      el.style.height = hgt + 'px';
-      const n = sg.n, c = sg.col, colW = '(100% - ' + (82 + 6 * (n - 1)) + 'px) / ' + n;
-      el.style.left = 'calc(64px + ' + colW + ' * ' + c + ' + ' + (6 * c) + 'px)';
-      el.style.width = 'calc(' + colW + ')';
-      const nm = document.createElement('span');
-      nm.className = 'en'; nm.textContent = evName(sg.ev);
-      el.appendChild(nm);
-      if (hgt >= 44) {          // 짧은 칸은 이름만
-        const tm = document.createElement('span');
-        tm.className = 'et'; tm.textContent = hm(sg.s) + '–' + hm(sg.s + sg.d);
-        el.appendChild(tm);
-      }
-      schCanvas.appendChild(el);
+      // 지난 날의 칸, 오늘 이전에 시작한 발생, 할 일을 지워 남은 일정은 보기만
+      sg.live = sg.day >= today && sg.date >= today && isLiveEv(sg.ev);
+      schCanvas.appendChild(evBlock(sg, i, n));
     });
     placeNowLine();
     drawX();
   }
+  function viewDaysOfWeek(){
+    const mon = addDays(schDay, -((dowOf(schDay) + 6) % 7));
+    const out = [];
+    for (let i = 0; i < 7; i++) out.push(addDays(mon, i));
+    return out;
+  }
+  // i번째 날 칸의 왼쪽 위치 (3일·7일: 시각 칸 60px 오른쪽부터 오른쪽 4px까지를 똑같이 나눔)
+  function colX(i, n){ return 'calc(60px + (100% - 64px) / ' + n + ' * ' + i + ')'; }
+  // 일정 칸 하나 — 1일: 이름 + 시각 / 3일·7일: 이름만. 이름은 줄을 바꾸고, 칸을 넘치면 마지막 줄 끝에 말줄임
+  function evBlock(sg, i, n){
+    const el = document.createElement('div');
+    el.className = 'ev v' + n + ' ' + (sg.ev.taskId != null ? 'task' : 'gen');
+    el.dataset.i = i;
+    const hgt = Math.max(16, (sg.b - sg.a) / 60 * HOUR_PX - 1);
+    el.style.top = (TOP_PX + sg.a / 60 * HOUR_PX + 1) + 'px';
+    el.style.height = hgt + 'px';
+    const m = sg.n, c = sg.col;
+    if (n === 1) {
+      const w = '(100% - ' + (82 + 6 * (m - 1)) + 'px) / ' + m;
+      el.style.left = 'calc(64px + ' + w + ' * ' + c + ' + ' + (6 * c) + 'px)';
+      el.style.width = 'calc(' + w + ')';
+    } else {
+      const w = '((100% - 64px) / ' + n + ' - ' + (4 + 2 * (m - 1)) + 'px) / ' + m;
+      el.style.left = 'calc(60px + (100% - 64px) / ' + n + ' * ' + sg.di + ' + 2px + ' + w + ' * ' + c + ' + ' + (2 * c) + 'px)';
+      el.style.width = 'calc(' + w + ')';
+    }
+    const name = evName(sg.ev), time = hm(sg.s) + '–' + hm(sg.s + sg.d);
+    const nm = document.createElement('span');
+    nm.className = 'en';
+    nm.textContent = name;
+    if (n === 1 && hgt >= 44) {
+      // 이름(여러 줄) + 아래 시각 한 줄
+      nm.style.webkitLineClamp = Math.max(1, Math.floor((hgt - 10 - 17) / 18));
+      el.appendChild(nm);
+      const tm = document.createElement('span');
+      tm.className = 'et'; tm.textContent = time;
+      el.appendChild(tm);
+    } else if (n === 1) {
+      // 짧은 칸: 이름과 시각을 한 줄로
+      el.classList.add('one');
+      if (hgt < 24) { el.classList.add('tiny'); el.style.lineHeight = hgt + 'px'; }
+      nm.className = 'en1';
+      const tm = document.createElement('span');
+      tm.className = 'et'; tm.textContent = ' ' + time;
+      nm.appendChild(tm);
+      el.appendChild(nm);
+    } else {
+      const lh = n === 3 ? 17 : 15, pv = n === 3 ? 4 : 3;
+      if (hgt - 2 * pv < lh) { el.classList.add('tiny'); nm.style.lineHeight = hgt + 'px'; nm.style.webkitLineClamp = 1; }
+      else nm.style.webkitLineClamp = Math.floor((hgt - 2 * pv) / lh);
+      el.appendChild(nm);
+    }
+    return el;
+  }
   function placeNowLine(){
-    let nl = document.getElementById('nowLine');
-    if (schDay !== todayKey()) { if (nl) nl.remove(); return; }
+    let nl = document.getElementById('nowLine'), nd = document.getElementById('nowDot');
+    const days = viewDays(), di = days.indexOf(todayKey());
+    if (di < 0) { if (nl) nl.remove(); if (nd) nd.remove(); return; }
     if (!nl) { nl = document.createElement('div'); nl.id = 'nowLine'; schCanvas.appendChild(nl); }
-    nl.style.top = (TOP_PX + nowMin() / 60 * HOUR_PX - 1) + 'px';
+    if (!nd) { nd = document.createElement('div'); nd.id = 'nowDot'; schCanvas.appendChild(nd); }
+    const y = TOP_PX + nowMin() / 60 * HOUR_PX - 1;
+    nl.style.top = y + 'px'; nd.style.top = (y - 4) + 'px';
+    if (days.length === 1) {
+      nl.style.left = '56px'; nl.style.width = 'calc(100% - 56px)';
+      nd.style.left = '52px';
+    } else {
+      nl.style.left = colX(di, days.length); nl.style.width = 'calc((100% - 64px) / ' + days.length + ')';
+      nd.style.left = 'calc(' + colX(di, days.length) + ' - 5px)';
+    }
   }
   function scrollToNow(){
     schBody.scrollTop = Math.max(0, TOP_PX + nowMin() / 60 * HOUR_PX - schBody.clientHeight * 0.4);
@@ -2952,7 +3058,18 @@
   });
   tabHome.addEventListener('click', () => { if (schedView.classList.contains('active')) popLayer(); });
 
-  // ---- 날짜 줄: 탭 = 그 날, 좌우로 밀기 = 지난주·다음주(고른 요일 유지) ----
+  // ---- 보기 바꾸기 [1일·3일·7일] — 고른 보기를 기억한다 ----
+  schSeg.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    schView = +b.dataset.v;
+    save();
+    renderSched();
+  });
+  // 밀기 한 번에 넘어가는 날 수: 1일 보기의 날짜 줄은 한 주, 그 밖에는 보이는 날 수만큼
+  function shiftDays(onStrip){ return (onStrip && schView === 1) ? 7 : schView; }
+
+  // ---- 날짜 줄: 탭 = 그 날(3일·7일 보기에서는 그 날의 1일 보기), 좌우로 밀기 = 앞뒤로 ----
   let wk = null;
   schWeek.addEventListener('pointerdown', e => { wk = { x: e.clientX, y: e.clientY, swiped: false }; });
   schWeek.addEventListener('pointerup', e => {
@@ -2960,7 +3077,7 @@
     const dx = e.clientX - wk.x, dy = e.clientY - wk.y;
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
       wk.swiped = true;
-      schDay = addDays(schDay, dx < 0 ? 7 : -7);
+      schDay = addDays(schDay, (dx < 0 ? 1 : -1) * shiftDays(true));
       renderSched();
     }
   });
@@ -2972,28 +3089,25 @@
     const b = e.target.closest('.wd');
     if (!b) return;
     schDay = b.dataset.k;
+    if (schView !== 1) { schView = 1; save(); }    // 자세히 보려면 1일 보기로
     renderSched();
   });
   document.getElementById('schMonth').addEventListener('click', openDayCal);
+  // + 는 보고 있는 날과 상관없이 지금 기준: 오늘 다음 정시부터 1시간 (지난 날짜를 보고 있어도 보인다)
   schAdd.addEventListener('click', () => {
     const today = todayKey();
-    if (schDay < today) return;
-    // 오늘이면 지금 다음 정시부터, 다른 날이면 9시부터 1시간
-    let date = schDay, s = 9 * 60;
-    if (schDay === today) {
-      const h = new Date().getHours() + 1;
-      if (h >= 24) { date = addDays(today, 1); s = 0; } else s = h * 60;
-    }
-    openEditor({ mode: 'new', date: date, s: s });
+    const h = new Date().getHours() + 1;
+    if (h >= 24) openEditor({ mode: 'new', date: addDays(today, 1), s: 0 });
+    else openEditor({ mode: 'new', date: today, s: h * 60 });
   });
 
-  // ---- 일정표: 탭 = 수정·만들기, 꾹 누름 = ✕ ----
+  // ---- 일정표: 탭 = 수정·만들기, 꾹 누름 = ✕, 좌우로 밀기 = 앞뒤로 ----
   let press = null;
   schBody.addEventListener('pointerdown', e => {
     if (e.target.closest('#evDel')) return;
     const el = e.target.closest('.ev');
     const sg = el ? curSegs[+el.dataset.i] : null;
-    const p = { x: e.clientX, y: e.clientY, sg: sg, moved: false, long: false, timer: null };
+    const p = { x: e.clientX, y: e.clientY, dx: 0, dy: 0, sg: sg, moved: false, long: false, timer: null };
     press = p;
     p.timer = setTimeout(() => {
       p.long = true;
@@ -3001,18 +3115,28 @@
     }, 550);
   });
   schBody.addEventListener('pointermove', e => {
-    if (!press || press.moved) return;
-    if (Math.abs(e.clientX - press.x) + Math.abs(e.clientY - press.y) > 10) {
+    if (!press) return;
+    press.dx = e.clientX - press.x; press.dy = e.clientY - press.y;
+    if (!press.moved && Math.abs(press.dx) + Math.abs(press.dy) > 10) {
       press.moved = true; clearTimeout(press.timer);
     }
   });
   schBody.addEventListener('pointercancel', () => { if (press) clearTimeout(press.timer); press = null; });
-  schBody.addEventListener('pointerup', () => {
+  schBody.addEventListener('pointerup', e => {
     const p = press;
     press = null;
     if (!p) return;
     clearTimeout(p.timer);
-    if (p.moved || p.long) return;
+    if (p.long) return;
+    if (p.moved) {
+      // 가로로 크게 밀었으면 앞뒤 날로 (세로 스크롤은 브라우저가 맡는다)
+      const dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (!xMode && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        schDay = addDays(schDay, (dx < 0 ? 1 : -1) * shiftDays(false));
+        renderSched();
+      }
+      return;
+    }
     if (xMode) { swallowNextClick(); exitX(); return; }   // ✕가 떠 있으면 빠져나오기만
     if (p.sg) {
       if (!p.sg.live) return;
@@ -3020,11 +3144,20 @@
       openEditor({ mode: 'edit', ev: p.sg.ev, date: p.sg.date });
       return;
     }
-    if (schDay < todayKey()) return;                       // 지난 날짜는 보기만
+    // 빈 칸: 그 칸의 날짜·정시부터 1시간
     const r = schCanvas.getBoundingClientRect();
+    const days = viewDays();
+    let di = 0;
+    if (days.length > 1) {
+      const x = p.x - r.left - 60;
+      if (x < 0) return;                                    // 시각 칸
+      di = Math.min(days.length - 1, Math.floor(x / ((r.width - 64) / days.length)));
+    }
+    const day = days[di];
+    if (day < todayKey()) return;                          // 지난 날짜는 보기만
     const hr = Math.min(23, Math.max(0, Math.floor((p.y - r.top - TOP_PX) / HOUR_PX)));
     swallowNextClick();
-    openEditor({ mode: 'new', date: schDay, s: hr * 60 });  // 그 칸의 정시부터 1시간
+    openEditor({ mode: 'new', date: day, s: hr * 60 });
   });
   schBody.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -3049,7 +3182,7 @@
     const x = document.createElement('button');
     x.id = 'evDel'; x.setAttribute('aria-label', '삭제'); x.textContent = '✕';
     x.style.top = (el.offsetTop + 6) + 'px';
-    x.style.left = (el.offsetLeft + el.offsetWidth - 36) + 'px';
+    x.style.left = Math.max(el.offsetLeft, el.offsetLeft + el.offsetWidth - 36) + 'px';   // 좁은 칸(7일 보기)이면 칸 왼쪽에 맞춤
     x.addEventListener('pointerdown', e => e.stopPropagation());
     x.addEventListener('pointerup', e => { e.stopPropagation(); deleteFromX(); });
     schCanvas.appendChild(x);
@@ -3261,20 +3394,27 @@
     return { head: head + " '" + evName(o.ev) + "' 일정이 있어요", range: '(' + hm(o.s) + '–' + hm(o.s + o.d) + ')' };
   }
 
-  // 시각 칸: 투명한 입력칸을 겹쳐 폰의 기본 고르기 창을 연다
-  function pickInput(type, value, fn){
-    const inp = document.createElement('input');
-    inp.type = type; inp.value = value;
-    if (type === 'datetime-local') inp.min = todayKey() + 'T00:00';    // 오늘 이전 날짜는 고를 수 없다
-    if (type === 'date') inp.min = todayKey();
-    inp.addEventListener('change', () => { if (inp.value) fn(inp.value); else renderEditor(); });
-    return inp;
-  }
-  function tBtn(text, bad, inp){
-    const b = document.createElement('div');
+  // 시각 칸: 칸 어디를 눌러도 폰의 기본 시각 창이 열린다 (입력칸은 숨겨 두고 앱이 직접 연다)
+  function timeBox(text, bad, value, fn){
+    const b = document.createElement('button');
     b.className = 'tBtn' + (bad ? ' bad' : '');
     b.textContent = text;
+    const inp = document.createElement('input');
+    inp.type = 'time'; inp.value = value; inp.tabIndex = -1;
+    inp.addEventListener('change', () => { if (inp.value) fn(inp.value); else renderEditor(); });
     b.appendChild(inp);
+    b.addEventListener('click', () => {
+      try { inp.showPicker(); }
+      catch (err) { inp.focus(); inp.click(); }
+    });
+    return b;
+  }
+  // 날짜 칸: 앱의 달력을 연다 (지난 날은 회색으로 못 고름)
+  function dateBox(text, bad){
+    const b = document.createElement('button');
+    b.className = 'tBtn' + (bad ? ' bad' : '');
+    b.textContent = text;
+    b.addEventListener('click', openPickCal);
     return b;
   }
   function tRow(label, right){
@@ -3285,20 +3425,31 @@
     r.appendChild(l); r.appendChild(right);
     return r;
   }
-  // 고른 시각은 5분 단위로 맞춘다
-  function setStart(v){
-    let key = v.slice(0, 10), m = round5(parseHM(v.slice(11, 16)));
-    if (m >= 1440) { key = addDays(key, 1); m -= 1440; }
-    if (key < todayKey()) { renderEditor(); return; }
-    ed.date = key; ed.s = m;                     // 종료는 길이를 유지하며 따라간다
-    renderEditor();
+  function tPair(a, mid, c){
+    const p = document.createElement('span');
+    p.className = 'tPair';
+    p.appendChild(a);
+    if (mid) { const t = document.createElement('span'); t.className = 'tilde'; t.textContent = mid; p.appendChild(t); }
+    p.appendChild(c);
+    return p;
   }
+  // 시각은 고른 그대로(1분 단위). 시작을 옮기면 종료가 길이를 유지하며 따라간다
+  function setStartTime(v){ ed.s = parseHM(v); renderEditor(); }
   // 종료를 시작보다 이르게 고르면 다음 날로 본다. 같으면 그대로 두고 안내한다
-  function endDur(s, v){ const m = round5(parseHM(v)) % 1440; return ((m - s) % 1440 + 1440) % 1440; }
+  function endDur(s, v){ return ((parseHM(v) - s) % 1440 + 1440) % 1440; }
   function setEnd(v){ ed.d = endDur(ed.s, v); renderEditor(); }
-  function setStartDate(v){ if (v >= todayKey()) ed.date = v; renderEditor(); }
-  function setRowStart(w, v){ ed.times[w].s = round5(parseHM(v)) % 1440; renderEditor(); }
+  function setRowStart(w, v){ ed.times[w].s = parseHM(v); renderEditor(); }
   function setRowEnd(w, v){ ed.times[w].d = endDur(ed.times[w].s, v); renderEditor(); }
+  function openPickCal(){
+    if (!ed) return;
+    calMode = 'pick';
+    tmpS = ed.date; tmpE = ed.date;
+    const d = parseKey(ed.date);
+    calY = d.getFullYear(); calM = d.getMonth();
+    calBg.style.display = 'flex';
+    renderCal();
+    pushLayer(closeCal);
+  }
 
   function renderEditor(){
     if (!ed) return;
@@ -3338,26 +3489,23 @@
     if (cf) badRow = per ? dowOf(cf.c.ev.times ? cf.c.date : ed.occDate) : 'main';
     edTimes.innerHTML = '';
     if (!per) {
+      // 시작 = [날짜] [시각], 종료 = 날짜(글자) [시각]. 겹침·종료 = 시작이면 시각 칸이 빨강
       const endAt = ed.s + ed.d;
       const endKey = addDays(ed.date, Math.floor(endAt / 1440));
       const bad = badRow === 'main' || zero.length > 0;
-      edTimes.appendChild(tRow('시작', tBtn(fmtMDW(ed.date) + ' ' + hm(ed.s), bad,
-        pickInput('datetime-local', ed.date + 'T' + hm(ed.s), setStart))));
-      edTimes.appendChild(tRow('종료', tBtn(fmtMDW(endKey) + ' ' + hm(endAt), bad,
-        pickInput('time', hm(endAt), setEnd))));
+      edTimes.appendChild(tRow('시작', tPair(dateBox(fmtMDW(ed.date), false), null, timeBox(hm(ed.s), bad, hm(ed.s), setStartTime))));
+      const plain = document.createElement('span');
+      plain.className = 'tPlain'; plain.textContent = fmtMDW(endKey);
+      edTimes.appendChild(tRow('종료', tPair(plain, null, timeBox(hm(endAt), bad, hm(endAt), setEnd))));
     } else {
-      edTimes.appendChild(tRow('시작', tBtn(fmtMDW(ed.date), false, pickInput('date', ed.date, setStartDate))));
+      edTimes.appendChild(tRow('시작', dateBox(fmtMDW(ed.date), false)));
       if (ed.days.length) { const sp = document.createElement('div'); sp.className = 'tSep'; edTimes.appendChild(sp); }
       WEEK_ORDER.filter(w => ed.days.indexOf(w) >= 0).forEach(w => {
         const t = ed.times[w];
         const bad = badRow === w || t.d === 0;
-        const pair = document.createElement('span');
-        pair.className = 'tPair';
-        pair.appendChild(tBtn(hm(t.s), bad, pickInput('time', hm(t.s), v => setRowStart(w, v))));
-        const tl = document.createElement('span'); tl.className = 'tilde'; tl.textContent = '~';
-        pair.appendChild(tl);
-        pair.appendChild(tBtn(hm(t.s + t.d), bad, pickInput('time', hm(t.s + t.d), v => setRowEnd(w, v))));
-        edTimes.appendChild(tRow(DOW_KO[w], pair));
+        edTimes.appendChild(tRow(DOW_KO[w], tPair(
+          timeBox(hm(t.s), bad, hm(t.s), v => setRowStart(w, v)), '~',
+          timeBox(hm(t.s + t.d), bad, hm(t.s + t.d), v => setRowEnd(w, v)))));
       });
     }
     if (zero.length) setMsg(edMsg, '종료 시각이 시작과 같아요', null);
@@ -3422,7 +3570,11 @@
   }
   edSave.addEventListener('click', () => {
     if (!ed || !ed.canSave) return;
-    if (ed.mode === 'new') { addSched(draftSeries()); save(); popLayer(); return; }
+    if (ed.mode === 'new') {
+      const n = addSched(draftSeries());
+      if (viewDays().indexOf(n.date) < 0) schDay = n.date;   // + 로 다른 날에 만들었으면 그 날로 옮겨 보인다
+      save(); popLayer(); return;
+    }
     const e = schedById(ed.evId);
     if (!e) { popLayer(); return; }
     if (!ed.isSeries) {
