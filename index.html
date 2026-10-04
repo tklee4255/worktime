@@ -775,6 +775,12 @@
   .tpBand{position:absolute;left:0;right:0;top:88px;height:44px;background:#FDEBCE;border-radius:10px;pointer-events:none;}
   /* 굴림은 앱이 직접 처리 (touch-action:none) */
   .tpCol{position:relative;z-index:1;flex:1 1 0;height:220px;overflow:hidden;touch-action:none;cursor:grab;}
+  /* 직접 입력 중: 줄 전체는 누름을 받지 않고(빈 곳 = 입력 마침), 가운데 칸 자리의 누름판만 '그 줄 입력' */
+  #tpBg.typing .tpCol{pointer-events:none;}
+  .tpHit{position:absolute;top:88px;height:44px;z-index:2;display:none;}
+  #tpBg.typing .tpHit{display:block;}
+  #tpHitH{left:0;width:calc((100% - 20px) / 2);}
+  #tpHitM{right:0;width:calc((100% - 20px) / 2);}
   .tpColon{position:relative;z-index:1;width:20px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;}
   .tpItem{position:absolute;left:0;right:0;top:0;height:44px;display:flex;align-items:center;justify-content:center;
     font-size:20px;color:var(--muted);opacity:.3;font-variant-numeric:tabular-nums;pointer-events:none;}
@@ -1054,6 +1060,7 @@
     <div class="tpWheels">
       <div class="tpBand"></div>
       <div class="tpCol" id="tpH"></div><div class="tpColon">:</div><div class="tpCol" id="tpM"></div>
+      <div class="tpHit" id="tpHitH"></div><div class="tpHit" id="tpHitM"></div>
       <input id="tpInput" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="직접 입력">
     </div>
     <div class="pRow" style="margin-top:16px"><button class="pBtn no" id="tpNo">취소</button><button class="pBtn go" id="tpOk">확인</button></div>
@@ -3699,8 +3706,8 @@
   }
 
   // ---- 굴림 ----
-  function tpSnap(ci){
-    const from = tp.pos[ci], to = Math.round(from), t0 = performance.now();
+  function tpSnap(ci, target){
+    const from = tp.pos[ci], to = target === undefined ? Math.round(from) : target, t0 = performance.now();
     const step = now => {
       if (!tp) return;
       const k = Math.min(1, (now - t0) / 150), e = 1 - Math.pow(1 - k, 3);
@@ -3752,7 +3759,9 @@
       if (!d.moved) {
         // 가운데 숫자를 누름 → 직접 입력. 자판은 누름이 다 끝난 click에서 연다
         const r = col.getBoundingClientRect();
-        if (e.type === 'pointerup' && e.clientY >= r.top + 88 && e.clientY <= r.top + 132) tpTap = ci;
+        const k = Math.round((e.clientY - (r.top + 110)) / TP_ROW);   // 가운데에서 몇 칸 위·아래를 눌렀나
+        if (e.type === 'pointerup' && k === 0) { tpTap = ci; tpSnap(ci); return; }
+        if (e.type === 'pointerup' && Math.abs(k) <= 2) { tpSnap(ci, Math.round(tp.pos[ci]) + k); return; }   // 회색 숫자 → 그 값으로
         tpSnap(ci);
         return;
       }
@@ -3763,7 +3772,7 @@
     col.addEventListener('pointerup', end);
     col.addEventListener('pointercancel', end);
     col.addEventListener('click', () => {
-      if (tp && tpTap === ci && tp.typing === null) tpType(ci);
+      if (tp && tpTap === ci && tp.typing === null && Date.now() - tpEndAt > 600) tpType(ci);
       tpTap = null;
     });
   });
@@ -3771,7 +3780,8 @@
   // ---- 직접 입력 ----
   let tpSwitching = false, tpIgnoreClick = false, tpVH = 0, tpTypeAt = 0, tpForce = false;
   // 앱이 일부러 입력을 마칠 때 (완료·바깥 누름·자판 닫힘)
-  function tpEnd(){ tpForce = true; tpInput.blur(); tpForce = false; if (tp && tp.typing !== null) tpCommit(); }
+  let tpEndAt = 0;
+  function tpEnd(){ tpEndAt = Date.now(); tpForce = true; tpInput.blur(); tpForce = false; if (tp && tp.typing !== null) tpCommit(); }
   function tpPlaceInput(ci){
     tpInput.style.left = ci === 0 ? 'calc((100% - 20px) / 4 - 32px)' : 'calc(100% - (100% - 20px) / 4 - 32px)';
     tpInput.value = pad2(tpVal(ci));
@@ -3829,10 +3839,11 @@
   tpBg.addEventListener('pointerdown', e => {
     if (!tp || tp.typing === null || e.target === tpInput) return;
     e.preventDefault();                              // 입력칸에서 초점이 빠지지 않게
-    const col = e.target.closest('.tpCol');
-    if (col) {
+    // 숫자 줄(가운데 칸)만 '그 줄 입력'으로 본다 — 줄의 위아래 빈 곳은 다른 빈 곳처럼 입력을 마침
+    const hit = e.target.closest('.tpHit');
+    if (hit) {
       e.stopPropagation();
-      const ci = tpCols.indexOf(col);
+      const ci = hit.id === 'tpHitH' ? 0 : 1;
       if (ci !== tp.typing) tpSwitch(ci);
       return;
     }
