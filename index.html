@@ -766,28 +766,26 @@
 
 
   /* ===== 시간 고르기 창 ===== */
-  #tpBg{position:absolute;inset:0;background:rgba(35,41,47,.35);display:none;align-items:center;justify-content:center;z-index:22;}
-  #tpBg.typing{align-items:flex-start;padding-top:110px;box-sizing:border-box;}   /* 직접 입력 중: 자판에 가리지 않게 위로 */
-  #tpBox{width:min(88vw,340px);background:#fff;border-radius:16px;padding:16px;box-sizing:border-box;box-shadow:0 8px 30px rgba(35,41,47,.18);}
+  #tpBg{position:absolute;inset:0;background:rgba(35,41,47,.35);display:none;z-index:22;}
+  /* 자리는 JS가 정한다 (평소 가운데, 직접 입력 중엔 위) — 자판이 열리고 닫혀도 창이 저절로 움직이지 않게 */
+  #tpBox{position:absolute;left:50%;transform:translateX(-50%);width:min(88vw,340px);background:#fff;border-radius:16px;
+    padding:16px;box-sizing:border-box;box-shadow:0 8px 30px rgba(35,41,47,.18);}
   #tpTitle{text-align:center;font-size:15px;font-weight:700;padding:2px 0 14px;}
   .tpWheels{position:relative;display:flex;align-items:stretch;height:220px;}
   .tpBand{position:absolute;left:0;right:0;top:88px;height:44px;background:#FDEBCE;border-radius:10px;pointer-events:none;}
-  .tpCol{position:relative;z-index:1;flex:1 1 0;height:220px;overflow-y:auto;scroll-snap-type:y mandatory;
-    padding:88px 0;box-sizing:border-box;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-  .tpCol::-webkit-scrollbar{display:none;}
+  /* 굴림은 앱이 직접 처리 (touch-action:none) */
+  .tpCol{position:relative;z-index:1;flex:1 1 0;height:220px;overflow:hidden;touch-action:none;cursor:grab;}
   .tpColon{position:relative;z-index:1;width:20px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;}
-  .tpItem{height:44px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;
-    font-size:20px;color:var(--muted);opacity:.3;font-variant-numeric:tabular-nums;}
+  .tpItem{position:absolute;left:0;right:0;top:0;height:44px;display:flex;align-items:center;justify-content:center;
+    font-size:20px;color:var(--muted);opacity:.3;font-variant-numeric:tabular-nums;pointer-events:none;}
   .tpItem.n1{opacity:.55;}
   /* 가운데(고른) 숫자: 연한 밑줄 = 누르면 직접 입력 */
-  .tpItem.c{opacity:1;font-size:24px;font-weight:700;color:var(--text);cursor:pointer;
+  .tpItem.c{opacity:1;font-size:24px;font-weight:700;color:var(--text);
     text-decoration:underline;text-decoration-color:rgba(185,117,10,.45);text-decoration-thickness:2px;text-underline-offset:6px;}
   #tpBg.typing .tpItem:not(.c){visibility:hidden;}
-  #tpBg.typing .tpCol{overflow-y:hidden;}
   #tpInput{position:absolute;top:90px;z-index:3;width:64px;height:40px;box-sizing:border-box;display:none;
     background:#fff;border:2px solid var(--run);border-radius:8px;outline:none;text-align:center;
     font-family:inherit;font-size:24px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;padding:0;}
-  .tpLbl{display:flex;justify-content:space-around;font-size:12px;color:var(--muted);padding-top:6px;}
 
   /* ===== 일정 팝업 (반복 일정 저장·지우기 / 할 일 삭제) ===== */
   #repBg, #taskDelBg{
@@ -1058,7 +1056,6 @@
       <div class="tpCol" id="tpH"></div><div class="tpColon">:</div><div class="tpCol" id="tpM"></div>
       <input id="tpInput" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="직접 입력">
     </div>
-    <div class="tpLbl"><span>시 (0~23)</span><span>분 (5분 간격)</span></div>
     <div class="pRow" style="margin-top:16px"><button class="pBtn no" id="tpNo">취소</button><button class="pBtn go" id="tpOk">확인</button></div>
   </div>
 </div>
@@ -3631,119 +3628,217 @@
     openRep('save', cf ? conflictParts(cf) : null);
   });
 
-  // ---- 시간 고르기 창 (앱이 직접 그림: 0~23시 / 5분 간격 돌림판, 끝에서 이어짐, 가운데 숫자를 누르면 직접 입력) ----
-  // 손가락 끌기는 폰 브라우저의 기본 스크롤에 맡긴다(스크롤 맞춤). 이어짐은 같은 목록을 여러 벌 이어 붙이고,
-  // 멈출 때마다 가운데 벌의 같은 자리로 소리 없이 옮겨 구현한다
-  const TP_ROW = 44, TP_COPIES = 9, TP_MID = 4;
+  // ---- 시간 고르기 창 (0~23시 / 5분 간격 돌림판, 끝에서 이어짐, 가운데 숫자를 누르면 직접 입력) ----
+  // 굴림은 앱이 직접 처리한다: 손가락을 따라 움직이고, 튕긴 뒤 관성은 폰 기본 스크롤의 절반 빠르기.
+  // 시·분 두 줄이 똑같은 규칙으로 돈다
+  const TP_ROW = 44;          // 한 칸 높이
+  const TP_FLING = 0.5;       // 튕긴 빠르기 배율 (폰 기본 스크롤 대비 절반)
+  const TP_DECAY = 0.996;     // 1ms마다 남는 빠르기 비율 (관성이 잦아드는 정도)
   const tpBg = document.getElementById('tpBg');
+  const tpBox = document.getElementById('tpBox');
   const tpTitle = document.getElementById('tpTitle');
+  const tpInput = document.getElementById('tpInput');
   const tpCols = [document.getElementById('tpH'), document.getElementById('tpM')];
-  let tp = null;   // { lists:[시 목록, 분 목록], vals:[시, 분], fn, typing:null|0|1 }
+  let tp = null;   // { lists:[시 목록, 분 목록], pos:[가운데 칸 번호(소수)], fn, typing:null|0|1 }
+  const tpAnim = [0, 0];
+  const pad2 = v => String(v).padStart(2, '0');
+  const tpMod = (i, L) => ((i % L) + L) % L;
+
+  // 줄마다 칸 9개를 두고 위치만 바꿔 그린다 (끝에서 이어지므로 번호는 목록 길이로 나눈 나머지)
+  tpCols.forEach(col => {
+    let h = '';
+    for (let k = 0; k < 9; k++) h += '<div class="tpItem"></div>';
+    col.innerHTML = h;
+  });
+  function tpRender(ci){
+    const list = tp.lists[ci], L = list.length, pos = tp.pos[ci], base = Math.round(pos), frac = pos - base;
+    const items = tpCols[ci].children;
+    for (let k = -4; k <= 4; k++) {
+      const el = items[k + 4], off = k - frac, d = Math.abs(off);
+      el.textContent = pad2(list[tpMod(base + k, L)]);
+      el.style.transform = 'translateY(' + (88 + off * TP_ROW) + 'px)';
+      el.className = 'tpItem' + (d < 0.5 ? ' c' : d < 1.5 ? ' n1' : ' n2');
+    }
+  }
+  function tpVal(ci){ const L = tp.lists[ci].length; return tp.lists[ci][tpMod(Math.round(tp.pos[ci]), L)]; }
+  // 창 자리: 평소엔 가운데, 직접 입력 중엔 위로(자판에 가리지 않게)
+  function tpPlace(){
+    const top = tp && tp.typing !== null ? 110 : Math.max(16, (tpBg.clientHeight - tpBox.offsetHeight) / 2);
+    tpBox.style.top = top + 'px';
+  }
 
   function tpOpen(title, value, fn){
     const p = value.split(':').map(Number);
-    const mins = [];
+    const hours = [], mins = [];
+    for (let h = 0; h < 24; h++) hours.push(h);
     for (let m = 0; m < 60; m += 5) mins.push(m);
     if (mins.indexOf(p[1]) < 0) { mins.push(p[1]); mins.sort((a, b) => a - b); }   // 5분 단위가 아닌 값은 끼워 넣어 보인다
-    const hours = [];
-    for (let h = 0; h < 24; h++) hours.push(h);
-    tp = { lists: [hours, mins], vals: [p[0], p[1]], fn: fn, typing: null };
+    tp = { lists: [hours, mins], pos: [hours.indexOf(p[0]), mins.indexOf(p[1])], fn: fn, typing: null };
     tpTitle.textContent = title;
     tpBg.classList.remove('typing');
-    tpBg.style.display = 'flex';
-    tpCols.forEach((c, i) => tpBuild(i));
+    tpInput.style.display = 'none';
+    tpBg.style.display = 'block';
+    tpRender(0); tpRender(1);
+    tpPlace();
     pushLayer(tpClose);
   }
   function tpClose(){
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    cancelAnimationFrame(tpAnim[0]); cancelAnimationFrame(tpAnim[1]);
+    if (tp) tp.typing = null;
+    if (document.activeElement === tpInput) tpInput.blur();
     tpBg.style.display = 'none';
     tp = null;
   }
-  function tpBuild(ci){
-    const col = tpCols[ci], list = tp.lists[ci];
-    let h = '';
-    for (let c = 0; c < TP_COPIES; c++) list.forEach(v => { h += '<div class="tpItem">' + String(v).padStart(2, '0') + '</div>'; });
-    col.innerHTML = h;
-    tpLast[ci] = null;
-    tpJump(ci, list.indexOf(tp.vals[ci]));
-  }
-  // 가운데 벌의 i번째로 바로 옮김 (애니메이션 없음)
-  function tpJump(ci, i){
-    const col = tpCols[ci];
-    col.scrollTop = (TP_MID * tp.lists[ci].length + i) * TP_ROW;
-    tpPaint(ci);
-  }
-  function tpCenter(ci){ return Math.round(tpCols[ci].scrollTop / TP_ROW); }
-  // 가운데에서 멀어질수록 흐리게
-  const tpLast = [null, null];   // 지난번에 칠한 가운데 (그 둘레를 지우고 새로 칠함)
-  function tpPaint(ci){
-    const items = tpCols[ci].children, c = tpCenter(ci), last = tpLast[ci];
-    if (last !== null) for (let i = Math.max(0, last - 3); i <= Math.min(items.length - 1, last + 3); i++) items[i].className = 'tpItem';
-    tpLast[ci] = c;
-    for (let i = Math.max(0, c - 3); i <= Math.min(items.length - 1, c + 3); i++) {
-      const d = Math.abs(i - c);
-      items[i].className = 'tpItem' + (d === 0 ? ' c' : d === 1 ? ' n1' : ' n2');
-    }
-  }
-  function tpSettle(ci){
-    if (!tp) return;
-    const L = tp.lists[ci].length, i = ((tpCenter(ci) % L) + L) % L;
-    tp.vals[ci] = tp.lists[ci][i];
-    const want = (TP_MID * L + i) * TP_ROW;
-    if (Math.abs(tpCols[ci].scrollTop - want) > 1) tpJump(ci, i);   // 끝에 가까워졌으면 가운데 벌로
-  }
-  tpCols.forEach((col, ci) => {
-    let t = null, raf = 0;
-    col.addEventListener('scroll', () => {
+
+  // ---- 굴림 ----
+  function tpSnap(ci){
+    const from = tp.pos[ci], to = Math.round(from), t0 = performance.now();
+    const step = now => {
       if (!tp) return;
-      if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (tp) tpPaint(ci); });
-      clearTimeout(t);
-      t = setTimeout(() => tpSettle(ci), 140);      // 멈춘 뒤 정리 ('scrollend'가 없는 폰도 있어 시간으로)
+      const k = Math.min(1, (now - t0) / 150), e = 1 - Math.pow(1 - k, 3);
+      tp.pos[ci] = from + (to - from) * e;
+      tpRender(ci);
+      if (k < 1) tpAnim[ci] = requestAnimationFrame(step);
+      else { tp.pos[ci] = tpMod(to, tp.lists[ci].length); tpRender(ci); }
+    };
+    tpAnim[ci] = requestAnimationFrame(step);
+  }
+  function tpFling(ci, v){     // v: 1ms에 몇 칸
+    let last = performance.now();
+    const step = now => {
+      if (!tp) return;
+      const dt = Math.min(32, now - last);
+      last = now;
+      tp.pos[ci] += v * dt;
+      v *= Math.pow(TP_DECAY, dt);
+      tpRender(ci);
+      if (Math.abs(v) > 0.002) tpAnim[ci] = requestAnimationFrame(step);
+      else tpSnap(ci);
+    };
+    tpAnim[ci] = requestAnimationFrame(step);
+  }
+  let tpDrag = null;
+  tpCols.forEach((col, ci) => {
+    col.addEventListener('pointerdown', e => {
+      if (!tp || tp.typing !== null) return;
+      cancelAnimationFrame(tpAnim[ci]);
+      try { col.setPointerCapture(e.pointerId); } catch (err) {}
+      tpDrag = { ci: ci, y: e.clientY, y0: e.clientY, t: performance.now(), v: 0, moved: false };
     });
-    // 가운데 숫자를 누르면 직접 입력
-    col.addEventListener('click', e => {
-      const it = e.target.closest('.tpItem');
-      if (!tp || !it || !it.classList.contains('c')) return;
-      tpType(ci);
+    col.addEventListener('pointermove', e => {
+      const d = tpDrag;
+      if (!d || d.ci !== ci || !tp) return;
+      const now = performance.now(), dt = Math.max(1, now - d.t), dy = e.clientY - d.y;
+      d.y = e.clientY; d.t = now;
+      tp.pos[ci] -= dy / TP_ROW;                         // 손가락을 따라감
+      d.v = 0.8 * (-dy / TP_ROW / dt) + 0.2 * d.v;      // 최근 빠르기
+      if (Math.abs(e.clientY - d.y0) > 6) d.moved = true;
+      tpRender(ci);
     });
+    const end = e => {
+      const d = tpDrag;
+      if (!d || d.ci !== ci || !tp) return;
+      tpDrag = null;
+      if (!d.moved) {
+        // 가운데 숫자를 누름 → 직접 입력
+        const r = col.getBoundingClientRect();
+        if (e.type === 'pointerup' && e.clientY >= r.top + 88 && e.clientY <= r.top + 132) tpType(ci);
+        tpSnap(ci);
+        return;
+      }
+      if (performance.now() - d.t > 80) d.v = 0;          // 멈췄다 뗀 것
+      if (Math.abs(d.v) > 0.002) tpFling(ci, d.v * TP_FLING);
+      else tpSnap(ci);
+    };
+    col.addEventListener('pointerup', end);
+    col.addEventListener('pointercancel', end);
   });
-  const tpInput = document.getElementById('tpInput');
-  function tpType(ci){
-    tpSettle(ci);
-    tp.typing = ci;
-    tpBg.classList.add('typing');               // 다른 숫자는 모두 숨기고, 창은 자판에 가리지 않게 위로
+
+  // ---- 직접 입력 ----
+  let tpSwitching = false, tpIgnoreClick = false, tpVH = 0;
+  function tpPlaceInput(ci){
     tpInput.style.left = ci === 0 ? 'calc((100% - 20px) / 4 - 32px)' : 'calc(100% - (100% - 20px) / 4 - 32px)';
-    tpInput.value = String(tp.vals[ci]).padStart(2, '0');
+    tpInput.value = pad2(tpVal(ci));
+  }
+  function tpType(ci){
+    tp.typing = ci;
+    tpBg.classList.add('typing');                 // 다른 숫자는 모두 숨김
+    tpPlaceInput(ci);
     tpInput.style.display = 'block';
+    tpVH = window.visualViewport ? window.visualViewport.height : 0;
+    tpPlace();
     tpInput.focus();
     tpInput.select();
   }
-  // 입력을 마침: 맞는 값이면 그대로(5분 단위가 아니어도), 범위 밖이면 앞의 값으로
+  // 친 값을 그 줄에 넣는다: 맞는 값이면 그대로(5분 단위가 아니어도), 범위 밖·빈 값이면 앞의 값으로
+  function tpTake(ci){
+    const v = parseInt(tpInput.value, 10);
+    if (isNaN(v) || v < 0 || v > (ci === 0 ? 23 : 59)) return;
+    const list = tp.lists[ci];
+    if (list.indexOf(v) < 0) { list.push(v); list.sort((a, b) => a - b); }
+    tp.pos[ci] = list.indexOf(v);
+    tpRender(ci);
+  }
+  // 입력을 마침 (숫자들이 다시 보이고 창은 가운데로)
   function tpCommit(){
     if (!tp || tp.typing === null) return;
-    const ci = tp.typing, v = parseInt(tpInput.value, 10);
+    tpTake(tp.typing);
     tp.typing = null;
     tpInput.style.display = 'none';
     tpBg.classList.remove('typing');
-    if (!isNaN(v) && v >= 0 && v <= (ci === 0 ? 23 : 59)) {
-      tp.vals[ci] = v;
-      if (tp.lists[ci].indexOf(v) < 0) { tp.lists[ci].push(v); tp.lists[ci].sort((a, b) => a - b); tpBuild(ci); }
-      else tpJump(ci, tp.lists[ci].indexOf(v));
-    }
+    // 창을 바로 옮기면 지금 누르는 손가락 아래가 바뀌어 엉뚱한 곳이 눌린다 — 손을 뗀 뒤에 옮김
+    setTimeout(() => { if (tp && tp.typing === null) tpPlace(); }, 350);
+  }
+  // 입력 중 다른 줄의 숫자를 누름: 앞 줄 값을 넣고 자판을 그대로 둔 채 그 줄을 입력
+  function tpSwitch(ci){
+    tpTake(tp.typing);
+    tp.typing = ci;
+    tpPlaceInput(ci);
+    tpSwitching = true;
+    setTimeout(() => { tpSwitching = false; if (tp && tp.typing !== null && document.activeElement !== tpInput) { tpInput.focus(); } tpInput.select(); }, 0);
   }
   tpInput.addEventListener('input', () => { tpInput.value = tpInput.value.replace(/\D/g, '').slice(0, 2); });
   tpInput.addEventListener('keydown', e => { if (e.key === 'Enter') tpInput.blur(); });   // 자판의 '완료'
-  tpInput.addEventListener('blur', tpCommit);
+  tpInput.addEventListener('blur', () => {
+    if (tpSwitching) { setTimeout(() => { if (tp && tp.typing !== null) tpInput.focus(); }, 0); return; }
+    tpCommit();
+  });
+  // 폰의 뒤로가기로 자판만 닫힌 경우(폰이 알려 주지 않음): 화면 높이가 다시 커지면 입력을 마친 것으로 본다
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => {
+    const h = window.visualViewport.height;
+    if (tp && tp.typing !== null && h > tpVH + 80) tpInput.blur();
+    tpVH = h;
+  });
+  // 입력 중의 누름 — 자판이 닫히며 창이 움직이기 전에 먼저 처리한다
+  tpBg.addEventListener('pointerdown', e => {
+    if (!tp || tp.typing === null || e.target === tpInput) return;
+    e.preventDefault();                              // 입력칸에서 초점이 빠지지 않게
+    const col = e.target.closest('.tpCol');
+    if (col) {
+      e.stopPropagation();
+      const ci = tpCols.indexOf(col);
+      if (ci !== tp.typing) tpSwitch(ci);
+      return;
+    }
+    if (e.target.closest('#tpOk') || e.target.closest('#tpNo')) return;   // 버튼은 click에서
+    // 빈 곳(창 안이든 바깥이든): 입력만 마치고 창은 닫지 않는다
+    e.stopPropagation();
+    tpIgnoreClick = true;
+    setTimeout(() => { tpIgnoreClick = false; }, 450);
+    tpInput.blur();
+  }, true);
   document.getElementById('tpOk').addEventListener('click', () => {
     if (!tp) return;
-    tpCommit();
-    tpCols.forEach((c, i) => tpSettle(i));
-    const v = String(tp.vals[0]).padStart(2, '0') + ':' + String(tp.vals[1]).padStart(2, '0'), fn = tp.fn;
+    if (tp.typing !== null) { tpTake(tp.typing); tp.typing = null; }   // 입력 중이면 친 값까지 넣고
+    const v = pad2(tpVal(0)) + ':' + pad2(tpVal(1)), fn = tp.fn;
     popLayer();
     whenSettled(() => fn(v));
   });
-  document.getElementById('tpNo').addEventListener('click', popLayer);
-  tpBg.addEventListener('click', e => { if (e.target === tpBg) popLayer(); });
+  document.getElementById('tpNo').addEventListener('click', popLayer);   // 취소: 바꾸지 않고 닫음
+  tpBg.addEventListener('click', e => {
+    if (tpIgnoreClick) { tpIgnoreClick = false; return; }
+    if (e.target === tpBg) popLayer();
+  });
 
   // ---- 제목의 달 → 기존 기간 캘린더를 하루 고르기로 ----
   function openDayCal(){
