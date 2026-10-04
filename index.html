@@ -768,7 +768,7 @@
   /* ===== 시간 고르기 창 ===== */
   #tpBg{position:absolute;inset:0;background:rgba(35,41,47,.35);display:none;z-index:22;}
   /* 자리는 JS가 정한다 (평소 가운데, 직접 입력 중엔 위) — 자판이 열리고 닫혀도 창이 저절로 움직이지 않게 */
-  #tpBox{position:absolute;left:50%;transform:translateX(-50%);width:min(88vw,340px);background:#fff;border-radius:16px;
+  #tpBox{position:absolute;left:50%;transform:translateX(-50%);transition:top .18s ease;width:min(88vw,340px);background:#fff;border-radius:16px;
     padding:16px;box-sizing:border-box;box-shadow:0 8px 30px rgba(35,41,47,.18);}
   #tpTitle{text-align:center;font-size:15px;font-weight:700;padding:2px 0 14px;}
   .tpWheels{position:relative;display:flex;align-items:stretch;height:220px;}
@@ -3661,11 +3661,16 @@
     }
   }
   function tpVal(ci){ const L = tp.lists[ci].length; return tp.lists[ci][tpMod(Math.round(tp.pos[ci]), L)]; }
-  // 창 자리: 평소엔 가운데, 직접 입력 중엔 위로(자판에 가리지 않게)
+  // 창 자리: 보이는 화면의 가운데. 자판이 열리면 보이는 화면이 줄어 그 위쪽 가운데로, 닫히면 다시 가운데로
+  // (누르는 순간에는 옮기지 않는다 — 자판이 다 열리거나 닫힌 뒤 한 번만 부드럽게 옮김)
   function tpPlace(){
-    const top = tp && tp.typing !== null ? 110 : Math.max(16, (tpBg.clientHeight - tpBox.offsetHeight) / 2);
-    tpBox.style.top = top + 'px';
+    const vv = window.visualViewport;
+    const h = vv ? Math.min(vv.height, tpBg.clientHeight) : tpBg.clientHeight;
+    tpBox.style.top = Math.max(16, (h - tpBox.offsetHeight) / 2) + 'px';
   }
+  let tpPlaceT = null;
+  function tpPlaceLater(){ clearTimeout(tpPlaceT); tpPlaceT = setTimeout(() => { if (tp) tpPlace(); }, 120); }
+  window.addEventListener('resize', tpPlaceLater);
 
   function tpOpen(title, value, fn){
     const p = value.split(':').map(Number);
@@ -3679,7 +3684,10 @@
     tpInput.style.display = 'none';
     tpBg.style.display = 'block';
     tpRender(0); tpRender(1);
+    tpBox.style.transition = 'none';
     tpPlace();
+    void tpBox.offsetHeight;
+    tpBox.style.transition = '';
     pushLayer(tpClose);
   }
   function tpClose(){
@@ -3717,10 +3725,12 @@
     };
     tpAnim[ci] = requestAnimationFrame(step);
   }
-  let tpDrag = null;
+  let tpDrag = null, tpTap = null;
   tpCols.forEach((col, ci) => {
     col.addEventListener('pointerdown', e => {
       if (!tp || tp.typing !== null) return;
+      // 폰이 손을 뗀 뒤 초점을 이 칸으로 옮기며 입력칸을 닫아 버리지 않게 (자판이 떴다 바로 닫히던 원인)
+      e.preventDefault();
       cancelAnimationFrame(tpAnim[ci]);
       try { col.setPointerCapture(e.pointerId); } catch (err) {}
       tpDrag = { ci: ci, y: e.clientY, y0: e.clientY, t: performance.now(), v: 0, moved: false };
@@ -3740,9 +3750,9 @@
       if (!d || d.ci !== ci || !tp) return;
       tpDrag = null;
       if (!d.moved) {
-        // 가운데 숫자를 누름 → 직접 입력
+        // 가운데 숫자를 누름 → 직접 입력. 자판은 누름이 다 끝난 click에서 연다
         const r = col.getBoundingClientRect();
-        if (e.type === 'pointerup' && e.clientY >= r.top + 88 && e.clientY <= r.top + 132) tpType(ci);
+        if (e.type === 'pointerup' && e.clientY >= r.top + 88 && e.clientY <= r.top + 132) tpTap = ci;
         tpSnap(ci);
         return;
       }
@@ -3752,10 +3762,16 @@
     };
     col.addEventListener('pointerup', end);
     col.addEventListener('pointercancel', end);
+    col.addEventListener('click', () => {
+      if (tp && tpTap === ci && tp.typing === null) tpType(ci);
+      tpTap = null;
+    });
   });
 
   // ---- 직접 입력 ----
-  let tpSwitching = false, tpIgnoreClick = false, tpVH = 0;
+  let tpSwitching = false, tpIgnoreClick = false, tpVH = 0, tpTypeAt = 0, tpForce = false;
+  // 앱이 일부러 입력을 마칠 때 (완료·바깥 누름·자판 닫힘)
+  function tpEnd(){ tpForce = true; tpInput.blur(); tpForce = false; if (tp && tp.typing !== null) tpCommit(); }
   function tpPlaceInput(ci){
     tpInput.style.left = ci === 0 ? 'calc((100% - 20px) / 4 - 32px)' : 'calc(100% - (100% - 20px) / 4 - 32px)';
     tpInput.value = pad2(tpVal(ci));
@@ -3766,7 +3782,7 @@
     tpPlaceInput(ci);
     tpInput.style.display = 'block';
     tpVH = window.visualViewport ? window.visualViewport.height : 0;
-    tpPlace();
+    tpTypeAt = Date.now();
     tpInput.focus();
     tpInput.select();
   }
@@ -3786,8 +3802,7 @@
     tp.typing = null;
     tpInput.style.display = 'none';
     tpBg.classList.remove('typing');
-    // 창을 바로 옮기면 지금 누르는 손가락 아래가 바뀌어 엉뚱한 곳이 눌린다 — 손을 뗀 뒤에 옮김
-    setTimeout(() => { if (tp && tp.typing === null) tpPlace(); }, 350);
+    tpPlaceLater();   // 자판이 이미 닫혀 있던 경우를 위해 (크기 변화가 없으면 그대로 있음)
   }
   // 입력 중 다른 줄의 숫자를 누름: 앞 줄 값을 넣고 자판을 그대로 둔 채 그 줄을 입력
   function tpSwitch(ci){
@@ -3798,16 +3813,17 @@
     setTimeout(() => { tpSwitching = false; if (tp && tp.typing !== null && document.activeElement !== tpInput) { tpInput.focus(); } tpInput.select(); }, 0);
   }
   tpInput.addEventListener('input', () => { tpInput.value = tpInput.value.replace(/\D/g, '').slice(0, 2); });
-  tpInput.addEventListener('keydown', e => { if (e.key === 'Enter') tpInput.blur(); });   // 자판의 '완료'
+  tpInput.addEventListener('keydown', e => { if (e.key === 'Enter') tpEnd(); });   // 자판의 '완료'
   tpInput.addEventListener('blur', () => {
-    if (tpSwitching) { setTimeout(() => { if (tp && tp.typing !== null) tpInput.focus(); }, 0); return; }
+    if (!tpForce && (tpSwitching || Date.now() - tpTypeAt < 400)) { setTimeout(() => { if (tp && tp.typing !== null) tpInput.focus(); }, 0); return; }
     tpCommit();
   });
   // 폰의 뒤로가기로 자판만 닫힌 경우(폰이 알려 주지 않음): 화면 높이가 다시 커지면 입력을 마친 것으로 본다
   if (window.visualViewport) window.visualViewport.addEventListener('resize', () => {
     const h = window.visualViewport.height;
-    if (tp && tp.typing !== null && h > tpVH + 80) tpInput.blur();
+    if (tp && tp.typing !== null && h > tpVH + 80 && Date.now() - tpTypeAt > 700) tpEnd();
     tpVH = h;
+    tpPlaceLater();
   });
   // 입력 중의 누름 — 자판이 닫히며 창이 움직이기 전에 먼저 처리한다
   tpBg.addEventListener('pointerdown', e => {
@@ -3825,7 +3841,7 @@
     e.stopPropagation();
     tpIgnoreClick = true;
     setTimeout(() => { tpIgnoreClick = false; }, 450);
-    tpInput.blur();
+    tpEnd();
   }, true);
   document.getElementById('tpOk').addEventListener('click', () => {
     if (!tp) return;
