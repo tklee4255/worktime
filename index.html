@@ -742,10 +742,6 @@
   }
   .tBtn.bad{border-color:var(--danger);}
   .tBtn{font-family:inherit;}
-  .tBtn input{
-    position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;
-    border:none;margin:0;padding:0;
-  }
   /* 종료 날짜는 앱이 정하는 값이라 누를 수 없다 — 칸 없이 회색 글자 (시작 날짜 칸과 줄을 맞춤) */
   .tPlain{font-size:16px;color:var(--muted);padding:9px 12px;border:1px solid transparent;font-variant-numeric:tabular-nums;white-space:nowrap;}
   #edMsg{margin-top:10px;font-size:13px;color:var(--danger);font-weight:500;word-break:keep-all;display:none;}
@@ -767,6 +763,31 @@
     background:#fff;border:1.5px solid #C6CDD5;color:#fff;
   }
   #edPer.on .bx{background:var(--run);border-color:var(--run);}
+
+
+  /* ===== 시간 고르기 창 ===== */
+  #tpBg{position:absolute;inset:0;background:rgba(35,41,47,.35);display:none;align-items:center;justify-content:center;z-index:22;}
+  #tpBg.typing{align-items:flex-start;padding-top:110px;box-sizing:border-box;}   /* 직접 입력 중: 자판에 가리지 않게 위로 */
+  #tpBox{width:min(88vw,340px);background:#fff;border-radius:16px;padding:16px;box-sizing:border-box;box-shadow:0 8px 30px rgba(35,41,47,.18);}
+  #tpTitle{text-align:center;font-size:15px;font-weight:700;padding:2px 0 14px;}
+  .tpWheels{position:relative;display:flex;align-items:stretch;height:220px;}
+  .tpBand{position:absolute;left:0;right:0;top:88px;height:44px;background:#FDEBCE;border-radius:10px;pointer-events:none;}
+  .tpCol{position:relative;z-index:1;flex:1 1 0;height:220px;overflow-y:auto;scroll-snap-type:y mandatory;
+    padding:88px 0;box-sizing:border-box;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .tpCol::-webkit-scrollbar{display:none;}
+  .tpColon{position:relative;z-index:1;width:20px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;}
+  .tpItem{height:44px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;
+    font-size:20px;color:var(--muted);opacity:.3;font-variant-numeric:tabular-nums;}
+  .tpItem.n1{opacity:.55;}
+  /* 가운데(고른) 숫자: 연한 밑줄 = 누르면 직접 입력 */
+  .tpItem.c{opacity:1;font-size:24px;font-weight:700;color:var(--text);cursor:pointer;
+    text-decoration:underline;text-decoration-color:rgba(185,117,10,.45);text-decoration-thickness:2px;text-underline-offset:6px;}
+  #tpBg.typing .tpItem:not(.c){visibility:hidden;}
+  #tpBg.typing .tpCol{overflow-y:hidden;}
+  #tpInput{position:absolute;top:90px;z-index:3;width:64px;height:40px;box-sizing:border-box;display:none;
+    background:#fff;border:2px solid var(--run);border-radius:8px;outline:none;text-align:center;
+    font-family:inherit;font-size:24px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;padding:0;}
+  .tpLbl{display:flex;justify-content:space-around;font-size:12px;color:var(--muted);padding-top:6px;}
 
   /* ===== 일정 팝업 (반복 일정 저장·지우기 / 할 일 삭제) ===== */
   #repBg, #taskDelBg{
@@ -1025,6 +1046,20 @@
       <div class="pRow"><button class="pBtn go" id="repOne">이 날만</button><button class="pBtn go" id="repFrom">이 날부터</button></div>
       <div class="pRow"><button class="pBtn no" id="repNo">취소</button></div>
     </div>
+  </div>
+</div>
+
+<!-- 시간 고르기 창 -->
+<div id="tpBg">
+  <div id="tpBox">
+    <div id="tpTitle"></div>
+    <div class="tpWheels">
+      <div class="tpBand"></div>
+      <div class="tpCol" id="tpH"></div><div class="tpColon">:</div><div class="tpCol" id="tpM"></div>
+      <input id="tpInput" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="직접 입력">
+    </div>
+    <div class="tpLbl"><span>시 (0~23)</span><span>분 (5분 간격)</span></div>
+    <div class="pRow" style="margin-top:16px"><button class="pBtn no" id="tpNo">취소</button><button class="pBtn go" id="tpOk">확인</button></div>
   </div>
 </div>
 
@@ -3111,7 +3146,7 @@
     press = p;
     p.timer = setTimeout(() => {
       p.long = true;
-      if (sg && sg.live) enterX(sg);      // 빈 칸·보기만인 칸은 꾹 눌러도 반응 없음
+      if (sg) enterX(sg);      // 지난 일정·할 일을 지워 남은 일정도 꾹 눌러 지울 수 있다(고치기는 막음). 빈 칸은 반응 없음
     }, 550);
   });
   schBody.addEventListener('pointermove', e => {
@@ -3400,19 +3435,12 @@
     return { head: head + " '" + evName(o.ev) + "' 일정이 있어요", range: '(' + hm(o.s) + '–' + hm(o.s + o.d) + ')' };
   }
 
-  // 시각 칸: 칸 어디를 눌러도 폰의 기본 시각 창이 열린다 (입력칸은 숨겨 두고 앱이 직접 연다)
-  function timeBox(text, bad, value, fn){
+  // 시간 칸: 누르면 앱의 시간 고르기 창
+  function timeBox(text, bad, title, fn){
     const b = document.createElement('button');
     b.className = 'tBtn' + (bad ? ' bad' : '');
     b.textContent = text;
-    const inp = document.createElement('input');
-    inp.type = 'time'; inp.value = value; inp.tabIndex = -1;
-    inp.addEventListener('change', () => { if (inp.value) fn(inp.value); else renderEditor(); });
-    b.appendChild(inp);
-    b.addEventListener('click', () => {
-      try { inp.showPicker(); }
-      catch (err) { inp.focus(); inp.click(); }
-    });
+    b.addEventListener('click', () => tpOpen(title, text, fn));
     return b;
   }
   // 날짜 칸: 앱의 달력을 연다 (지난 날은 회색으로 못 고름)
@@ -3499,10 +3527,10 @@
       const endAt = ed.s + ed.d;
       const endKey = addDays(ed.date, Math.floor(endAt / 1440));
       const bad = badRow === 'main' || zero.length > 0;
-      edTimes.appendChild(tRow('시작', tPair(dateBox(fmtMDW(ed.date), false), null, timeBox(hm(ed.s), bad, hm(ed.s), setStartTime))));
+      edTimes.appendChild(tRow('시작', tPair(dateBox(fmtMDW(ed.date), false), null, timeBox(hm(ed.s), bad, '시작 시간', setStartTime))));
       const plain = document.createElement('span');
       plain.className = 'tPlain'; plain.textContent = fmtMDW(endKey);
-      edTimes.appendChild(tRow('종료', tPair(plain, null, timeBox(hm(endAt), bad, hm(endAt), setEnd))));
+      edTimes.appendChild(tRow('종료', tPair(plain, null, timeBox(hm(endAt), bad, '종료 시간', setEnd))));
     } else {
       edTimes.appendChild(tRow('시작', dateBox(fmtMDW(ed.date), false)));
       if (ed.days.length) { const sp = document.createElement('div'); sp.className = 'tSep'; edTimes.appendChild(sp); }
@@ -3510,11 +3538,11 @@
         const t = ed.times[w];
         const bad = badRow === w || t.d === 0;
         edTimes.appendChild(tRow(DOW_KO[w], tPair(
-          timeBox(hm(t.s), bad, hm(t.s), v => setRowStart(w, v)), '~',
-          timeBox(hm(t.s + t.d), bad, hm(t.s + t.d), v => setRowEnd(w, v)))));
+          timeBox(hm(t.s), bad, DOW_KO[w] + '요일 시작 시간', v => setRowStart(w, v)), '~',
+          timeBox(hm(t.s + t.d), bad, DOW_KO[w] + '요일 종료 시간', v => setRowEnd(w, v)))));
       });
     }
-    if (zero.length) setMsg(edMsg, '종료 시각이 시작과 같아요', null);
+    if (zero.length) setMsg(edMsg, '종료 시간이 시작과 같아요', null);
     else if (cf) { const p = conflictParts(cf); setMsg(edMsg, p.head, p.range); }
     edMsg.style.display = (zero.length || cf) ? 'block' : 'none';
     // 저장 — 저장할 수 없으면 회색
@@ -3602,6 +3630,120 @@
     const cf = ed.taskId != null ? withFirst(findConflict(draftSeries(), excludeFrom(e, splitDate())), ed.date) : null;
     openRep('save', cf ? conflictParts(cf) : null);
   });
+
+  // ---- 시간 고르기 창 (앱이 직접 그림: 0~23시 / 5분 간격 돌림판, 끝에서 이어짐, 가운데 숫자를 누르면 직접 입력) ----
+  // 손가락 끌기는 폰 브라우저의 기본 스크롤에 맡긴다(스크롤 맞춤). 이어짐은 같은 목록을 여러 벌 이어 붙이고,
+  // 멈출 때마다 가운데 벌의 같은 자리로 소리 없이 옮겨 구현한다
+  const TP_ROW = 44, TP_COPIES = 9, TP_MID = 4;
+  const tpBg = document.getElementById('tpBg');
+  const tpTitle = document.getElementById('tpTitle');
+  const tpCols = [document.getElementById('tpH'), document.getElementById('tpM')];
+  let tp = null;   // { lists:[시 목록, 분 목록], vals:[시, 분], fn, typing:null|0|1 }
+
+  function tpOpen(title, value, fn){
+    const p = value.split(':').map(Number);
+    const mins = [];
+    for (let m = 0; m < 60; m += 5) mins.push(m);
+    if (mins.indexOf(p[1]) < 0) { mins.push(p[1]); mins.sort((a, b) => a - b); }   // 5분 단위가 아닌 값은 끼워 넣어 보인다
+    const hours = [];
+    for (let h = 0; h < 24; h++) hours.push(h);
+    tp = { lists: [hours, mins], vals: [p[0], p[1]], fn: fn, typing: null };
+    tpTitle.textContent = title;
+    tpBg.classList.remove('typing');
+    tpBg.style.display = 'flex';
+    tpCols.forEach((c, i) => tpBuild(i));
+    pushLayer(tpClose);
+  }
+  function tpClose(){
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    tpBg.style.display = 'none';
+    tp = null;
+  }
+  function tpBuild(ci){
+    const col = tpCols[ci], list = tp.lists[ci];
+    let h = '';
+    for (let c = 0; c < TP_COPIES; c++) list.forEach(v => { h += '<div class="tpItem">' + String(v).padStart(2, '0') + '</div>'; });
+    col.innerHTML = h;
+    tpLast[ci] = null;
+    tpJump(ci, list.indexOf(tp.vals[ci]));
+  }
+  // 가운데 벌의 i번째로 바로 옮김 (애니메이션 없음)
+  function tpJump(ci, i){
+    const col = tpCols[ci];
+    col.scrollTop = (TP_MID * tp.lists[ci].length + i) * TP_ROW;
+    tpPaint(ci);
+  }
+  function tpCenter(ci){ return Math.round(tpCols[ci].scrollTop / TP_ROW); }
+  // 가운데에서 멀어질수록 흐리게
+  const tpLast = [null, null];   // 지난번에 칠한 가운데 (그 둘레를 지우고 새로 칠함)
+  function tpPaint(ci){
+    const items = tpCols[ci].children, c = tpCenter(ci), last = tpLast[ci];
+    if (last !== null) for (let i = Math.max(0, last - 3); i <= Math.min(items.length - 1, last + 3); i++) items[i].className = 'tpItem';
+    tpLast[ci] = c;
+    for (let i = Math.max(0, c - 3); i <= Math.min(items.length - 1, c + 3); i++) {
+      const d = Math.abs(i - c);
+      items[i].className = 'tpItem' + (d === 0 ? ' c' : d === 1 ? ' n1' : ' n2');
+    }
+  }
+  function tpSettle(ci){
+    if (!tp) return;
+    const L = tp.lists[ci].length, i = ((tpCenter(ci) % L) + L) % L;
+    tp.vals[ci] = tp.lists[ci][i];
+    const want = (TP_MID * L + i) * TP_ROW;
+    if (Math.abs(tpCols[ci].scrollTop - want) > 1) tpJump(ci, i);   // 끝에 가까워졌으면 가운데 벌로
+  }
+  tpCols.forEach((col, ci) => {
+    let t = null, raf = 0;
+    col.addEventListener('scroll', () => {
+      if (!tp) return;
+      if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (tp) tpPaint(ci); });
+      clearTimeout(t);
+      t = setTimeout(() => tpSettle(ci), 140);      // 멈춘 뒤 정리 ('scrollend'가 없는 폰도 있어 시간으로)
+    });
+    // 가운데 숫자를 누르면 직접 입력
+    col.addEventListener('click', e => {
+      const it = e.target.closest('.tpItem');
+      if (!tp || !it || !it.classList.contains('c')) return;
+      tpType(ci);
+    });
+  });
+  const tpInput = document.getElementById('tpInput');
+  function tpType(ci){
+    tpSettle(ci);
+    tp.typing = ci;
+    tpBg.classList.add('typing');               // 다른 숫자는 모두 숨기고, 창은 자판에 가리지 않게 위로
+    tpInput.style.left = ci === 0 ? 'calc((100% - 20px) / 4 - 32px)' : 'calc(100% - (100% - 20px) / 4 - 32px)';
+    tpInput.value = String(tp.vals[ci]).padStart(2, '0');
+    tpInput.style.display = 'block';
+    tpInput.focus();
+    tpInput.select();
+  }
+  // 입력을 마침: 맞는 값이면 그대로(5분 단위가 아니어도), 범위 밖이면 앞의 값으로
+  function tpCommit(){
+    if (!tp || tp.typing === null) return;
+    const ci = tp.typing, v = parseInt(tpInput.value, 10);
+    tp.typing = null;
+    tpInput.style.display = 'none';
+    tpBg.classList.remove('typing');
+    if (!isNaN(v) && v >= 0 && v <= (ci === 0 ? 23 : 59)) {
+      tp.vals[ci] = v;
+      if (tp.lists[ci].indexOf(v) < 0) { tp.lists[ci].push(v); tp.lists[ci].sort((a, b) => a - b); tpBuild(ci); }
+      else tpJump(ci, tp.lists[ci].indexOf(v));
+    }
+  }
+  tpInput.addEventListener('input', () => { tpInput.value = tpInput.value.replace(/\D/g, '').slice(0, 2); });
+  tpInput.addEventListener('keydown', e => { if (e.key === 'Enter') tpInput.blur(); });   // 자판의 '완료'
+  tpInput.addEventListener('blur', tpCommit);
+  document.getElementById('tpOk').addEventListener('click', () => {
+    if (!tp) return;
+    tpCommit();
+    tpCols.forEach((c, i) => tpSettle(i));
+    const v = String(tp.vals[0]).padStart(2, '0') + ':' + String(tp.vals[1]).padStart(2, '0'), fn = tp.fn;
+    popLayer();
+    whenSettled(() => fn(v));
+  });
+  document.getElementById('tpNo').addEventListener('click', popLayer);
+  tpBg.addEventListener('click', e => { if (e.target === tpBg) popLayer(); });
 
   // ---- 제목의 달 → 기존 기간 캘린더를 하루 고르기로 ----
   function openDayCal(){
