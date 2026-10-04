@@ -687,7 +687,7 @@
     position:absolute;bottom:16px;right:16px;z-index:5;
     width:58px;height:58px;border-radius:50%;
     background:var(--text);color:#fff;border:none;
-    font-size:28px;line-height:1;cursor:pointer;font-family:inherit;
+    font-size:28px;line-height:1;cursor:pointer;      /* 글꼴은 홈 + 버튼과 같게(버튼 기본) — 기호 크기를 맞춤 */
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 4px 14px rgba(35,41,47,.2);
   }
@@ -3274,6 +3274,7 @@
   const edDays = document.getElementById('edDays');
   const edPer = document.getElementById('edPer');
   let ed = null;     // 고치는 중인 값 (저장 전)
+  let revealMin = null;   // 저장 뒤 보이게 할 새 일정의 시작(분)
 
   function cloneTimes(t){
     const o = {};
@@ -3310,6 +3311,11 @@
     schedView.classList.add('active');
     syncTabs();
     renderSched();
+    if (revealMin != null) {      // 새로 만든 일정의 시작이 화면 밖이면 그 시간대로 옮긴다
+      const top = TOP_PX + revealMin / 60 * HOUR_PX, h = schBody.clientHeight;
+      if (top < schBody.scrollTop || top + 48 > schBody.scrollTop + h) schBody.scrollTop = Math.max(0, top - h * 0.3);
+      revealMin = null;
+    }
   }
   document.getElementById('edCancel').addEventListener('click', popLayer);
 
@@ -3572,7 +3578,13 @@
     if (!ed || !ed.canSave) return;
     if (ed.mode === 'new') {
       const n = addSched(draftSeries());
-      if (viewDays().indexOf(n.date) < 0) schDay = n.date;   // + 로 다른 날에 만들었으면 그 날로 옮겨 보인다
+      // 새 일정이 화면에 보이게: 첫 발생일이 지금 보기에 없으면 그 날로 옮기고, 그 시간대로 스크롤
+      let k = n.date, o = occAt(n, k);
+      for (let i = 0; i < 7 && !o; i++) { k = addDays(k, 1); o = occAt(n, k); }   // 요일 반복은 첫 해당 요일
+      if (o) {
+        if (viewDays().indexOf(k) < 0) schDay = k;
+        revealMin = o.s;
+      }
       save(); popLayer(); return;
     }
     const e = schedById(ed.evId);
