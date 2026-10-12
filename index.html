@@ -273,7 +273,8 @@
   .recEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
 
   /* 홈 막대 — 제목 줄 바로 아래. 양 끝은 화면 가장자리에서 68px(햄버거 오른쪽 끝 43px + 25px) */
-  #bars{flex:0 0 auto;display:none;flex-direction:column;gap:6px;padding:0 68px;}
+  /* 아래로 10px 더 받아 누르기 쉽게(체크리스트 막대) — 모양과 자리는 그대로 */
+  #bars{flex:0 0 auto;display:none;flex-direction:column;gap:6px;padding:0 68px 10px;margin-bottom:-10px;position:relative;z-index:2;}
   #bars.on{display:flex;}
   .bar{position:relative;height:14px;border-radius:7px;overflow:hidden;}
   .bar.goal{background:#FDEBCE;}
@@ -313,6 +314,8 @@
   .circle .time{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.5px;}
   /* 체크리스트 전부 완료 — 이름 위 초록 ✓ (✓·이름·시간을 묶어 원의 세로 가운데) */
   .circle .ck{font-size:16px;line-height:20px;font-weight:700;color:#2E9E5B;}
+  /* 체크리스트 전용 원 — 연녹색 채움(체크리스트 막대의 빈 부분과 같은 색). 테두리·그림자는 다른 원과 같다 */
+  .circle.noTimer, #dragGhost.noTimer{background:#DDF3E5;}
   /* 오늘 목표가 있고 아직 0초 — 12시 방향 테두리 위 작은 호박 점 (링이 막 시작된 모양) */
   .circle .gdot{position:absolute;top:-2.25px;left:calc(50% - 3px);width:6px;height:3px;border-radius:2px;background:var(--run);pointer-events:none;}
   /* 편집 모드: 모든 원에 드래그 손잡이 */
@@ -494,27 +497,27 @@
   #goalView.done{color:var(--run-deep);font-weight:700;}
   #goalView.dbl{color:var(--cool-deep);font-weight:700;}
   #checkView{list-style:none;display:flex;flex-direction:column;gap:2px;}
-  #checkView li{
+  #checkView li, #todayChkList li{
     display:flex;align-items:center;gap:10px;
     padding:11px 12px;font-size:15px;cursor:pointer;border-radius:10px;
   }
-  #checkView li .box{
+  #checkView li .box, #todayChkList li .box{
     flex:0 0 auto;width:20px;height:20px;border-radius:6px;
     border:1.5px solid #C6CDD5;background:#fff;
     display:flex;align-items:center;justify-content:center;
     font-size:13px;color:#fff;line-height:1;
   }
-  #checkView li.on .box{background:var(--run);border-color:var(--run);}
-  #checkView li.on .txt{text-decoration:line-through;color:var(--muted);}
-  #checkView li .txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  #checkView li .tag{
+  #checkView li.on .box, #todayChkList li.on .box{background:var(--run);border-color:var(--run);}
+  #checkView li.on .txt, #todayChkList li.on .txt{text-decoration:line-through;color:var(--muted);}
+  #checkView li .txt, #todayChkList li .txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #checkView li .tag, #todayChkList li .tag{
     margin-left:auto;flex:0 0 auto;font-size:11px;color:var(--muted);
     border:1px solid var(--circle-edge);border-radius:20px;padding:2px 8px;
   }
-  #checkView li .delay{
+  #checkView li .delay, #todayChkList li .delay{
     margin-left:auto;flex:0 0 auto;font-size:12px;color:var(--danger);font-weight:500;
   }
-  #checkView li .tag + .delay{ margin-left:8px; }
+  #checkView li .tag + .delay, #todayChkList li .tag + .delay{ margin-left:8px; }
   /* 위의 목표 줄과 같은 무채색 글자라 테두리가 없으면 누르는 것으로 안 읽힌다 */
   #attrEditOpen{
     background:var(--circle);border:1px solid var(--circle-edge);border-radius:10px;
@@ -535,10 +538,10 @@
     background:var(--bg);border:1px solid var(--circle-edge);border-radius:8px;padding:9px 6px;
   }
   .goalRow span{color:var(--muted);font-size:14px;}
-  /* 요일마다 시간 다르게 — 월~일 일곱 줄 */
+  /* 요일마다 다르게 — 월~일 일곱 줄 */
   .goalRow + .goalRow{margin-top:8px;}
   .goalRow .dl{width:22px;font-size:15px;color:var(--text);}
-  /* 칸 안의 체크 한 줄 — 일정 화면의 '요일마다 시간 다르게'와 같은 모양 */
+  /* 칸 안의 체크 한 줄 — 일정 화면의 '요일마다 다르게'와 같은 모양 */
   .chkLine{
     display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);
     background:none;border:none;font-family:inherit;padding:0;cursor:pointer;text-align:left;
@@ -639,6 +642,26 @@
   }
   #confirmNo, #confirmAllNo{background:none;color:var(--muted);border:1px solid var(--circle-edge);}
   #confirmYes, #confirmAllYes{background:var(--danger);color:#fff;}
+
+  /* ===== 오늘 체크리스트 팝업 (체크리스트 막대를 누름) ===== */
+  #todayChkBg{
+    position:absolute;inset:0;background:rgba(35,41,47,.35);
+    display:none;align-items:center;justify-content:center;z-index:20;padding:24px;
+  }
+  #todayChkBox{
+    background:#fff;border-radius:16px;padding:22px 20px;
+    width:min(88vw,340px);max-height:84%;display:flex;flex-direction:column;
+    box-shadow:0 8px 30px rgba(35,41,47,.18);
+  }
+  #todayChkBox .tTitle{font-size:17px;font-weight:700;text-align:center;margin-bottom:4px;flex:0 0 auto;}
+  #todayChkList{list-style:none;overflow-y:auto;min-height:0;flex:1 1 auto;}
+  #todayChkList .grp{font-size:13px;color:var(--muted);margin:12px 0 2px;padding:0 4px;cursor:default;}
+  #todayChkList li{padding:9px 4px;}
+  #todayChkClose{
+    flex:0 0 auto;margin-top:14px;padding:12px 0;border-radius:10px;cursor:pointer;
+    background:none;color:var(--muted);border:1px solid var(--circle-edge);
+    font-size:15px;font-weight:500;font-family:inherit;
+  }
 
   /* ===== 탭 바 (홈·일정 화면에서만 보인다) ===== */
   #home, #sched{bottom:64px;}
@@ -938,8 +961,8 @@
 
       <div id="attrEdit">
         <div class="attrBlock">
-          <div class="attrLabel">타이머</div>
-          <button class="chkLine" id="noTimerChk"><span class="bx">✓</span>타이머 없이 체크리스트만 쓰기</button>
+          <div class="attrLabel">시간 재기</div>
+          <button class="chkLine" id="noTimerChk"><span class="bx">✓</span>시간은 재지 않고 체크리스트만 쓰기</button>
         </div>
         <div class="attrBlock" id="goalBlock">
           <div class="attrLabel">목표시간</div>
@@ -948,7 +971,7 @@
             <input type="number" id="goalM" min="0" max="59" placeholder="0"><span>분</span>
           </div>
           <div id="goalDowRows"></div>
-          <button class="chkLine" id="perDowChk"><span class="bx">✓</span>요일마다 시간 다르게</button>
+          <button class="chkLine" id="perDowChk"><span class="bx">✓</span>요일마다 다르게</button>
         </div>
         <div class="attrBlock">
           <div class="attrLabel">체크리스트</div>
@@ -986,12 +1009,12 @@
       <div class="edLabel">시간</div>
       <div id="edTimes"></div>
       <div id="edMsg"></div>
+      <button id="edPer"><span class="bx">✓</span>요일마다 다르게</button>
     </div>
     <div class="edCard">
       <div class="edLabel">반복</div>
       <div id="edFreq"><button class="cap" data-f="none">안 함</button><button class="cap" data-f="daily">매일</button><button class="cap" data-f="weekly">요일 선택</button></div>
       <div id="edDays"></div>
-      <button id="edPer"><span class="bx">✓</span>요일마다 시간 다르게</button>
     </div>
   </div>
 </div>
@@ -1101,6 +1124,15 @@
   </div>
 </div>
 
+<!-- 오늘 체크리스트 팝업 -->
+<div id="todayChkBg">
+  <div id="todayChkBox">
+    <div class="tTitle">오늘 체크리스트</div>
+    <ul id="todayChkList"></ul>
+    <button id="todayChkClose">닫기</button>
+  </div>
+</div>
+
 <!-- 반복 일정 저장·지우기 팝업 -->
 <div id="repBg">
   <div id="repBox">
@@ -1164,10 +1196,12 @@
   let runs = [];
   // 변경 이력 — 덮어쓰지 않고 '언제·무엇이' 바뀌었는지 남긴다
   //  { ts, k:'goal', t, from:{g,d}, to:{g,d} }   목표 (g = 한 값, d = 요일별 7칸 또는 null)
-  //  { ts, k:'nt', t, v }                         타이머 없이 체크리스트만 쓰기 켬/끔
+  //  { ts, k:'nt', t, v }                         시간은 재지 않고 체크리스트만 쓰기 켬/끔
   //  { ts, k:'item+', t, i, x, d } / { ts, k:'item-', t, i }   체크리스트 항목 추가·삭제
   let hist = [];
-  let chkId = null;         // 체크리스트 화면에서 보고 있는 할 일 (체크리스트 전용 할 일)
+  // 화면에 보이지만 기록 중인 할 일(focusId)이 아닌 것 — 체크리스트 화면의 할 일, 또는 체크리스트 전용에서
+  // 타이머로 막 바꾼(아직 시작 전) 할 일. 다른 할 일의 기록은 그동안 그대로 돈다
+  let peekId = null;
   // 지갑(보상 교환)은 폐지됐다(2026-09-27). 옛 저장본·옛 백업 파일에 남은 지갑 데이터는
   // 읽지 않고 버린다. 할 일에 붙어 있던 지갑 속성(wal·walK·diff)도 여기서 떼어 낸다.
   function dropWalletFields(list){
@@ -1537,6 +1571,52 @@
     if (b.n) fills[i].style.clipPath = 'inset(0 ' + (100 - b.d / b.n * 100) + '% 0 0)';
   }
 
+  // ---- 오늘 체크리스트 팝업: 체크리스트 막대를 누르면 오늘의 항목 전부를 할 일마다 묶어 보여 주고 바로 체크한다 ----
+  const todayChkBg = document.getElementById('todayChkBg');
+  const todayChkList = document.getElementById('todayChkList');
+  function renderTodayChk(){
+    todayChkList.innerHTML = '';
+    tasks.forEach(t => {
+      const items = todayItems(t);
+      if (!items.length) return;
+      const g = document.createElement('li');
+      g.className = 'grp';
+      g.textContent = t.name;
+      todayChkList.appendChild(g);
+      items.forEach(it => {
+        const li = document.createElement('li');
+        li.className = itemDone(t, it.id) ? 'on' : '';
+        const d = delayDays(it);
+        li.innerHTML = '<span class="box">✓</span><span class="txt"></span>' +
+          (it.daily ? '<span class="tag">매일</span>' : '') +
+          (!it.daily && d > 0 && !itemDone(t, it.id) ? '<span class="delay"></span>' : '');
+        li.querySelector('.txt').textContent = it.text;
+        const dl = li.querySelector('.delay');
+        if (dl) dl.textContent = d + '일 미뤄짐';
+        li.addEventListener('click', () => { toggleItem(t, it); renderTodayChk(); renderHome(); });
+        todayChkList.appendChild(li);
+      });
+    });
+  }
+  function openTodayChk(){
+    renderTodayChk();
+    todayChkBg.style.display = 'flex';
+    todayChkList.scrollTop = 0;
+    pushLayer(closeTodayChk);
+  }
+  function closeTodayChk(){ todayChkBg.style.display = 'none'; renderHome(); }
+  document.getElementById('todayChkClose').addEventListener('click', popLayer);
+  todayChkBg.addEventListener('click', e => { if (e.target === todayChkBg) popLayer(); });
+  // 막대는 14px라 누르기 어렵다 — 체크리스트 막대 둘레(위는 두 막대 사이 가운데까지, 아래·옆은 8~10px)를 누름으로 본다
+  barsEl.addEventListener('click', e => {
+    if (editingId !== null) return;            // 원 편집 중의 누름은 편집을 마치기만
+    const bar = barsEl.querySelector('.bar.chk');
+    if (!bar) return;
+    const r = bar.getBoundingClientRect();
+    if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 3 || e.clientY > r.bottom + 10) return;
+    openTodayChk();
+  });
+
   function renderHome(){
     renderBars();
     grid.innerHTML = '';
@@ -1560,6 +1640,7 @@
       nameEl.style.fontSize = nameFontSize(t.name) + 'px';
       if (!t.noTimer) c.querySelector('.time').textContent = fmt(currentMs(t));
       if (focusId === t.id && runningSince) c.classList.add('running');
+      if (t.noTimer) c.classList.add('noTimer');
       if (editingId === t.id) {                 // 편집 중이던 원은 상태 유지
         c.classList.add('editing');
         c.querySelector('.nameInput').value = t.name;
@@ -1710,7 +1791,7 @@
       const gName = ghost.querySelector('.name');
       gName.textContent = t.name;
       gName.style.fontSize = nameFontSize(t.name) + 'px';
-      if (t.noTimer) ghost.querySelector('.time').remove();
+      if (t.noTimer) { ghost.querySelector('.time').remove(); ghost.classList.add('noTimer'); }
       else ghost.querySelector('.time').textContent = fmt(currentMs(t));
       document.body.appendChild(ghost);
       lastX = e.clientX; lastY = e.clientY;
@@ -1909,6 +1990,15 @@
     updateNotification();
   }
   big.addEventListener('click', () => {
+    if (peekId !== null) {
+      const id = peekId;
+      if (runningSince) pauseCount();
+      peekId = null;
+      focusId = id;
+      showFocus = true;
+      startCount();
+      return;
+    }
     runningSince ? pauseCount() : startCount();
   });
   // 돌던 타이머를 그 자리에서 멈추고 거기까지 기록한 뒤 세션을 끝낸다 (알림도 지움).
@@ -1927,18 +2017,28 @@
     clearNotification();
   }
   // 체크리스트 화면 — 체크리스트 전용 할 일을 눌렀을 때. 이 할 일의 타이머는 돌지 않는다.
-  // 다른 할 일의 타이머가 돌고 있었으면 여는 순간 멈춘다 (시간을 재지 않을 뿐 집중 대상을 바꾸는 것)
+  // 다른 할 일의 기록이 돌고 있으면 그대로 둔다 — 잠깐 체크하러 들어온 것이지 집중 대상을 바꾼 것이 아니다(TK 2026-10-12)
   const chkName = document.getElementById('chkName');
   function showChecklistMode(id){
-    chkId = id;
+    peekId = id;
     showFocus = false;
-    focus.classList.add('chkOnly');
-    const t = tasks.find(x => x.id === id);
-    chkName.textContent = t ? t.name : '';
+    previewMode(true);
+  }
+  // 타이머 화면의 모습: 체크리스트만(큰 원·초기화 없음, 이름) / 큰 원(그 할 일의 지금 상태)
+  function previewMode(nt){
+    const t = viewTask();
+    if (!t) return;
+    focus.classList.toggle('chkOnly', nt);
+    chkName.textContent = t.name;
+    if (nt) return;
+    const run = focusId === t.id && !!runningSince;
+    big.classList.toggle('running', run);
+    big.classList.toggle('paused', !run);
+    bigState.textContent = run ? '진행 중' : '일시정지';
+    renderFocus();
   }
   function enterChecklist(id){
     swallowNextClick();
-    endSession();
     home.classList.remove('active');
     focus.classList.add('active');
     attrArea.classList.remove('editing');
@@ -1949,7 +2049,7 @@
   }
   function closeFocus(){
     attrArea.classList.remove('editing');
-    chkId = null;
+    peekId = null;
     focus.classList.remove('chkOnly');
     showFocus = false;
     if (!runningSince) {          // 멈춘 상태로 나가면 세션 종료
@@ -1968,15 +2068,15 @@
   const confirmBg = document.getElementById('confirmBg');
   function closeConfirm(){ confirmBg.style.display = 'none'; }
   document.getElementById('resetBtn').addEventListener('click', () => {
-    if (!focusId) return;
+    if (!viewTask()) return;
     confirmBg.style.display = 'flex';
     pushLayer(closeConfirm);
   });
   document.getElementById('confirmNo').addEventListener('click', popLayer);
   document.getElementById('confirmYes').addEventListener('click', () => {
-    const t = tasks.find(t => t.id === focusId);
+    const t = viewTask();
     if (t) {
-      if (runningSince) pauseCount(); // 카운트 중이면 멈추고
+      if (focusId === t.id && runningSince) pauseCount(); // 카운트 중이면 멈추고
       t.accMs = 0;                    // 시간 0으로
       save();
       renderFocus();
@@ -2147,7 +2247,7 @@
   }
 
   function renderFocus(){
-    const t = tasks.find(t => t.id === focusId);
+    const t = viewTask();
     if (!t) return;
     bigName.textContent = t.name;
     bigTime.textContent = fmt(currentMs(t));
@@ -2219,7 +2319,7 @@
   const newItem = document.getElementById('newItem');
   const newDaily = document.getElementById('newDaily');
   let draft = null;   // 편집 중인 임시 상태
-  function viewTask(){ const id = chkId !== null ? chkId : focusId; return tasks.find(t => t.id === id); }
+  function viewTask(){ const id = peekId !== null ? peekId : focusId; return tasks.find(t => t.id === id); }
 
   function hasAttr(t){ return hasGoalCfg(t) || todayItems(t).length > 0; }
 
@@ -2348,13 +2448,14 @@
     renderEditList();
     pushLayer(closeAttrEdit);
   }
-  // 타이머 없이 체크리스트만 쓰기 — [완료]를 누를 때 적용된다
+  // 시간은 재지 않고 체크리스트만 쓰기 — [완료]를 누를 때 적용된다
   noTimerChk.addEventListener('click', () => {
     if (!draft) return;
     draft.noTimer = !draft.noTimer;
     renderGoalEdit();
+    previewMode(draft.noTimer);      // 미리 보기 — 기록을 멈추는 등 실제 적용은 [완료]
   });
-  // 요일마다 시간 다르게 — 켜면 모든 요일을 지금 값으로 채우고,
+  // 요일마다 다르게 — 켜면 모든 요일을 지금 값으로 채우고,
   // 끄면 오늘 요일 줄의 값으로 합친다 (오늘 줄이 비었으면 그 뒤로 처음 값이 있는 요일, 전부 비었으면 목표 없음)
   perDowChk.addEventListener('click', () => {
     if (!draft) return;
@@ -2374,6 +2475,8 @@
   function closeAttrEdit(){
     attrArea.classList.remove('editing');
     draft = null;
+    const t = viewTask();
+    if (t) previewMode(!!t.noTimer);   // 뒤로가기로 취소했으면 원래 모습으로
     renderAttr();
   }
 
@@ -2591,7 +2694,7 @@
     }
     const to = { g: t.goalMs || 0, d: t.goalDow ? t.goalDow.slice() : null };
     if (JSON.stringify(from) !== JSON.stringify(to)) logHist({ k: 'goal', t: t.id, from: from, to: to });
-    // 타이머 없이 체크리스트만 쓰기
+    // 시간은 재지 않고 체크리스트만 쓰기
     const ntChanged = !!t.noTimer !== draft.noTimer;
     if (ntChanged) {
       logHist({ k: 'nt', t: t.id, v: draft.noTimer });
@@ -2615,15 +2718,9 @@
       if (focusId === t.id) endSession();
       showChecklistMode(t.id);
     } else if (ntChanged) {
-      // 체크리스트 전용 → 타이머: 그 자리에서 타이머 화면, 멈춘 상태 (원을 눌러야 시작 — TK 2026-10-07)
-      chkId = null;
-      focus.classList.remove('chkOnly');
-      focusId = t.id;
-      showFocus = true;
-      big.classList.remove('running');
-      big.classList.add('paused');
-      bigState.textContent = '일시정지';
-      updateNotification();
+      // 체크리스트 전용 → 타이머: 그 자리에서 타이머 화면, 멈춘 상태 (원을 눌러야 시작 — TK 2026-10-07).
+      // 다른 할 일의 기록이 돌고 있으면 그대로 두고, 큰 원을 누르는 순간 이 할 일로 바뀐다
+      peekId = t.id;
     }
     syncDayLog(t);   // 지워진 항목의 완료 기록까지 정리
     save();
