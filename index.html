@@ -22,8 +22,6 @@
     --run-deep:#B9750A;
     --pause:#6B87A3;
     --danger:#D93B2B;
-    --cool:#4FB0E0;        /* 목표 2배 달성 (불이 더 뜨거워져 하얗게 탄 색) */
-    --cool-deep:#2A7BA8;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -244,7 +242,6 @@
   .recRow .rName{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .badge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;}
   .badge.goal{width:.92em;height:.92em;border-radius:50%;border:.19em solid var(--run);box-sizing:border-box;}
-  .badge.goal.dbl{border-color:var(--cool);}   /* 목표 2배 달성 */
   .badge.check{color:#2E9E5B;font-size:1em;line-height:1;font-weight:700;}
   .recRow.expandable{cursor:pointer;}
   .recDetail{
@@ -254,7 +251,6 @@
   .recDetail .dGoal{font-variant-numeric:tabular-nums;}
   .recDetail .dGoal .gTxt.done{text-decoration:line-through;}          /* 달성한 목표 */
   .recDetail .dGoal .mark{color:var(--run-deep);font-weight:700;}      /* 목표 달성 */
-  .recDetail .dGoal .mark.dbl{color:var(--cool-deep);}                 /* 2배 달성 */
   .recDetail .dItem{display:flex;align-items:center;gap:7px;}
   .recDetail .dItem .mk{color:#2E9E5B;font-weight:700;}
   .recDetail .dItem.off .mk{color:#C6CDD5;}
@@ -272,11 +268,15 @@
     font-size:10px;line-height:15px;text-align:center;}
   .recEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
 
-  /* 홈 막대 — 제목 줄 바로 아래. 양 끝은 화면 가장자리에서 68px(햄버거 오른쪽 끝 43px + 25px) */
-  /* 아래로 10px 더 받아 누르기 쉽게(체크리스트 막대) — 모양과 자리는 그대로 */
-  #bars{flex:0 0 auto;display:none;flex-direction:column;gap:6px;padding:0 68px 10px;margin-bottom:-10px;position:relative;z-index:2;}
+  /* 홈 막대 — 제목 줄 바로 아래 한 줄에 나란히. 양 끝은 화면 가장자리에서 68px(햄버거 오른쪽 끝 43px + 25px),
+     사이 8px, 폭은 목표시간 2 : 체크리스트 1. 하나뿐인 날은 혼자 전체 폭.
+     위아래로 12px씩 더 받아 누르기 쉽게(제목 줄 아래 여백·원 목록 위 여백 안) — 모양과 자리는 그대로 */
+  #bars{flex:0 0 auto;display:none;flex-direction:row;gap:8px;padding:12px 68px;margin:-12px 0;position:relative;z-index:6;}
   #bars.on{display:flex;}
-  .bar{position:relative;height:14px;border-radius:7px;overflow:hidden;}
+  .bar{position:relative;height:14px;border-radius:7px;overflow:hidden;min-width:0;}
+  #bars .bar.goal{flex:2 1 0;}
+  #bars .bar.chk{flex:1 1 0;}
+  .bar.small .lbl{font-size:10px;}      /* 글자가 막대 폭을 넘치는 드문 경우 */
   .bar.goal{background:#FDEBCE;}
   .bar.chk{background:#DDF3E5;}
   /* 채운 부분 = 같은 글자·아이콘을 한 겹 더 두고 잘라 보인다 — 경계에서 글자색이 갈린다 */
@@ -352,12 +352,6 @@
     border-color:var(--run);
   }
   .circle.running .time{color:var(--run-deep);font-weight:500;}
-  /* 목표 2배 달성: 진행 중일 때만 원 안쪽까지 청백 (멈춰 있으면 링만 청백) */
-  .circle.dbl.running{
-    background:radial-gradient(circle at 50% 42%, #F2FBFF 0%, #D9EFFC 78%);
-    border-color:var(--cool);
-  }
-  .circle.dbl.running .time{color:var(--cool-deep);}
 
   .circle .ring{
     position:absolute;inset:-1.5px;width:calc(100% + 3px);height:calc(100% + 3px);
@@ -367,7 +361,6 @@
   .circle .ring circle{
     fill:none;stroke:var(--run);stroke-width:3;stroke-linecap:round;
   }
-  .circle.dbl .ring circle{stroke:var(--cool);}
   .circle .nameInput{
     display:none;width:104px;text-align:center;
     font-size:17px;font-weight:700;font-family:inherit;color:var(--text);
@@ -436,7 +429,6 @@
     fill:none;stroke:var(--run);stroke-width:3;stroke-linecap:round;
     transition:stroke-dashoffset .4s;
   }
-  #bigCircle.dbl #ringPath{stroke:var(--cool);}
   #bigCircle .name{font-size:clamp(20px,5vw,28px);font-weight:700;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #bigCircle .time{font-size:clamp(40px,11vw,64px);font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:1px;}
   #bigCircle .state{font-size:14px;letter-spacing:2px;color:var(--muted);}
@@ -450,15 +442,6 @@
   }
   #bigCircle.running .time{color:var(--run-deep);}
   #bigCircle.running .state{color:var(--run);}
-  /* 목표 2배 달성: 진행 중일 때 원과 발광을 통째로 청백으로 */
-  #bigCircle.dbl.running{
-    background:radial-gradient(circle at 50% 42%, #F2FBFF 0%, #D9EFFC 75%);
-    border-color:var(--cool);
-    box-shadow:0 0 42px rgba(79,176,224,.30);
-    animation:breatheCool 2.6s ease-in-out infinite;
-  }
-  #bigCircle.dbl.running .time{color:var(--cool-deep);}
-  #bigCircle.dbl.running .state{color:var(--cool);}
   /* 일시정지: 차분한 청회색 */
   #bigCircle.paused{border-color:var(--pause);}
   #bigCircle.paused .time{color:var(--pause);}
@@ -495,8 +478,8 @@
     font-variant-numeric:tabular-nums;
   }
   #goalView.done{color:var(--run-deep);font-weight:700;}
-  #goalView.dbl{color:var(--cool-deep);font-weight:700;}
   #checkView{list-style:none;display:flex;flex-direction:column;gap:2px;}
+  #noTodayMsg{display:none;text-align:center;font-size:14px;color:var(--muted);padding:4px 0;}
   #checkView li, #todayChkList li{
     display:flex;align-items:center;gap:10px;
     padding:11px 12px;font-size:15px;cursor:pointer;border-radius:10px;
@@ -575,7 +558,7 @@
   #editList li input.itemInput:focus{border-bottom-color:var(--run);}
   #editList li .tag{
     flex:0 0 auto;font-size:11px;color:var(--run-deep);
-    border:1px solid var(--run);border-radius:20px;padding:2px 8px;
+    border:1px solid var(--run);border-radius:20px;padding:2px 8px;cursor:pointer;
   }
   #editList li .del{
     flex:0 0 auto;background:none;border:none;color:var(--danger);
@@ -606,8 +589,13 @@
     flex:1 1 auto;min-width:0;font-family:inherit;font-size:15px;color:var(--text);
     background:var(--bg);border:1px solid var(--circle-edge);border-radius:8px;padding:9px 10px;
   }
-  .dailyChk{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);flex:0 0 auto;}
-  .dailyChk input{width:17px;height:17px;accent-color:var(--run);}
+  /* 반복 줄 — 일정 화면 반복 카드의 캡슐·요일 버튼과 같은 모양 */
+  .repRow{display:flex;align-items:center;gap:8px;margin-top:10px;}
+  .repRow .rl{font-size:13px;color:var(--muted);margin-right:2px;}
+  .repDays{display:none;justify-content:space-between;margin-top:12px;touch-action:pan-y;}
+  .repDays.on{display:flex;}
+  /* 요일이 하나도 없어 더할 수 없음 = 회색 (팝업 버튼의 .pBtn.dis와 같은 색) */
+  #addItemBtn.dis, #attrDoneBtn.dis{background:#ECEEF1;color:#B4BCC5;cursor:default;}
   #addItemBtn{
     flex:0 0 auto;background:var(--text);color:#fff;border:none;border-radius:8px;
     padding:9px 12px;font-size:14px;font-family:inherit;cursor:pointer;
@@ -619,10 +607,6 @@
   @keyframes breathe{
     0%,100%{box-shadow:0 0 42px rgba(245,158,27,.28);}
     50%{box-shadow:0 0 70px rgba(245,158,27,.45);}
-  }
-  @keyframes breatheCool{
-    0%,100%{box-shadow:0 0 42px rgba(79,176,224,.30);}
-    50%{box-shadow:0 0 70px rgba(79,176,224,.48);}
   }
   /* ===== 초기화 확인창 ===== */
   #confirmBg, #confirmAllBg{
@@ -643,25 +627,41 @@
   #confirmNo, #confirmAllNo{background:none;color:var(--muted);border:1px solid var(--circle-edge);}
   #confirmYes, #confirmAllYes{background:var(--danger);color:#fff;}
 
-  /* ===== 오늘 체크리스트 팝업 (체크리스트 막대를 누름) ===== */
-  #todayChkBg{
+  /* ===== 체크리스트 막대 팝업 · 목표시간 막대 팝업 · 반복 수정 팝업 (같은 틀) ===== */
+  #todayChkBg, #goalPopBg, #repItemBg{
     position:absolute;inset:0;background:rgba(35,41,47,.35);
     display:none;align-items:center;justify-content:center;z-index:20;padding:24px;
   }
-  #todayChkBox{
+  #todayChkBox, #goalPopBox, #repItemBox{
     background:#fff;border-radius:16px;padding:22px 20px;
     width:min(88vw,340px);max-height:84%;display:flex;flex-direction:column;
     box-shadow:0 8px 30px rgba(35,41,47,.18);
   }
-  #todayChkBox .tTitle{font-size:17px;font-weight:700;text-align:center;margin-bottom:4px;flex:0 0 auto;}
+  #todayChkBox .tTitle, #goalPopBox .tTitle, #repItemBox .tTitle{font-size:17px;font-weight:700;text-align:center;margin-bottom:4px;flex:0 0 auto;}
   #todayChkList{list-style:none;overflow-y:auto;min-height:0;flex:1 1 auto;}
   #todayChkList .grp{font-size:13px;color:var(--muted);margin:12px 0 2px;padding:0 4px;cursor:default;}
   #todayChkList li{padding:9px 4px;}
-  #todayChkClose{
+  #todayChkClose, #goalPopClose{
     flex:0 0 auto;margin-top:14px;padding:12px 0;border-radius:10px;cursor:pointer;
     background:none;color:var(--muted);border:1px solid var(--circle-edge);
     font-size:15px;font-weight:500;font-family:inherit;
   }
+  /* 목표시간 막대 팝업 — 줄마다 이름 · 남은 시간, 아래 작은 막대 */
+  #goalPopList{list-style:none;overflow-y:auto;min-height:0;flex:1 1 auto;margin-top:4px;}
+  .gpRow{padding:10px 4px;display:flex;flex-direction:column;gap:7px;}
+  .gpRow + .gpRow{border-top:1px solid var(--bg);}
+  .gpTop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .gpName{font-size:15px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .gpRem{flex:0 0 auto;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .gpRem.ach{color:var(--run-deep);font-weight:700;}
+  .gpMini{height:6px;border-radius:3px;background:#FDEBCE;overflow:hidden;}
+  .gpMini i{display:block;height:100%;background:var(--run);}
+  /* 반복 수정 팝업 */
+  #repItemBox .rSub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:14px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #repItemBox .repCaps{display:flex;gap:8px;}
+  #repItemBox .dayBtn{width:34px;height:34px;font-size:14px;}
+  #repItemBox .pRow{margin-top:18px;}
 
   /* ===== 탭 바 (홈·일정 화면에서만 보인다) ===== */
   #home, #sched{bottom:64px;}
@@ -821,7 +821,7 @@
   #edMsg{margin-top:10px;font-size:13px;color:var(--danger);font-weight:500;word-break:keep-all;display:none;}
   .nw{white-space:nowrap;}
   #edFreq{display:flex;gap:8px;}
-  #edDays{margin-top:12px;display:none;justify-content:space-between;}
+  #edDays{margin-top:12px;display:none;justify-content:space-between;touch-action:pan-y;}
   .dayBtn{
     width:38px;height:38px;padding:0;border-radius:50%;font-family:inherit;font-size:15px;cursor:pointer;
     background:var(--bg);color:var(--text);border:1px solid var(--circle-edge);
@@ -895,7 +895,7 @@
 
 
   @media (prefers-reduced-motion: reduce){
-    #bigCircle.running, #bigCircle.dbl.running{animation:none;}
+    #bigCircle.running{animation:none;}
     .circle,.circle:active,#addBtn{transition:none;transform:none;}
   }
 </style>
@@ -956,6 +956,7 @@
 
       <div id="attrView">
         <div id="goalView"></div>
+        <div id="noTodayMsg">오늘은 할 항목이 없어요</div>
         <ul id="checkView"></ul>
       </div>
 
@@ -978,9 +979,10 @@
           <ul id="editList"></ul>
           <div class="addRow">
             <input type="text" id="newItem" placeholder="세부목표 입력" maxlength="40">
-            <label class="dailyChk"><input type="checkbox" id="newDaily"><span>매일</span></label>
             <button id="addItemBtn">추가</button>
           </div>
+          <div class="repRow" id="addRep"><span class="rl">반복</span><button class="cap" data-f="none">안 함</button><button class="cap" data-f="daily">매일</button><button class="cap" data-f="weekly">요일 선택</button></div>
+          <div class="repDays" id="addRepDays"></div>
         </div>
         <button id="attrDoneBtn">완료</button>
       </div>
@@ -1124,12 +1126,32 @@
   </div>
 </div>
 
-<!-- 오늘 체크리스트 팝업 -->
+<!-- 체크리스트 막대 팝업 (제목 글자는 '오늘 체크리스트') -->
 <div id="todayChkBg">
   <div id="todayChkBox">
     <div class="tTitle">오늘 체크리스트</div>
     <ul id="todayChkList"></ul>
     <button id="todayChkClose">닫기</button>
+  </div>
+</div>
+
+<!-- 목표시간 막대 팝업 (제목 글자는 '오늘 목표시간') -->
+<div id="goalPopBg">
+  <div id="goalPopBox">
+    <div class="tTitle">오늘 목표시간</div>
+    <ul id="goalPopList"></ul>
+    <button id="goalPopClose">닫기</button>
+  </div>
+</div>
+
+<!-- 반복 수정 팝업 (속성 수정 모드에서 항목의 꼬리표를 누름) -->
+<div id="repItemBg">
+  <div id="repItemBox">
+    <div class="tTitle">반복 수정</div>
+    <div class="rSub" id="repItemSub"></div>
+    <div class="repCaps" id="repItemCaps"><button class="cap" data-f="none">안 함</button><button class="cap" data-f="daily">매일</button><button class="cap" data-f="weekly">요일 선택</button></div>
+    <div class="repDays" id="repItemDays"></div>
+    <div class="pRow"><button class="pBtn no" id="repItemNo">취소</button><button class="pBtn go" id="repItemOk">확인</button></div>
   </div>
 </div>
 
@@ -1197,7 +1219,8 @@
   // 변경 이력 — 덮어쓰지 않고 '언제·무엇이' 바뀌었는지 남긴다
   //  { ts, k:'goal', t, from:{g,d}, to:{g,d} }   목표 (g = 한 값, d = 요일별 7칸 또는 null)
   //  { ts, k:'nt', t, v }                         시간은 재지 않고 체크리스트만 쓰기 켬/끔
-  //  { ts, k:'item+', t, i, x, d } / { ts, k:'item-', t, i }   체크리스트 항목 추가·삭제
+  //  { ts, k:'item+', t, i, x, d, w } / { ts, k:'item-', t, i }   체크리스트 항목 추가·삭제 (w = 요일 항목의 요일, 없으면 생략)
+  //  { ts, k:'item~', t, i, from, to }            항목의 반복 수정 — 'none'(반복 안 함) · 'daily' · 요일 배열(0=일 … 6=토)
   let hist = [];
   // 화면에 보이지만 기록 중인 할 일(focusId)이 아닌 것 — 체크리스트 화면의 할 일, 또는 체크리스트 전용에서
   // 타이머로 막 바꾼(아직 시작 전) 할 일. 다른 할 일의 기록은 그동안 그대로 돈다
@@ -1217,6 +1240,16 @@
       if (!Array.isArray(t.checklist)) t.checklist = [];
       if (t.goalDow != null && !(Array.isArray(t.goalDow) && t.goalDow.length === 7)) t.goalDow = null;
       if (t.noTimer !== undefined && typeof t.noTimer !== 'boolean') t.noTimer = !!t.noTimer;
+      // 체크리스트 항목의 반복: daily = 매일, dow = 요일 항목의 요일(0=일 … 6=토), 둘 다 없으면 반복 안 함.
+      // 옛 저장본·옛 백업에는 dow가 없다 — 그대로 매일 또는 반복 안 함으로 열린다
+      t.checklist.forEach(it => {
+        if (!('dow' in it)) return;
+        const ok = Array.isArray(it.dow) && it.dow.every(w => Number.isInteger(w) && w >= 0 && w <= 6);
+        const days = ok ? Array.from(new Set(it.dow)).sort() : [];
+        if (it.daily || !days.length) { delete it.dow; return; }
+        if (days.length === 7) { it.daily = true; delete it.dow; return; }   // 일곱 요일 = 매일
+        it.dow = days;
+      });
     });
   }
 
@@ -1384,32 +1417,24 @@
     return Math.min(1, todayMs(t) / g);
   }
   function goalDone(t){ const g = goalNow(t); return !!g && todayMs(t) >= g; }
-  function goalDouble(t){ const g = goalNow(t); return !!g && todayMs(t) >= g * 2; }
 
-  // 목표 달성 시 원에 두르는 은은한 발광
-  function flameMarkup(dbl){
-    // 1배 = 호박색, 2배 = 청백색 (불이 더 뜨거워질수록 하얗게)
-    const c1 = dbl ? '#4FB0E0' : '#F59E1B';
-    const c2 = dbl ? '#BFE9FF' : '#FFC048';
+  // 목표 달성 시 원에 두르는 은은한 발광 (목표를 몇 배 넘겨도 같은 모습 — 정한 만큼이 성공이다)
+  function flameMarkup(){
+    const c1 = '#F59E1B', c2 = '#FFC048';
     return '<svg class="flame" viewBox="0 0 124 124" aria-hidden="true">' +
              '<circle class="halo" cx="62" cy="62" r="48.5" fill="none" stroke="' + c1 + '" stroke-width="8" filter="url(#glowWide)"/>' +
              '<circle class="halo2" cx="62" cy="62" r="48.5" fill="none" stroke="' + c2 + '" stroke-width="4" filter="url(#glowTight)"/>' +
            '</svg>';
   }
-  // 원의 발광 상태를 목표 달성/2배 달성에 맞춰 갱신
+  // 원의 발광 상태를 목표 달성에 맞춰 갱신
   function applyGlow(el, t){
-    const done = goalDone(t), dbl = goalDouble(t);
+    const done = goalDone(t);
     const has = el.classList.contains('goalDone');
-    const wasDbl = el.dataset.dbl === '1';
-    if (done && (!has || wasDbl !== dbl)) {
-      const old = el.querySelector(':scope > .flame');
-      if (old) old.remove();
+    if (done && !has) {
       el.classList.add('goalDone');
-      el.dataset.dbl = dbl ? '1' : '0';
-      el.insertAdjacentHTML('afterbegin', flameMarkup(dbl));
+      el.insertAdjacentHTML('afterbegin', flameMarkup());
     } else if (!done && has) {
       el.classList.remove('goalDone');
-      el.dataset.dbl = '0';
       const old = el.querySelector(':scope > .flame');
       if (old) old.remove();
     }
@@ -1434,23 +1459,50 @@
     return dayLog[key][taskId];
   }
 
+  // 반복 항목인가 (매일 또는 요일 항목). 요일 항목은 daily가 false이므로 '반복인가'는 늘 이것으로 본다
+  function isRep(it){ return !!it.daily || (Array.isArray(it.dow) && it.dow.length > 0); }
+  // 요일 배열의 이름 — 월~금 '평일', 토·일 '주말', 일곱 '매일', 그 밖은 월요일부터 가운뎃점('화·목')
+  function dowLabel(days){
+    const set = new Set(days);
+    if (set.size === 7) return '매일';
+    const is = arr => arr.length === set.size && arr.every(w => set.has(w));
+    if (is([1, 2, 3, 4, 5])) return '평일';
+    if (is([0, 6])) return '주말';
+    return [1, 2, 3, 4, 5, 6, 0].filter(w => set.has(w)).map(w => '일월화수목금토'[w]).join('·');
+  }
+  // 꼬리표 글자 — 항목이든 그날 기록의 항목이든 같은 셈. 반복 안 함이면 ''
+  function repLabel(x){
+    if (x.daily) return '매일';
+    if (Array.isArray(x.dow) && x.dow.length) return dowLabel(x.dow);
+    return '';
+  }
+  // 이력에 남기는 반복 값
+  function repOf(it){ return it.daily ? 'daily' : (Array.isArray(it.dow) && it.dow.length ? it.dow.slice() : 'none'); }
+  // 항목에 반복을 적용 (f = 'none' | 'daily' | 'weekly'). 일곱 요일을 다 고르면 매일
+  function applyRep(it, f, days){
+    if (f === 'daily' || (f === 'weekly' && days.length === 7)) { it.daily = true; delete it.dow; }
+    else if (f === 'weekly') { it.daily = false; it.dow = days.slice().sort(); }
+    else { it.daily = false; delete it.dow; }
+  }
+
   // 오늘 보여줄 체크리스트
-  //  - 매일 항목: 항상
-  //  - 일회성 항목: 완료 전까지 계속 (완료하면 다음 날부터 사라짐)
+  //  - 매일 항목: 항상 / 요일 항목: 그 요일에만 (둘 다 미뤄지지 않는다)
+  //  - 반복 안 함 항목: 완료 전까지 계속 (완료하면 다음 날부터 사라짐)
   function todayItems(t){
-    const k = todayKey();
+    const k = todayKey(), w = dowOf(k);
     const list = (t.checklist || []).filter(it => {
       if (it.daily) return true;
+      if (Array.isArray(it.dow) && it.dow.length) return it.dow.indexOf(w) >= 0;
       if (it.created > k) return false;          // 미래 생성분 제외(방어)
       if (!it.doneDate) return true;             // 아직 완료 안 함 → 계속 표시
       return it.doneDate === k;                  // 오늘 완료한 것은 오늘까지 보임
     });
-    // 매일 항목이 위, 그 안에서는 사용자가 정한 순서(배열 순서) 유지
-    return list;
+    // 반복 항목이 위, 그 안에서는 사용자가 정한 순서(배열 순서) 유지
+    return list.filter(isRep).concat(list.filter(it => !isRep(it)));
   }
-  // 일회성 항목이 며칠 밀렸는지 (0이면 당일)
+  // 반복 안 함 항목이 며칠 밀렸는지 (0이면 당일)
   function delayDays(it){
-    if (it.daily || !it.created) return 0;
+    if (isRep(it) || !it.created) return 0;
     const a = new Date(it.created + 'T00:00:00');
     const b = new Date(todayKey() + 'T00:00:00');
     return Math.max(0, Math.round((b - a) / 86400000));
@@ -1473,7 +1525,9 @@
     const alive = todayItems(t);
     alive.forEach(it => {
       if (!e.checks[it.id]) e.checks[it.id] = { text: it.text, daily: !!it.daily, done: false };
-      else e.checks[it.id].text = it.text;
+      const c = e.checks[it.id];
+      c.text = it.text; c.daily = !!it.daily;
+      if (Array.isArray(it.dow) && it.dow.length) c.dow = it.dow.slice(); else delete c.dow;   // 기록 상세의 괄호가 그날 값으로 남게
     });
     // 지워진 항목의 완료 기록은 오늘 기준으로 함께 삭제
     const aliveIds = new Set(alive.map(it => String(it.id)));
@@ -1513,7 +1567,7 @@
     });
     return { gSum, gFill, n, d };
   }
-  // 그 날 막대를 다 채웠는가 (기록 화면 날짜 옆 ●·✓) — 그날 저장된 목록으로 같은 셈. 2배는 반영하지 않는다
+  // 그 날 막대를 다 채웠는가 (기록 화면 날짜 옆 ●·✓) — 그날 저장된 목록으로 같은 셈. 넘친 시간은 세지 않는다
   function dayMarks(key){
     const out = { goal: false, chk: false };
     if (!goalsSince || key < goalsSince || !dayLog[key]) return out;
@@ -1552,7 +1606,20 @@
       '<div class="fill"><div class="lbl">' + label + '</div><span class="ico">' + ico + '</span></div></div>';
   }
   const barsEl = document.getElementById('bars');
-  let barsKey = '';
+  let barsKey = '', barsW = 0;
+  // 글자가 막대 폭을 넘치면 그 막대 글자만 10px (목표 합이 10시간을 넘고 분이 붙는 드문 경우).
+  // 넘친다 = 가운데 글자가 왼쪽 아이콘(4px + 8px)에 닿는다 — 그래서 양쪽 14px씩을 빼고 잰다
+  function fitBarLabels(){
+    barsEl.querySelectorAll('.bar').forEach(bar => {
+      bar.classList.remove('small');
+      const lbl = bar.querySelector(':scope > .lbl');
+      if (!lbl || !bar.clientWidth) return;
+      const r = document.createRange();
+      r.selectNodeContents(lbl);
+      if (r.getBoundingClientRect().width > bar.clientWidth - 28) bar.classList.add('small');
+    });
+  }
+  window.addEventListener('resize', () => { if (home.classList.contains('active')) { barsW = 0; renderBars(); } });
   function renderBars(){
     const b = todayBars();
     const fmtFill = ms => fmtGoal(Math.floor(ms / 60000) * 60000);   // 채운 쪽은 내림 — 다 차기 전에 '3시간 / 3시간'이 되지 않게
@@ -1560,18 +1627,20 @@
     const cLbl = b.d + ' / ' + b.n;
     // 그날 목표 합이 0이면 목표 막대를, 항목이 0이면 체크리스트 막대를 그리지 않는다 (빈 막대가 죄책감 표시가 되지 않게)
     const key = (b.gSum ? gLbl : '') + '|' + (b.n ? cLbl : '');
-    if (key !== barsKey) {
+    const changed = key !== barsKey;
+    if (changed) {
       barsKey = key;
       barsEl.innerHTML = (b.gSum ? barHtml('goal', '', gLbl) : '') + (b.n ? barHtml('chk', '✓', cLbl) : '');
     }
     barsEl.classList.toggle('on', !!(b.gSum || b.n));
+    if (changed || barsEl.clientWidth !== barsW) { barsW = barsEl.clientWidth; fitBarLabels(); }
     const fills = barsEl.querySelectorAll('.fill');
     let i = 0;
     if (b.gSum) fills[i++].style.clipPath = 'inset(0 ' + (100 - Math.min(1, b.gFill / b.gSum) * 100) + '% 0 0)';
     if (b.n) fills[i].style.clipPath = 'inset(0 ' + (100 - b.d / b.n * 100) + '% 0 0)';
   }
 
-  // ---- 오늘 체크리스트 팝업: 체크리스트 막대를 누르면 오늘의 항목 전부를 할 일마다 묶어 보여 주고 바로 체크한다 ----
+  // ---- 체크리스트 막대 팝업: 체크리스트 막대를 누르면 오늘의 항목 전부를 할 일마다 묶어 보여 주고 바로 체크한다 ----
   const todayChkBg = document.getElementById('todayChkBg');
   const todayChkList = document.getElementById('todayChkList');
   function renderTodayChk(){
@@ -1587,9 +1656,10 @@
         const li = document.createElement('li');
         li.className = itemDone(t, it.id) ? 'on' : '';
         const d = delayDays(it);
+        const tg = repLabel(it);
         li.innerHTML = '<span class="box">✓</span><span class="txt"></span>' +
-          (it.daily ? '<span class="tag">매일</span>' : '') +
-          (!it.daily && d > 0 && !itemDone(t, it.id) ? '<span class="delay"></span>' : '');
+          (tg ? '<span class="tag">' + tg + '</span>' : '') +
+          (!tg && d > 0 && !itemDone(t, it.id) ? '<span class="delay"></span>' : '');
         li.querySelector('.txt').textContent = it.text;
         const dl = li.querySelector('.delay');
         if (dl) dl.textContent = d + '일 미뤄짐';
@@ -1607,14 +1677,50 @@
   function closeTodayChk(){ todayChkBg.style.display = 'none'; renderHome(); }
   document.getElementById('todayChkClose').addEventListener('click', popLayer);
   todayChkBg.addEventListener('click', e => { if (e.target === todayChkBg) popLayer(); });
-  // 막대는 14px라 누르기 어렵다 — 체크리스트 막대 둘레(위는 두 막대 사이 가운데까지, 아래·옆은 8~10px)를 누름으로 본다
+  // ---- 목표시간 막대 팝업: 오늘 목표가 있는 할 일마다 남은 시간과 작은 막대 (홈의 원 순서) ----
+  const goalPopBg = document.getElementById('goalPopBg');
+  const goalPopList = document.getElementById('goalPopList');
+  function renderGoalPop(){
+    let h = '';
+    tasks.forEach(t => {
+      const g = goalNow(t);                    // 체크리스트 전용·그 요일 목표 0은 빠진다
+      if (!g) return;
+      const ms = todayMs(t);
+      const done = ms >= g;
+      // 남은 시간 = 오늘 목표 − 채운 시간(분 단위 내림) — 목표시간 막대 글자와 같은 셈
+      const fill = Math.floor(Math.min(ms, g) / 60000) * 60000;
+      const rem = done ? '<span class="gpRem ach">달성</span>' : '<span class="gpRem">' + fmtGoal(g - fill) + ' 남음</span>';
+      const w = Math.min(1, ms / g) * 100;
+      h += '<li class="gpRow"><div class="gpTop"><span class="gpName"></span>' + rem + '</div>' +
+           '<div class="gpMini"><i style="width:' + w + '%"></i></div></li>';
+    });
+    goalPopList.innerHTML = h;
+    const names = goalPopList.querySelectorAll('.gpName');
+    let i = 0;
+    tasks.forEach(t => { if (goalNow(t)) names[i++].textContent = t.name; });
+  }
+  function openGoalPop(){
+    renderGoalPop();
+    goalPopBg.style.display = 'flex';
+    goalPopList.scrollTop = 0;
+    pushLayer(closeGoalPop);
+  }
+  function closeGoalPop(){ goalPopBg.style.display = 'none'; }
+  function goalPopOpen(){ return goalPopBg.style.display === 'flex'; }
+  document.getElementById('goalPopClose').addEventListener('click', popLayer);
+  goalPopBg.addEventListener('click', e => { if (e.target === goalPopBg) popLayer(); });
+
+  // 막대는 14px라 누르기 어렵다 — 막대마다 위아래 12px, 바깥 옆 8px, 두 막대 사이는 반씩(4px)을 누름으로 본다
   barsEl.addEventListener('click', e => {
     if (editingId !== null) return;            // 원 편집 중의 누름은 편집을 마치기만
-    const bar = barsEl.querySelector('.bar.chk');
-    if (!bar) return;
-    const r = bar.getBoundingClientRect();
-    if (e.clientX < r.left - 8 || e.clientX > r.right + 8 || e.clientY < r.top - 3 || e.clientY > r.bottom + 10) return;
-    openTodayChk();
+    const bars = Array.from(barsEl.querySelectorAll('.bar'));
+    for (let i = 0; i < bars.length; i++) {
+      const r = bars[i].getBoundingClientRect();
+      const padL = i === 0 ? 8 : 4, padR = i === bars.length - 1 ? 8 : 4;
+      if (e.clientX < r.left - padL || e.clientX > r.right + padR || e.clientY < r.top - 12 || e.clientY > r.bottom + 12) continue;
+      if (bars[i].classList.contains('goal')) openGoalPop(); else openTodayChk();
+      return;
+    }
   });
 
   function renderHome(){
@@ -1634,7 +1740,7 @@
         (checkAllDone(t) ? '<div class="ck">✓</div>' : '') +
         '<div class="name"></div>' +
         '<input class="nameInput" maxlength="20" readonly>' +
-        (t.noTimer ? '' : '<div class="time"></div>');     // 체크리스트 전용 = 흰 원에 이름만
+        (t.noTimer ? '' : '<div class="time"></div>');     // 체크리스트 전용 = 연녹색 원에 이름만
       const nameEl = c.querySelector('.name');
       nameEl.textContent = t.name;
       nameEl.style.fontSize = nameFontSize(t.name) + 'px';
@@ -1655,8 +1761,7 @@
         const ring = c.querySelector('.ring circle');
         ring.style.strokeDasharray = CIRC;
         ring.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
-        c.classList.toggle('dbl', goalDouble(t));   // 2배 달성이면 링·원을 청백으로
-        applyGlow(c, t);                      // 달성/2배 달성 발광
+        applyGlow(c, t);                      // 달성 발광
       }
 
       const input = c.querySelector('.nameInput');
@@ -2259,16 +2364,14 @@
   function renderRing(t){
     if (!goalNow(t)) {
       big.classList.remove('hasGoal');
-      big.classList.remove('dbl');
       return;
     }
     big.classList.add('hasGoal');
-    big.classList.toggle('dbl', goalDouble(t));   // 2배 달성이면 링·원을 청백으로
     const CIRC = 2 * Math.PI * 48.5;
     ringPath.style.strokeDasharray = CIRC;
     ringPath.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
   }
-  let lastGoalState = null;     // 0=미달성 1=달성 2=2배 달성
+  let lastGoalDone = null;      // 목표 달성 여부 (타이머 화면 목표 줄의 색을 바꿀 때)
   // 목표 달성 진동: 지갑과 무관한 인정의 표현. 도는 중 목표를 넘는 순간마다 울린다
   // (같은 날 목표를 올려 다시 넘겨도 새 달성이라 울린다). 할 일이 바뀌면 처음부터 본다
   let vibTask = null, vibReached = false;
@@ -2276,7 +2379,6 @@
     if (!focusId || !runningSince) return;
     const t = tasks.find(x => x.id === focusId);
     if (!t) return;
-    const nowState = goalDouble(t) ? 2 : (goalDone(t) ? 1 : 0);
     const reached = goalDone(t);
     if (vibTask === t.id && !vibReached && reached && navigator.vibrate) {
       try { navigator.vibrate([50, 80, 50]); } catch(e) {}
@@ -2295,17 +2397,17 @@
           const CIRC = 2 * Math.PI * 48.5;
           const ring = el.querySelector('.ring circle');
           if (ring) ring.style.strokeDashoffset = CIRC * (1 - goalRatio(t));
-          el.classList.toggle('dbl', goalDouble(t));   // 2배를 넘는 순간 청백으로
-          applyGlow(el, t);       // 달성·2배 달성 순간 발광 갱신
+          applyGlow(el, t);       // 달성 순간 발광 갱신
         }
       }
       if (home.classList.contains('active')) renderBars();
-      lastGoalState = nowState;
+      if (goalPopOpen()) renderGoalPop();      // 목표시간 막대 팝업도 실시간으로
+      lastGoalDone = reached;
       return;
     }
 
     renderFocus();
-    if (nowState !== lastGoalState) { lastGoalState = nowState; renderAttr(); }
+    if (reached !== lastGoalDone) { lastGoalDone = reached; renderAttr(); }
   }, 250);
 
   // ---- 속성: 목표시간 / 체크리스트 ----
@@ -2317,11 +2419,12 @@
   const goalH = document.getElementById('goalH');
   const goalM = document.getElementById('goalM');
   const newItem = document.getElementById('newItem');
-  const newDaily = document.getElementById('newDaily');
+  const noTodayMsg = document.getElementById('noTodayMsg');
   let draft = null;   // 편집 중인 임시 상태
   function viewTask(){ const id = peekId !== null ? peekId : focusId; return tasks.find(t => t.id === id); }
 
-  function hasAttr(t){ return hasGoalCfg(t) || todayItems(t).length > 0; }
+  // [속성 수정]을 보일지 — 목표 설정 + 반복 항목 전부(오늘 요일이 아니어도) + 오늘의 반복 안 함 항목
+  function hasAttr(t){ return hasGoalCfg(t) || todayItems(t).length > 0 || (t.checklist || []).some(isRep); }
 
   // 타이머 화면(체크리스트 화면) 아래 영역 다시 그리기
   function renderAttr(){
@@ -2329,26 +2432,27 @@
     if (!t) return;
     attrArea.classList.toggle('hasAttr', hasAttr(t) && !attrArea.classList.contains('editing'));
 
-    // 목표시간 표시 — 늘 오늘 요일의 값
+    // 목표시간 표시 — 늘 오늘 요일의 값. 목표를 몇 배 넘겨도 1배 달성과 같은 모습
     if (goalNow(t)) {
-      const done = goalDone(t), dbl = goalDouble(t);
-      goalView.textContent = '목표 ' + fmtGoal(goalNow(t)) + (dbl ? ' (2배 달성)' : '');
-      goalView.classList.toggle('done', done && !dbl);
-      goalView.classList.toggle('dbl', dbl);
+      goalView.textContent = '목표 ' + fmtGoal(goalNow(t));
+      goalView.classList.toggle('done', goalDone(t));
       goalView.style.display = '';
     } else {
       goalView.style.display = 'none';
     }
 
-    // 체크리스트 표시
+    // 체크리스트 표시 — 오늘 할 항목이 없는데 다른 요일의 항목은 있으면 그 말을 목록 자리에
+    const items = todayItems(t);
+    noTodayMsg.style.display = !items.length && (t.checklist || []).some(isRep) ? 'block' : 'none';
     checkView.innerHTML = '';
-    todayItems(t).forEach(it => {
+    items.forEach(it => {
       const li = document.createElement('li');
       li.className = itemDone(t, it.id) ? 'on' : '';
       const d = delayDays(it);
+      const tg = repLabel(it);
       li.innerHTML = '<span class="box">✓</span><span class="txt"></span>' +
-        (it.daily ? '<span class="tag">매일</span>' : '') +
-        (!it.daily && d > 0 && !itemDone(t, it.id) ? '<span class="delay"></span>' : '');
+        (tg ? '<span class="tag">' + tg + '</span>' : '') +
+        (!tg && d > 0 && !itemDone(t, it.id) ? '<span class="delay"></span>' : '');
       li.querySelector('.txt').textContent = it.text;
       const dl = li.querySelector('.delay');
       if (dl) dl.textContent = d + '일 미뤄짐';
@@ -2373,10 +2477,11 @@
     const e = dayEntry(todayKey(), t.id);
     const cur = e.checks[it.id] || { text: it.text, daily: !!it.daily, done: false };
     cur.text = it.text; cur.daily = !!it.daily; cur.done = !cur.done;
+    if (Array.isArray(it.dow) && it.dow.length) cur.dow = it.dow.slice(); else delete cur.dow;
     e.checks[it.id] = cur;
     e.goalMs = goalNow(t);
-    // 일회성 항목: 완료하면 오늘 날짜를 기록(다음 날 사라짐), 해제하면 되돌림
-    if (!it.daily) {
+    // 반복 안 함 항목: 완료하면 오늘 날짜를 기록(다음 날 사라짐), 해제하면 되돌림
+    if (!isRep(it)) {
       const target = (t.checklist || []).find(x => x.id === it.id);
       if (target) target.doneDate = cur.done ? todayKey() : null;
     }
@@ -2430,19 +2535,24 @@
   function openAttrEdit(){
     const t = viewTask();
     if (!t) return;
-    const editable = todayItems(t);
+    // 목록 = 반복 항목 전부(오늘 요일이 아니어도 고치고 지울 수 있게) + 오늘 화면에 나오는 반복 안 함 항목
+    const todayIds = new Set(todayItems(t).map(it => String(it.id)));
+    const editable = (t.checklist || []).filter(it => isRep(it) || todayIds.has(String(it.id)));
     const per = Array.isArray(t.goalDow);
     draft = {
       goalMs: t.goalMs || 0,
       per: per,
       noTimer: !!t.noTimer,
-      items: editable.map(it => ({ ...it })),        // 이월된 미완료 항목까지 포함
-      originalIds: new Set(editable.map(it => String(it.id)))  // 편집 시작 시점의 대상들
+      items: editable.map(it => { const c = { ...it }; if (Array.isArray(it.dow)) c.dow = it.dow.slice(); return c; }),
+      originalIds: new Set(editable.map(it => String(it.id))),  // 편집 시작 시점의 대상들
+      origRep: new Map(editable.map(it => [String(it.id), repOf(it)]))   // 반복 수정 이력용
     };
     setHM(goalH, goalM, per ? goalNow(t) || t.goalMs : draft.goalMs);
     renderDowRows(per ? t.goalDow : [0, 0, 0, 0, 0, 0, 0]);
     renderGoalEdit();
-    newItem.value = ''; newDaily.checked = false;
+    newItem.value = '';
+    addRep = { f: 'none', days: [] };
+    renderAddRep();
     attrArea.classList.add('editing');
     attrArea.classList.remove('hasAttr');
     renderEditList();
@@ -2480,9 +2590,9 @@
     renderAttr();
   }
 
-  // draft.items를 '매일 먼저, 그 안에서 배열 순서 유지'로 정렬해 화면에 반영
+  // draft.items를 '반복(매일·요일) 먼저, 그 안에서 배열 순서 유지'로 정렬해 화면에 반영
   function sortDraft(){
-    draft.items.sort((a, b) => (b.daily ? 1 : 0) - (a.daily ? 1 : 0));
+    draft.items.sort((a, b) => (isRep(b) ? 1 : 0) - (isRep(a) ? 1 : 0));
   }
   function renderEditList(){
     editList.innerHTML = '';
@@ -2490,10 +2600,13 @@
     draft.items.forEach(it => {
       const li = document.createElement('li');
       li.dataset.id = it.id;
+      // 꼬리표 — 반복 안 함 항목도 이 모드에서만 '반복 안 함' (누르면 반복 수정 팝업)
       li.innerHTML = '<span class="igrip" aria-label="순서 이동">↕</span>' +
         '<input class="txt itemInput" maxlength="40" readonly>' +
-        (it.daily ? '<span class="tag">매일</span>' : '') +
+        '<span class="tag"></span>' +
         '<button class="del" aria-label="삭제">✕</button>';
+      li.querySelector('.tag').textContent = repLabel(it) || '반복 안 함';
+      li.querySelector('.tag').addEventListener('click', () => openRepItem(it.id));
       const inp = li.querySelector('.itemInput');
       inp.value = it.text;
       inp.addEventListener('input', () => {
@@ -2538,13 +2651,13 @@
     itemScrollDir = 0;
   }
 
-  // 끌고 있는 항목과 같은 그룹(매일/일반)이고 자기 자신이 아닌 타일들
+  // 끌고 있는 항목과 같은 묶음(반복/반복 안 함)이고 자기 자신이 아닌 타일들
   function itemSiblings(){
     if (!itemDrag) return [];
     return Array.from(editList.querySelectorAll('li')).filter(el => {
       if (el.dataset.id === String(itemDrag.it.id)) return false;
       const item = draft.items.find(x => String(x.id) === el.dataset.id);
-      return item && (!!item.daily === !!itemDrag.it.daily);
+      return item && (isRep(item) === isRep(itemDrag.it));
     });
   }
   // 지금 손가락 y가 어느 타일 앞에 끼어들지 (같은 그룹 안에서만)
@@ -2650,7 +2763,7 @@
           // 같은 그룹의 맨 끝으로
           let insertAt = draft.items.length;
           for (let i = 0; i < draft.items.length; i++){
-            if (!!draft.items[i].daily === !!drag.daily) insertAt = i + 1;
+            if (isRep(draft.items[i]) === isRep(drag)) insertAt = i + 1;
           }
           draft.items.splice(insertAt, 0, drag);
         }
@@ -2666,23 +2779,118 @@
     });
   }
 
+  // ---- 항목 추가 줄의 반복 — [안 함][매일][요일 선택], 기본 '안 함'. [추가]를 누르면 '안 함'으로 돌아간다 ----
+  const addRepRow = document.getElementById('addRep');
+  const addRepDays = document.getElementById('addRepDays');
+  const addItemBtn = document.getElementById('addItemBtn');
+  const attrDoneBtn = document.getElementById('attrDoneBtn');
+  let addRep = { f: 'none', days: [] };
+  function dayBtnsHtml(days){
+    return WEEK_ORDER.map(w => '<button class="dayBtn' + (days.indexOf(w) >= 0 ? ' on' : '') + '" data-w="' + w + '">' + DOW_KO[w] + '</button>').join('');
+  }
+  function addBlocked(){ return addRep.f === 'weekly' && !addRep.days.length; }
+  // 입력해 둔 항목을 요일 없이 살릴 수 없을 때는 [완료]도 회색 (일정 화면에서 요일을 전부 끄면 [저장]이 회색인 것과 같다)
+  function doneBlocked(){ return !!newItem.value.trim() && addBlocked(); }
+  function renderAddRep(){
+    addRepRow.querySelectorAll('.cap').forEach(b => b.classList.toggle('on', b.dataset.f === addRep.f));
+    addRepDays.classList.toggle('on', addRep.f === 'weekly');
+    addRepDays.innerHTML = addRep.f === 'weekly' ? dayBtnsHtml(addRep.days) : '';
+    addItemBtn.classList.toggle('dis', addBlocked());
+    attrDoneBtn.classList.toggle('dis', doneBlocked());
+  }
+  addRepRow.addEventListener('click', e => {
+    const b = e.target.closest('.cap');
+    if (!b || !draft) return;
+    addRep.f = b.dataset.f;
+    if (addRep.f === 'weekly' && !addRep.days.length) addRep.days = [dowOf(todayKey())];   // 처음 누르면 오늘 요일 하나
+    renderAddRep();
+  });
+  bindDayDrag(addRepDays, {
+    active: () => !!draft && addRep.f === 'weekly',
+    get: () => addRep.days,
+    set: v => { addRep.days = v; },
+    render: renderAddRep
+  });
+  newItem.addEventListener('input', () => attrDoneBtn.classList.toggle('dis', doneBlocked()));
+
   function addDraftItem(){
     const v = newItem.value.trim();
-    if (!v) return;
-    draft.items.push({ id: nextItemId++, text: v, daily: newDaily.checked, created: todayKey() });
-    newItem.value = ''; newDaily.checked = false;
+    if (!v || addBlocked()) return;
+    const it = { id: nextItemId++, text: v, daily: false, created: todayKey() };
+    applyRep(it, addRep.f, addRep.days);
+    draft.items.push(it);
+    newItem.value = '';
+    addRep = { f: 'none', days: [] };      // 흔한 캘린더에서 새 일정이 늘 '반복 안 함'으로 시작하는 것과 같다
+    renderAddRep();
     renderEditList();
     newItem.focus();
   }
-  document.getElementById('addItemBtn').addEventListener('click', addDraftItem);
+  addItemBtn.addEventListener('click', addDraftItem);
   newItem.addEventListener('keydown', e => { if (e.key === 'Enter') addDraftItem(); });
+
+  // ---- 반복 수정 팝업: 속성 수정 모드에서 꼬리표를 누름. [확인]은 목록(초안)에만, 저장은 [완료] ----
+  const repItemBg = document.getElementById('repItemBg');
+  const repItemCaps = document.getElementById('repItemCaps');
+  const repItemDays = document.getElementById('repItemDays');
+  const repItemOk = document.getElementById('repItemOk');
+  let repEd = null;      // { id, f, days }
+  function openRepItem(id){
+    if (!draft) return;
+    const it = draft.items.find(x => x.id === id);
+    if (!it) return;
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    repEd = { id: id, f: it.daily ? 'daily' : (isRep(it) ? 'weekly' : 'none'), days: Array.isArray(it.dow) ? it.dow.slice() : [] };
+    document.getElementById('repItemSub').textContent = it.text;
+    renderRepItem();
+    repItemBg.style.display = 'flex';
+    pushLayer(closeRepItem);
+  }
+  function closeRepItem(){ repItemBg.style.display = 'none'; repEd = null; }
+  function renderRepItem(){
+    if (!repEd) return;
+    repItemCaps.querySelectorAll('.cap').forEach(b => b.classList.toggle('on', b.dataset.f === repEd.f));
+    repItemDays.classList.toggle('on', repEd.f === 'weekly');
+    repItemDays.innerHTML = repEd.f === 'weekly' ? dayBtnsHtml(repEd.days) : '';
+    repItemOk.className = 'pBtn ' + (repEd.f === 'weekly' && !repEd.days.length ? 'dis' : 'go');
+  }
+  repItemCaps.addEventListener('click', e => {
+    const b = e.target.closest('.cap');
+    if (!b || !repEd) return;
+    repEd.f = b.dataset.f;
+    if (repEd.f === 'weekly' && !repEd.days.length) repEd.days = [dowOf(todayKey())];
+    renderRepItem();
+  });
+  bindDayDrag(repItemDays, {
+    active: () => !!repEd && repEd.f === 'weekly',
+    get: () => repEd.days,
+    set: v => { repEd.days = v; },
+    render: renderRepItem
+  });
+  repItemOk.addEventListener('click', () => {
+    if (!repEd || !draft) return;
+    if (repEd.f === 'weekly' && !repEd.days.length) return;
+    const it = draft.items.find(x => x.id === repEd.id);
+    if (it) {
+      const was = isRep(it);
+      applyRep(it, repEd.f, repEd.days);
+      if (was !== isRep(it)) {             // 묶음이 바뀌면 새 묶음의 맨 끝으로
+        draft.items = draft.items.filter(x => x !== it);
+        draft.items.push(it);
+      }
+      renderEditList();
+    }
+    popLayer();
+  });
+  document.getElementById('repItemNo').addEventListener('click', popLayer);
+  repItemBg.addEventListener('click', e => { if (e.target === repItemBg) popLayer(); });
 
   document.getElementById('addAttrBtn').addEventListener('click', openAttrEdit);
 
-  document.getElementById('attrDoneBtn').addEventListener('click', () => {
+  attrDoneBtn.addEventListener('click', () => {
     const t = viewTask();
     if (!t) return;
-    if (newItem.value.trim()) addDraftItem();   // 입력만 하고 추가를 안 눌렀을 때 살려줌
+    if (doneBlocked()) return;                   // 입력한 항목을 요일 없이 살릴 수 없음 (회색)
+    if (newItem.value.trim()) addDraftItem();   // 입력만 하고 추가를 안 눌렀을 때 그때의 반복 줄 값으로 살려줌
     // 목표 — 요일마다 다르면 요일별 7칸, 아니면 한 값. 체크리스트 전용이어도 값은 그대로 보관한다
     const from = { g: t.goalMs || 0, d: Array.isArray(t.goalDow) ? t.goalDow.slice() : null };
     if (draft.per) {
@@ -2702,8 +2910,27 @@
     }
     const nowIds = new Set(draft.items.map(it => String(it.id)));
     const oldIds = new Set((t.checklist || []).map(it => String(it.id)));
-    draft.items.forEach(it => { if (!oldIds.has(String(it.id))) logHist({ k: 'item+', t: t.id, i: it.id, x: it.text, d: !!it.daily }); });
+    draft.items.forEach(it => {
+      if (oldIds.has(String(it.id))) return;
+      const h = { k: 'item+', t: t.id, i: it.id, x: it.text, d: !!it.daily };
+      if (Array.isArray(it.dow)) h.w = it.dow.slice();
+      logHist(h);
+    });
     draft.originalIds.forEach(id => { if (!nowIds.has(id)) logHist({ k: 'item-', t: t.id, i: +id }); });
+    // 반복 수정 — 오늘부터 적용, 지난 날 기록은 그대로
+    draft.items.forEach(it => {
+      const from = draft.origRep.get(String(it.id));
+      if (from === undefined) return;
+      const to = repOf(it);
+      if (JSON.stringify(from) === JSON.stringify(to)) return;
+      logHist({ k: 'item~', t: t.id, i: it.id, from: from, to: to });
+      if (from !== 'none' && to === 'none') {
+        it.created = todayKey();                                  // 오늘 만든 항목으로 친다 (옛 날짜로 'N일 미뤄짐'이 붙지 않게)
+        it.doneDate = itemDone(t, it.id) ? todayKey() : null;     // 오늘 이미 체크했으면 오늘 끝낸 것
+      } else if (from === 'none' && to !== 'none') {
+        delete it.doneDate;
+      }
+    });
     // 편집 대상이 아니던 항목(다른 날 완료돼 화면에 없던 것)만 보존.
     // 단, 편집 시작 때 있었는데 지금 사라진 것 = 사용자가 삭제한 것이므로 보존하지 않음
     const untouched = (t.checklist || []).filter(it => {
@@ -2882,14 +3109,13 @@
           const gMs = e && !e.nt ? (e.goalMs || 0) : 0;      // 체크리스트 전용이던 날은 목표 없음
           const items = e ? Object.values(e.checks || {}) : [];
           const goalMet = gMs > 0 && ms >= gMs;
-          const goalDbl = gMs > 0 && ms >= gMs * 2;   // 2배 달성이면 배지를 청백색으로
           const checkMet = items.length > 0 && items.every(it => it.done);
 
           const row = document.createElement('div');
           row.className = 'recRow selectable';
           row.dataset.key = key; row.dataset.tid = id;
           row.innerHTML = '<span class="rLeft"><span class="chk">✓</span><span class="rName"></span>' +
-            (goalMet ? '<span class="badge goal' + (goalDbl ? ' dbl' : '') + '"></span>' : '') +
+            (goalMet ? '<span class="badge goal"></span>' : '') +
             (checkMet ? '<span class="badge check">✓</span>' : '') +
             '</span><span class="rTime"></span>';
           row.querySelector('.rName').textContent = nameOf(id);
@@ -2907,8 +3133,8 @@
             let html = '';
             if (gMs > 0) {
               // 체크리스트와 같은 모양: 목표 글자에 취소선, 괄호는 색·볼드로 달성 표시
-              const gTxt = goalMet ? (goalDbl ? '2배 달성' : '달성') : '미달성';
-              const gCls = goalMet ? ' class="mark' + (goalDbl ? ' dbl' : '') + '"' : '';
+              const gTxt = goalMet ? '달성' : '미달성';
+              const gCls = goalMet ? ' class="mark"' : '';
               html += '<div class="dGoal"><span class="gTxt' + (goalMet ? ' done' : '') + '">목표 ' +
                 fmtGoal(gMs) + '</span> <span' + gCls + '>(' + gTxt + ')</span></div>';
             }
@@ -2916,7 +3142,8 @@
               const d = document.createElement('div');
               d.className = 'dItem ' + (it.done ? 'on' : 'off');
               d.innerHTML = '<span class="mk">✓</span><span class="tx"></span>';
-              d.querySelector('.tx').textContent = it.text + (it.daily ? ' (매일)' : '');
+              const lb = repLabel(it);                 // 그날 남긴 반복 값 — 나중에 요일을 바꿔도 지난 날은 그대로
+              d.querySelector('.tx').textContent = it.text + (lb ? ' (' + lb + ')' : '');
               html += d.outerHTML;
             });
             detail.innerHTML = html;
@@ -3162,6 +3389,53 @@
   menuBg.addEventListener('click', e => { if (e.target === menuBg) popLayer(); });
   document.getElementById('menuRecords').addEventListener('click', () => pickMenu(openRecordsScreen));
   document.getElementById('menuResetAll').addEventListener('click', () => pickMenu(openResetAll));
+
+  // ---- 요일 끌어서 고르기 (반복 줄 · 반복 수정 팝업 · 일정 화면 반복 카드) ----
+  // 한 번 누르기는 그 요일만 켜고 끈다. 누른 채 옆 요일로 밀면, 처음 누른 요일을 누른 결과(켬/끔)가
+  // 손가락이 지나간 요일 모두에 적용된다(되돌아가도 그대로). 위치는 가로(x)로만 본다.
+  // 줄은 세로 스크롤을 브라우저에 맡기고(touch-action:pan-y), 스크롤로 넘어가 누름이 취소되면 누르기 전으로 돌린다.
+  // api: active() · get() · set(새 배열) · render() · [begin()] · [snapshot()·restore()]
+  function bindDayDrag(row, api){
+    let dg = null;
+    const btnAtX = x => Array.from(row.querySelectorAll('.dayBtn')).find(b => {
+      const r = b.getBoundingClientRect();
+      return x >= r.left && x <= r.right;
+    });
+    const apply = w => {
+      const cur = api.get().slice(), i = cur.indexOf(w);
+      if (dg.on && i < 0) cur.push(w);
+      else if (!dg.on && i >= 0) cur.splice(i, 1);
+      else return;
+      api.set(cur);
+      api.render();
+    };
+    row.addEventListener('pointerdown', e => {
+      const b = e.target.closest('.dayBtn');
+      if (!b || !api.active()) return;
+      const w = +b.dataset.w;
+      if (api.begin) api.begin();
+      dg = { id: e.pointerId, on: api.get().indexOf(w) < 0, passed: new Set([w]),
+             before: api.snapshot ? api.snapshot() : api.get().slice() };
+      try { row.setPointerCapture(e.pointerId); } catch (err) {}
+      apply(w);
+    });
+    row.addEventListener('pointermove', e => {
+      if (!dg || e.pointerId !== dg.id) return;
+      const b = btnAtX(e.clientX);
+      if (!b) return;
+      const w = +b.dataset.w;
+      if (dg.passed.has(w)) return;
+      dg.passed.add(w);
+      apply(w);
+    });
+    row.addEventListener('pointerup', e => { if (dg && e.pointerId === dg.id) dg = null; });
+    row.addEventListener('pointercancel', e => {
+      if (!dg || e.pointerId !== dg.id) return;
+      if (api.restore) api.restore(dg.before); else api.set(dg.before);
+      dg = null;
+      api.render();
+    });
+  }
 
   // ======================================================================
   // ---- 일정 ----
@@ -4012,18 +4286,23 @@
     ed.rule = f;
     renderEditor();
   });
-  edDays.addEventListener('click', e => {
-    const b = e.target.closest('.dayBtn');
-    if (!b || !ed) return;
-    const w = +b.dataset.w;
-    const i = ed.days.indexOf(w);
-    if (i >= 0) { ed.days.splice(i, 1); if (ed.per) delete ed.times[w]; }
-    else {
-      const r = refRow();                       // 새 요일 줄은 기준 줄의 시각으로
-      ed.days.push(w);
-      if (ed.per) ed.times[w] = { s: r.s, d: r.d };
-    }
-    renderEditor();
+  // 요일 버튼 — 한 번 누르기 = 그 요일만 켜고 끔, 누른 채 밀기 = 지나간 요일을 첫 요일을 누른 결과와 같게
+  let edDragRef = null;      // 누르기 시작한 순간의 기준 줄 시간 (새로 켜진 요일 줄을 이것으로 채운다)
+  bindDayDrag(edDays, {
+    active: () => !!ed && ed.rule === 'weekly',
+    begin: () => { edDragRef = refRow(); },
+    get: () => ed.days,
+    set: v => {
+      const r = edDragRef || refRow();
+      if (ed.per) {
+        v.forEach(w => { if (!ed.times[w]) ed.times[w] = { s: r.s, d: r.d }; });           // 새로 켜진 요일 줄
+        Object.keys(ed.times).forEach(k => { if (v.indexOf(+k) < 0) delete ed.times[k]; }); // 꺼진 요일 줄
+      }
+      ed.days = v;
+    },
+    restore: v => { ed.days = v.days; ed.times = v.times; },
+    snapshot: () => ({ days: ed.days.slice(), times: cloneTimes(ed.times) }),
+    render: renderEditor
   });
   // 체크를 끄면 시작 날짜의 요일 줄 시각으로 모든 요일이 합쳐진다
   edPer.addEventListener('click', () => {
