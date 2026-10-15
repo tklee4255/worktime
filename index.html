@@ -283,9 +283,11 @@
   .bar .fill{position:absolute;inset:0;}
   .bar.goal .fill{background:var(--run);}
   .bar.chk .fill{background:#2E9E5B;}
-  .bar .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;line-height:14px;white-space:nowrap;}
+  /* 글자 자리 = 왼쪽 아이콘(앞 여백 4px + ○ 8px · ✓ 10px)을 빼고, 오른쪽 끝에도 아이콘 앞과 같은 여백 4px — 그 가운데.
+     아이콘만 빼면 캡슐 전체로 보는 눈에는 오른쪽으로 쏠려 보이고, 빼지 않으면 아이콘 쪽으로 쏠려 보인다 (TK 2026-10-15) */
+  .bar .lbl{position:absolute;inset:0 4px 0 12px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;line-height:14px;white-space:nowrap;}
   .bar.goal .lbl{color:var(--run-deep);}
-  .bar.chk .lbl{color:#1F7A44;}
+  .bar.chk .lbl{color:#1F7A44;inset:0 4px 0 14px;}
   .bar .fill .lbl{color:#fff;}
   .bar .ico{position:absolute;left:4px;}
   .bar.goal .ico{top:3px;width:8px;height:8px;border-radius:50%;border:1.8px solid var(--run-deep);}
@@ -978,7 +980,7 @@
           <div class="attrLabel">체크리스트</div>
           <ul id="editList"></ul>
           <div class="addRow">
-            <input type="text" id="newItem" placeholder="세부목표 입력" maxlength="40">
+            <input type="text" id="newItem" placeholder="항목 입력" maxlength="40">
             <button id="addItemBtn">추가</button>
           </div>
           <div class="repRow" id="addRep"><span class="rl">반복</span><button class="cap" data-f="none">안 함</button><button class="cap" data-f="daily">매일</button><button class="cap" data-f="weekly">요일 선택</button></div>
@@ -1608,7 +1610,7 @@
   const barsEl = document.getElementById('bars');
   let barsKey = '', barsW = 0;
   // 글자가 막대 폭을 넘치면 그 막대 글자만 10px (목표 합이 10시간을 넘고 분이 붙는 드문 경우).
-  // 넘친다 = 가운데 글자가 왼쪽 아이콘(4px + 8px)에 닿는다 — 그래서 양쪽 14px씩을 빼고 잰다
+  // 넘친다 = 글자 자리(아이콘과 오른쪽 여백을 뺀 폭)에 양옆 2px 여유를 두고 들어가지 않는다
   function fitBarLabels(){
     barsEl.querySelectorAll('.bar').forEach(bar => {
       bar.classList.remove('small');
@@ -1616,7 +1618,7 @@
       if (!lbl || !bar.clientWidth) return;
       const r = document.createRange();
       r.selectNodeContents(lbl);
-      if (r.getBoundingClientRect().width > bar.clientWidth - 28) bar.classList.add('small');
+      if (r.getBoundingClientRect().width > lbl.clientWidth - 4) bar.classList.add('small');
     });
   }
   window.addEventListener('resize', () => { if (home.classList.contains('active')) { barsW = 0; renderBars(); } });
@@ -2628,7 +2630,7 @@
     });
   }
 
-  // 세부목표: 타일을 탭하면 이름 편집, 손잡이(↕)를 잡고 드래그하면 순서 이동 (같은 그룹 안에서만)
+  // 체크리스트 항목: 타일을 탭하면 이름 편집, 손잡이(↕)를 잡고 드래그하면 순서 이동 (같은 그룹 안에서만)
   let itemDrag = null, itemGhost = null, itemDropLine = null, itemLastY = 0;
   let itemScrollDir = 0, itemScrollTimer = null;
 
