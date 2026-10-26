@@ -217,7 +217,7 @@
   .ac{position:relative;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .ac .sq{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
   .ac.full .sq{width:28px;height:28px;border-radius:7px;background:var(--run);}
-  .ac.part .sq{width:16px;height:16px;border-radius:4px;background:rgba(245,158,27,.12);}   /* 12% — 30%는 다 찬 날처럼 읽혔다 (TK 2026-10-26) */
+  .ac.part .sq{width:16px;height:16px;border-radius:4px;background:rgba(245,158,27,.18);}   /* 18% — 30%는 다 찬 날처럼, 12%는 너무 안 보였다 (TK 2026-10-26) */
   .ac .nm{position:relative;font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;}
   .ac.full .nm{color:#fff;font-weight:700;}
   .ac.none .nm{color:#B4BCC5;}
@@ -228,8 +228,10 @@
   .dRow{display:flex;align-items:center;gap:8px;}
   .dRow .dLbl{flex:0 0 70px;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
   .dRow .dLbl.sun{color:#D9705F;}
-  .dRow{margin:0 -8px;padding:0 8px;border-radius:7px;transition:background-color .8s ease;}
-  .dRow.flash{background-color:#FDEBCE;transition:none;}
+  .dRow{position:relative;margin:0 -8px;padding:0 8px;}
+  .dRow::before{content:'';position:absolute;left:0;right:0;top:4px;bottom:4px;border-radius:7px;background-color:transparent;transition:background-color .8s ease;pointer-events:none;}
+  .dRow.flash::before{background-color:#FDEBCE;transition:none;}
+  .dRow > *{position:relative;}
   .dRow .dBars{flex:1 1 auto;min-width:0;display:flex;gap:8px;}
   .dRow .dG{flex:2 1 0;min-width:0;padding:10px 0;}
   .dRow .dC{flex:1 1 0;min-width:0;padding:10px 0;}      /* 줄 높이 전체를 누름으로 */
