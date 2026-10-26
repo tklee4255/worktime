@@ -45,44 +45,13 @@
     font-size:20px;font-weight:700;letter-spacing:1px;line-height:32px;
     background:var(--bg);z-index:5;
   }
-  /* 제목 줄과 같은 높이·같은 위치에 두어 두 중심이 겹치게 한다 */
-  #menuBtn{
-    position:absolute;top:28px;left:16px;height:32px;width:36px;
-    background:none;border:none;cursor:pointer;padding:0;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  }
-  #menuBtn span{display:block;width:18px;height:2px;border-radius:1px;background:var(--muted);}
-  /* 메뉴 — 누른 자리에서 이어지도록 햄버거 바로 아래로 펼친다.
-     확인 팝업(하던 일을 멈추고 답하는 것)과 달리 메뉴는 이동이라 가운데로 끌고 갈 이유가 없다 */
-  #menuBg{
-    position:absolute;inset:0;background:transparent;
-    display:none;z-index:21;
-  }
-  #menuBox{
-    position:absolute;top:64px;left:16px;
-    background:#fff;border-radius:14px;padding:6px 0;
-    min-width:168px;display:flex;flex-direction:column;
-    box-shadow:0 6px 24px rgba(35,41,47,.20);
-    transform-origin:top left;animation:menuIn .13s ease-out;
-  }
-  @keyframes menuIn{from{opacity:0;transform:scale(.94) translateY(-4px);}to{opacity:1;transform:none;}}
-  .menuItem{
-    background:none;border:none;font-family:inherit;font-size:16px;color:var(--text);
-    padding:14px 20px;cursor:pointer;text-align:left;white-space:nowrap;
-  }
-  .menuItem + .menuItem{border-top:1px solid var(--circle-edge);}
-  .menuItem.danger{color:var(--danger);}
 
   /* ===== 기록 화면 ===== */
   #records{flex-direction:column;}
+  #records{bottom:64px;}
   #recHeader{
     position:relative;text-align:center;padding:28px 20px 12px;
     font-size:20px;font-weight:700;letter-spacing:1px;
-  }
-  #recBackBtn{
-    position:absolute;top:22px;left:14px;
-    background:none;border:none;color:var(--muted);
-    font-size:16px;cursor:pointer;padding:8px 10px;font-family:inherit;font-weight:400;
   }
   #backupBtn{
     position:absolute;top:22px;right:14px;
@@ -228,45 +197,67 @@
     display:flex;justify-content:space-between;align-items:center;
     padding:8px 2px;font-size:15px;
   }
-  .rLeft{display:flex;align-items:center;min-width:0;gap:10px;flex:1 1 auto;}
-  .recRow .chk{
-    display:none;flex:0 0 auto;width:21px;height:21px;border-radius:6px;
-    border:1.5px solid #C6CDD5;background:#fff;
-    align-items:center;justify-content:center;
-    font-size:13px;color:#fff;line-height:1;
-  }
-  #records.selecting .recRow.selectable .chk{display:flex;}
-  .recRow.sel .chk{background:var(--run);border-color:var(--run);}
-  #recHeader.selecting #backupBtn{color:var(--danger);font-weight:700;}
   .recRow + .recRow{border-top:1px solid var(--bg);}
   .recRow .rName{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .badge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;}
-  .badge.goal{width:.92em;height:.92em;border-radius:50%;border:.19em solid var(--run);box-sizing:border-box;}
-  .badge.check{color:#2E9E5B;font-size:1em;line-height:1;font-weight:700;}
-  .recRow.expandable{cursor:pointer;}
-  .recDetail{
-    padding:4px 2px 10px 2px;font-size:14px;color:var(--muted);
-    display:flex;flex-direction:column;gap:5px;
-  }
-  .recDetail .dGoal{font-variant-numeric:tabular-nums;}
-  .recDetail .dGoal .gTxt.done{text-decoration:line-through;}          /* 달성한 목표 */
-  .recDetail .dGoal .mark{color:var(--run-deep);font-weight:700;}      /* 목표 달성 */
-  .recDetail .dItem{display:flex;align-items:center;gap:7px;}
-  .recDetail .dItem .mk{color:#2E9E5B;font-weight:700;}
-  .recDetail .dItem.off .mk{color:#C6CDD5;}
-  .recDetail .dItem.on .tx{text-decoration:line-through;}
   .recRow .rTime{color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto;padding-left:12px;}
   /* 기간별 합계 맨 아래 총합 */
   .recRow.total{border-top:1px solid var(--circle-edge);margin-top:2px;padding-top:11px;}
   .recRow.total .rName,.recRow.total .rTime{color:var(--run-deep);font-weight:700;}
-  .recDate{font-size:14px;color:var(--muted);font-weight:700;margin:18px 2px 6px;
-    display:flex;align-items:center;justify-content:space-between;}
-  /* 날짜 줄 오른쪽 끝: 그날 목표 막대를 다 채움 = 속이 찬 호박 원 / 체크리스트 막대를 다 채움 = 초록 원 안 흰 ✓ */
-  .recDate .marks{display:flex;gap:6px;}
-  .recDate .mGoal{width:15px;height:15px;border-radius:50%;background:var(--run);}
-  .recDate .mChk{width:15px;height:15px;border-radius:50%;background:#2E9E5B;color:#fff;
-    font-size:10px;line-height:15px;text-align:center;}
   .recEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
+
+  /* ===== 달성 캘린더 — 판정은 목표시간 막대만. 다 참 28px / 덜 채움 16px / 0%는 칸 없음 / 판정 없음은 흐린 숫자 ===== */
+  #acCard{padding:12px;}
+  .acHead{display:flex;align-items:center;justify-content:space-between;padding:0 4px 6px;}
+  .acHead .mon{font-size:15px;font-weight:700;}
+  .acHead button{background:none;border:none;color:var(--muted);font-size:22px;line-height:1;padding:2px 12px;font-family:inherit;cursor:pointer;}
+  .acDow{display:grid;grid-template-columns:repeat(7,1fr);}
+  .acDow div{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
+  .acDow div:first-child{color:#D9705F;}
+  #acGrid{display:grid;grid-template-columns:repeat(7,1fr);}
+  .ac{position:relative;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .ac .sq{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+  .ac.full .sq{width:28px;height:28px;border-radius:7px;background:var(--run);}
+  .ac.part .sq{width:16px;height:16px;border-radius:4px;background:rgba(245,158,27,.3);}
+  .ac .nm{position:relative;font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;}
+  .ac.full .nm{color:#fff;font-weight:700;}
+  .ac.none .nm{color:#B4BCC5;}
+  .ac.today::after{content:'';position:absolute;bottom:0;left:50%;margin-left:-2px;width:4px;height:4px;border-radius:50%;background:var(--muted);}
+
+  /* ===== 날짜별 막대 — 달성 캘린더에 띄운 달, 최신 날이 위. 목표시간 2 : 체크리스트 1 ===== */
+  #dayCard{padding:4px 14px;}
+  .dRow{display:flex;align-items:center;gap:8px;}
+  .dRow .dLbl{flex:0 0 70px;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .dRow .dLbl.sun{color:#D9705F;}
+  .dRow .dBars{flex:1 1 auto;min-width:0;display:flex;gap:8px;}
+  .dRow .dG{flex:2 1 0;min-width:0;padding:8px 0;}
+  .dRow .dC{flex:1 1 0;min-width:0;padding:8px 0;}      /* 줄 높이 전체를 누름으로 */
+  .dRow .dG .bar, .dRow .dC .bar{cursor:pointer;}
+  /* 흰 캡슐 — 시간은 있지만 견줄 목표가 없다 */
+  .bar.capB{background:#fff;border:1px solid var(--circle-edge);}
+  .bar.capB .lbl{inset:0 4px;color:var(--muted);font-weight:400;}
+
+  /* ===== 그날의 목표시간 막대 팝업 · 체크리스트 막대 팝업 (기록 화면, 보기만) ===== */
+  #dayPopBg{position:absolute;inset:0;background:rgba(35,41,47,.35);display:none;align-items:center;justify-content:center;z-index:20;padding:24px;}
+  #dayPopBox{background:#fff;border-radius:16px;padding:22px 20px;width:min(88vw,340px);max-height:84%;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(35,41,47,.18);}
+  #dayPopBox .tTitle{font-size:17px;font-weight:700;text-align:center;margin-bottom:4px;flex:0 0 auto;}
+  #dayPopList{list-style:none;overflow-y:auto;min-height:0;flex:1 1 auto;margin-top:4px;}
+  #dayPopList .gpRow{touch-action:pan-y;transition:box-shadow .15s;}
+  #dayPopList .gpRow.sep{border-top:1px solid var(--circle-edge);margin-top:4px;}
+  #dayPopList .gpRow.lift{background:#fff;box-shadow:0 6px 18px rgba(35,41,47,.18);border-radius:10px;margin:0 -6px;padding:10px;border-top-color:transparent;position:relative;z-index:1;}
+  #dayPopList .gpRow.lift + .gpRow{border-top-color:transparent;}
+  #dayPopList .gpTop{align-items:center;}
+  .gpRight{flex:0 0 auto;display:flex;align-items:center;gap:8px;}
+  .capT{font-size:11px;color:var(--muted);background:#fff;border:1px solid var(--circle-edge);border-radius:8px;padding:1px 8px;font-variant-numeric:tabular-nums;}
+  .recDel{width:26px;height:26px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:13px;line-height:1;font-family:inherit;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;}
+  #dayPopList .grp{font-size:13px;color:var(--muted);margin:12px 0 2px;padding:0 4px;}
+  #dayPopList .ci{display:flex;align-items:center;gap:10px;padding:9px 4px;font-size:15px;}
+  #dayPopList .ci .mk{flex:0 0 auto;width:20px;text-align:center;font-weight:700;color:#C6CDD5;}
+  #dayPopList .ci.on .mk{color:#2E9E5B;}
+  #dayPopList .ci .tx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #dayPopList .ci.on .tx{text-decoration:line-through;color:var(--muted);}
+  #dayPopList .ci .tag{margin-left:auto;flex:0 0 auto;font-size:11px;color:var(--muted);border:1px solid var(--circle-edge);border-radius:20px;padding:2px 8px;white-space:nowrap;}
+  #dayPopClose{flex:0 0 auto;margin-top:14px;padding:12px 0;border-radius:10px;cursor:pointer;background:none;color:var(--muted);border:1px solid var(--circle-edge);font-size:15px;font-weight:500;font-family:inherit;}
 
   /* 홈 막대 — 제목 줄 바로 아래 한 줄에 나란히. 양 끝은 화면 가장자리에서 68px(햄버거 오른쪽 끝 43px + 25px),
      사이 8px, 폭은 목표시간 2 : 체크리스트 1. 하나뿐인 날은 혼자 전체 폭.
@@ -409,11 +400,6 @@
     font-size:16px;cursor:pointer;padding:10px 14px;
     display:flex;align-items:center;gap:6px;font-family:inherit;
   }
-  #resetBtn{
-    position:absolute;top:20px;right:20px;
-    background:none;border:none;color:var(--danger);
-    font-size:16px;cursor:pointer;padding:10px 14px;font-family:inherit;
-  }
   #bigCircle{
     position:relative;flex:0 0 auto;
     width:min(78vw,52vh);height:min(78vw,52vh);border-radius:50%;
@@ -542,7 +528,7 @@
   #chkName{display:none;font-size:clamp(20px,5vw,28px);font-weight:700;text-align:center;max-width:100%;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #focus.chkOnly #chkName{display:block;}
-  #focus.chkOnly #bigCircle, #focus.chkOnly #resetBtn{display:none;}
+  #focus.chkOnly #bigCircle{display:none;}
   #focus.chkOnly #focusBody{margin:0 auto auto;}      /* 큰 원이 없으니 가운데로 내리지 않고 위에서부터 */
   #editList{list-style:none;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;position:relative;}
   #editList:empty{margin-bottom:0;}
@@ -610,24 +596,6 @@
     0%,100%{box-shadow:0 0 42px rgba(245,158,27,.28);}
     50%{box-shadow:0 0 70px rgba(245,158,27,.45);}
   }
-  /* ===== 초기화 확인창 ===== */
-  #confirmBg, #confirmAllBg{
-    position:absolute;inset:0;background:rgba(35,41,47,.35);
-    display:none;align-items:center;justify-content:center;z-index:20;
-  }
-  #confirmBox, #confirmAllBox{
-    background:#fff;border-radius:16px;padding:24px;
-    width:min(80vw,300px);display:flex;flex-direction:column;gap:18px;
-    box-shadow:0 8px 30px rgba(35,41,47,.18);
-  }
-  #confirmBox p, #confirmAllBox p{font-size:clamp(12px,4.2vw,16px);text-align:center;white-space:nowrap;overflow:hidden;}
-  #confirmBox .row, #confirmAllBox .row{display:flex;gap:10px;}
-  #confirmBox button, #confirmAllBox button{
-    flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
-    font-size:15px;font-weight:500;font-family:inherit;
-  }
-  #confirmNo, #confirmAllNo{background:none;color:var(--muted);border:1px solid var(--circle-edge);}
-  #confirmYes, #confirmAllYes{background:var(--danger);color:#fff;}
 
   /* ===== 체크리스트 막대 팝업 · 목표시간 막대 팝업 · 반복 수정 팝업 (같은 틀) ===== */
   #todayChkBg, #goalPopBg, #repItemBg{
@@ -665,14 +633,14 @@
   #repItemBox .dayBtn{width:34px;height:34px;font-size:14px;}
   #repItemBox .pRow{margin-top:18px;}
 
-  /* ===== 탭 바 (홈·일정 화면에서만 보인다) ===== */
+  /* ===== 탭 바 (홈·일정·기록 화면에서만 보인다) ===== */
   #home, #sched{bottom:64px;}
   #tabBar{
     position:absolute;left:0;right:0;bottom:0;height:64px;z-index:6;
-    display:none;grid-template-columns:repeat(2,minmax(0,1fr));
+    display:none;grid-template-columns:repeat(3,minmax(0,1fr));
     border-top:1px solid var(--circle-edge);background:var(--bg);
   }
-  #home.active ~ #tabBar, #sched.active ~ #tabBar{display:grid;}
+  #home.active ~ #tabBar, #sched.active ~ #tabBar, #records.active ~ #tabBar{display:grid;}
   .tabBtn{
     border:none;background:none;font-family:inherit;font-size:12px;color:var(--muted);cursor:pointer;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
@@ -917,7 +885,7 @@
 </svg>
 
 <div id="home" class="view active">
-  <div id="homeTitle"><button id="menuBtn" aria-label="메뉴"><span></span><span></span><span></span></button>순실행시간</div>
+  <div id="homeTitle">순실행시간</div>
   <div id="bars"></div>
   <div id="grid"></div>
   <div id="empty">+ 버튼을 눌러 할 일을 추가하세요</div>
@@ -926,7 +894,7 @@
 
 <!-- 기록 화면 -->
 <div id="records" class="view">
-  <div id="recHeader">기록<button id="recBackBtn">← 뒤로가기</button><button id="backupBtn">백업</button></div>
+  <div id="recHeader">기록<button id="backupBtn">백업</button></div>
   <div id="recBody">
     <div class="recCard">
       <div class="cardHead">
@@ -936,14 +904,18 @@
       <button id="rangeBtn" class="empty">~</button>
       <div id="rangeResult"></div>
     </div>
-    <div id="dailyList"></div>
+    <div class="recCard" id="acCard">
+      <div class="acHead"><button id="acPrev" aria-label="이전 달">‹</button><div class="mon" id="acMon"></div><button id="acNext" aria-label="다음 달">›</button></div>
+      <div class="acDow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
+      <div id="acGrid"></div>
+    </div>
+    <div class="recCard" id="dayCard"></div>
   </div>
 </div>
 
 <!-- 집중 화면 -->
 <div id="focus" class="view">
   <button id="backBtn">← 뒤로가기</button>
-  <button id="resetBtn">초기화</button>
   <div id="focusBody">
     <div id="bigCircle">
       <svg id="ringSvg" viewBox="0 0 100 100"><circle id="ringPath" cx="50" cy="50" r="48.5"/></svg>
@@ -1023,41 +995,13 @@
   </div>
 </div>
 
-<!-- 탭 바 — 홈·일정 화면에서만 보인다(CSS) -->
+<!-- 탭 바 — 홈·일정·기록 화면에서만 보인다(CSS) -->
 <div id="tabBar">
   <button class="tabBtn on" id="tabHome"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"></circle></svg>홈</button>
   <button class="tabBtn" id="tabSched"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>일정</button>
+  <button class="tabBtn" id="tabRec"><svg width="22" height="22" viewBox="0 0 22 22" fill="currentColor"><rect x="2.5" y="11" width="4" height="8" rx="1"></rect><rect x="9" y="3" width="4" height="16" rx="1"></rect><rect x="15.5" y="8" width="4" height="11" rx="1"></rect></svg>기록</button>
 </div>
 
-<!-- 메뉴 팝업 -->
-<div id="menuBg">
-  <div id="menuBox">
-    <button class="menuItem" id="menuRecords">기록</button>
-    <button class="menuItem danger" id="menuResetAll">모두 초기화</button>
-  </div>
-</div>
-
-<!-- 초기화 확인창 -->
-<div id="confirmBg">
-  <div id="confirmBox">
-    <p>초기화 하시겠습니까?</p>
-    <div class="row">
-      <button id="confirmNo">취소</button>
-      <button id="confirmYes">초기화</button>
-    </div>
-  </div>
-</div>
-
-<!-- 모두 초기화 확인창 -->
-<div id="confirmAllBg" class="confirmLike">
-  <div id="confirmAllBox">
-    <p>모두 초기화 하시겠습니까?</p>
-    <div class="row">
-      <button id="confirmAllNo">취소</button>
-      <button id="confirmAllYes">모두 초기화</button>
-    </div>
-  </div>
-</div>
 
 <!-- 알림 안내 팝업 -->
 <div id="notiBg">
@@ -1137,6 +1081,15 @@
   </div>
 </div>
 
+<!-- 그날의 목표시간 막대 팝업 · 체크리스트 막대 팝업 (기록 화면 — 제목은 날짜만, 보기만) -->
+<div id="dayPopBg">
+  <div id="dayPopBox">
+    <div class="tTitle" id="dayPopTitle"></div>
+    <ul id="dayPopList"></ul>
+    <button id="dayPopClose">닫기</button>
+  </div>
+</div>
+
 <!-- 목표시간 막대 팝업 (제목 글자는 '오늘 목표시간') -->
 <div id="goalPopBg">
   <div id="goalPopBox">
@@ -1198,7 +1151,7 @@
   // 스마트폰(브라우저)의 localStorage에 저장. 저장이 막힌 환경(이 미리보기 등)에서는
   // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
   const STORAGE_KEY = 'sunwork-v1';
-  let tasks = [{ id: 1, name: '할 일', accMs: 0 }];
+  let tasks = [{ id: 1, name: '할 일' }];
   let nextId = 2;
   let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
   let taskNames = { 1: '할 일' }; // 삭제된 할일의 이름도 기록용으로 유지
@@ -1223,6 +1176,7 @@
   //  { ts, k:'nt', t, v }                         시간은 재지 않고 체크리스트만 쓰기 켬/끔
   //  { ts, k:'item+', t, i, x, d, w } / { ts, k:'item-', t, i }   체크리스트 항목 추가·삭제 (w = 요일 항목의 요일, 없으면 생략)
   //  { ts, k:'item~', t, i, from, to }            항목의 반복 수정 — 'none'(반복 안 함) · 'daily' · 요일 배열(0=일 … 6=토)
+  //  { ts, k:'rec-', t, d, ms }                   기록 화면에서 그 할 일의 그날(d) 시간을 삭제 (ms = 지운 시간)
   let hist = [];
   // 화면에 보이지만 기록 중인 할 일(focusId)이 아닌 것 — 체크리스트 화면의 할 일, 또는 체크리스트 전용에서
   // 타이머로 막 바꾼(아직 시작 전) 할 일. 다른 할 일의 기록은 그동안 그대로 돈다
@@ -1384,14 +1338,12 @@
     const p = n => String(n).padStart(2,'0');
     return h > 0 ? h + ':' + p(m) + ':' + p(sec) : m + ':' + p(sec);
   }
-  function currentMs(t){
-    return t.accMs + (focusId === t.id && runningSince ? Date.now() - runningSince : 0);
-  }
 
   // ---- 목표시간 / 체크리스트 헬퍼 ----
   function todayKey(){ return dateKey(Date.now()); }
 
-  // 오늘 그 할일에 쓴 시간 (진행 중이면 진행분 포함)
+  // 오늘 그 할일에 쓴 시간 (진행 중이면 진행분 포함) — 원 안의 숫자. 자정에 0:00이 되고,
+  // 자정에 돌고 있던 타이머는 멈추지 않고 0:00부터 이어서 센다 (자정 앞은 어제, 뒤는 오늘 기록 — commitRecord가 자정에서 자른다)
   function todayMs(t){
     const k = todayKey();
     let ms = (records[k] && records[k][t.id]) || 0;
@@ -1578,25 +1530,6 @@
     });
     return { gSum, gFill, n, d };
   }
-  // 그 날 막대를 다 채웠는가 (기록 화면 날짜 옆 ●·✓) — 그날 저장된 목록으로 같은 셈. 넘친 시간은 세지 않는다
-  function dayMarks(key){
-    const out = { goal: false, chk: false };
-    if (!goalsSince || key < goalsSince || !dayLog[key]) return out;
-    const today = key === todayKey();
-    let gSum = 0, gFill = 0, n = 0, d = 0;
-    Object.keys(dayLog[key]).forEach(id => {
-      const e = dayLog[key][id];
-      if (!e.nt && e.goalMs) {
-        const live = today ? tasks.find(t => String(t.id) === id) : null;
-        const ms = live ? todayMs(live) : ((records[key] && records[key][id]) || 0);
-        gSum += e.goalMs; gFill += Math.min(ms, e.goalMs);
-      }
-      Object.values(e.checks || {}).forEach(c => { n++; if (c.done) d++; });
-    });
-    out.goal = gSum > 0 && gFill >= gSum;
-    out.chk = n > 0 && d === n;
-    return out;
-  }
   // 변경 이력·시각 기록
   function logHist(o){ o.ts = Date.now(); hist.push(o); }
   function logRun(id, a, b){ if (b > a) runs.push([id, a, b]); }
@@ -1620,8 +1553,8 @@
   let barsKey = '', barsW = 0;
   // 글자가 막대 폭을 넘치면 그 막대 글자만 10px (목표 합이 10시간을 넘고 분이 붙는 드문 경우).
   // 넘친다 = 글자 자리(아이콘과 오른쪽 여백을 뺀 폭)에 양옆 2px 여유를 두고 들어가지 않는다
-  function fitBarLabels(){
-    barsEl.querySelectorAll('.bar').forEach(bar => {
+  function fitBarLabels(root){
+    (root || barsEl).querySelectorAll('.bar').forEach(bar => {
       bar.classList.remove('small');
       const lbl = bar.querySelector(':scope > .lbl');
       if (!lbl || !bar.clientWidth) return;
@@ -1755,7 +1688,7 @@
       const nameEl = c.querySelector('.name');
       nameEl.textContent = t.name;
       nameEl.style.fontSize = nameFontSize(t.name) + 'px';
-      if (!t.noTimer) c.querySelector('.time').textContent = fmt(currentMs(t));
+      if (!t.noTimer) c.querySelector('.time').textContent = fmt(todayMs(t));
       if (focusId === t.id && runningSince) c.classList.add('running');
       if (t.noTimer) c.classList.add('noTimer');
       if (editingId === t.id) {                 // 편집 중이던 원은 상태 유지
@@ -1908,7 +1841,7 @@
       gName.textContent = t.name;
       gName.style.fontSize = nameFontSize(t.name) + 'px';
       if (t.noTimer) { ghost.querySelector('.time').remove(); ghost.classList.add('noTimer'); }
-      else ghost.querySelector('.time').textContent = fmt(currentMs(t));
+      else ghost.querySelector('.time').textContent = fmt(todayMs(t));
       document.body.appendChild(ghost);
       lastX = e.clientX; lastY = e.clientY;
       moveGhost(lastX, lastY);
@@ -2092,7 +2025,6 @@
     const t = tasks.find(t => t.id === focusId);
     if (t && runningSince) {
       const now = Math.max(runningSince, Math.min(atTs || Date.now(), Date.now()));
-      t.accMs += now - runningSince;
       commitRecord(t.id, runningSince, now);
       logRun(t.id, runningSince, now);
     }
@@ -2123,7 +2055,6 @@
     const t = tasks.find(x => x.id === focusId);
     if (t && runningSince) {
       const now = Date.now();
-      t.accMs += now - runningSince;
       commitRecord(t.id, runningSince, now);
       logRun(t.id, runningSince, now);
     }
@@ -2180,43 +2111,6 @@
     renderHome();
   }
   document.getElementById('backBtn').addEventListener('click', popLayer);
-  // 초기화: 확인창 → 확인 시 시간 0으로 + 일시정지
-  const confirmBg = document.getElementById('confirmBg');
-  function closeConfirm(){ confirmBg.style.display = 'none'; }
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    if (!viewTask()) return;
-    confirmBg.style.display = 'flex';
-    pushLayer(closeConfirm);
-  });
-  document.getElementById('confirmNo').addEventListener('click', popLayer);
-  document.getElementById('confirmYes').addEventListener('click', () => {
-    const t = viewTask();
-    if (t) {
-      if (focusId === t.id && runningSince) pauseCount(); // 카운트 중이면 멈추고
-      t.accMs = 0;                    // 시간 0으로
-      save();
-      renderFocus();
-    }
-    popLayer();
-  });
-  confirmBg.addEventListener('click', e => { if (e.target === confirmBg) popLayer(); });
-
-  // 모두 초기화: 홈에서 모든 타이머를 0으로 (기록은 보존)
-  const confirmAllBg = document.getElementById('confirmAllBg');
-  function closeConfirmAll(){ confirmAllBg.style.display = 'none'; }
-  function openResetAll(){
-    if (editingId !== null) finishEdit();
-    confirmAllBg.style.display = 'flex';
-    pushLayer(closeConfirmAll);
-  }
-  document.getElementById('confirmAllNo').addEventListener('click', popLayer);
-  document.getElementById('confirmAllYes').addEventListener('click', () => {
-    tasks.forEach(t => { t.accMs = 0; });
-    save();
-    popLayer();       // 팝업 닫기
-    renderHome();
-  });
-  confirmAllBg.addEventListener('click', e => { if (e.target === confirmAllBg) popLayer(); });
 
   // ---- 알림 (안드로이드) ----
   const NOTI_TAG = 'sunwork-timer';
@@ -2390,7 +2284,7 @@
     const t = viewTask();
     if (!t) return;
     bigName.textContent = t.name;
-    bigTime.textContent = fmt(currentMs(t));
+    bigTime.textContent = fmt(todayMs(t));
     renderRing(t);
   }
   // 타이머 원 테두리를 오늘 진행률만큼 채움
@@ -2424,7 +2318,7 @@
       const el = grid.querySelector('.circle[data-id="' + focusId + '"]');
       if (el) {
         const tm = el.querySelector('.time');
-        if (tm) tm.textContent = fmt(currentMs(t));
+        if (tm) tm.textContent = fmt(todayMs(t));
         const dot = el.querySelector('.gdot');
         if (dot && todayMs(t) > 0) dot.remove();
         // 진행률 링을 계속 채우고, 목표를 넘기는 순간 발광을 켬
@@ -2997,206 +2891,309 @@
     if (wasEditing) { suppressEditPop = true; finishEdit(); suppressEditPop = false; }
     const id = nextId++;
     taskNames[id] = '할 일';
-    tasks.push({ id: id, name: '할 일', accMs: 0 });
+    tasks.push({ id: id, name: '할 일' });
     save();
     renderHome();
     // 새 원을 바로 이름 편집 상태로 열고 기본 이름을 통째로 선택 → 곧장 타이핑 가능
     startEdit(id, { silent: true, keepLayer: wasEditing, focusInput: true });
   });
 
-  // ---- 기록 화면 ----
+  // ---- 기록 화면 (탭) — 기간별 합계 · 달성 캘린더 · 날짜별 막대 ----
+  // 기록은 여기서만 고친다(시간 삭제). 다른 화면은 기록을 보여 주기만 한다
   const recordsView = document.getElementById('records');
-  const dailyList = document.getElementById('dailyList');
+  const recBody = document.getElementById('recBody');
   const rangeBtn = document.getElementById('rangeBtn');
   const rangeClear = document.getElementById('rangeClear');
   const rangeResult = document.getElementById('rangeResult');
-
-  const recHeader = document.getElementById('recHeader');
-  const recBackBtn = document.getElementById('recBackBtn');
   const backupBtn = document.getElementById('backupBtn');
+  const acGrid = document.getElementById('acGrid');
+  const acMon = document.getElementById('acMon');
+  const dayCard = document.getElementById('dayCard');
+  let recY = 0, recM = 0;          // 달성 캘린더에 띄운 달 (날짜별 막대도 이 달)
 
-  function openRecordsScreen(){
-    if (editingId !== null) finishEdit();
-    home.classList.remove('active');
-    recordsView.classList.add('active');
-    pushLayer(closeRecords);
-    renderRecords();
-  }
-  function closeRecords(){
-    recordsView.classList.remove('active');
-    home.classList.add('active');
-    renderHome();
-  }
-  recBackBtn.addEventListener('click', popLayer);
-
-  // ---- 선택 모드 (기록 한 줄씩 삭제) ----
-  let selecting = false;
-  const selected = new Set();
-
-  function enterSelectMode(){
-    swallowNextClick();   // 손 뗀 자리에 나타난 체크박스가 눌리지 않게
-    selecting = true;
-    recordsView.classList.add('selecting');
-    recHeader.classList.add('selecting');
-    recBackBtn.textContent = '취소';
-    backupBtn.textContent = '삭제';
-    pushLayer(exitSelectMode);
-  }
-  function exitSelectMode(){
-    selecting = false;
-    selected.clear();
-    recordsView.classList.remove('selecting');
-    recHeader.classList.remove('selecting');
-    recBackBtn.textContent = '← 뒤로가기';
-    backupBtn.textContent = '백업';
-    renderRecords();
-  }
-  function toggleRow(row, key, id){
-    const k = key + '|' + id;
-    if (selected.has(k)) { selected.delete(k); row.classList.remove('sel'); }
-    else { selected.add(k); row.classList.add('sel'); }
-  }
-  function bindRowSelect(row, key, id){
-    let timer = null, long = false;
-    row.addEventListener('pointerdown', () => {
-      long = false;
-      timer = setTimeout(() => {
-        long = true;
-        if (!selecting) enterSelectMode();
-        toggleRow(row, key, id);
-      }, 550);
-    });
-    const cancel = () => clearTimeout(timer);
-    row.addEventListener('pointerleave', cancel);
-    row.addEventListener('pointercancel', cancel);
-    row.addEventListener('pointerup', () => {
-      cancel();
-      if (!long && selecting) toggleRow(row, key, id);
-    });
-    row.addEventListener('contextmenu', e => e.preventDefault());
-  }
-  function deleteSelected(){
-    selected.forEach(k => {
-      const i = k.lastIndexOf('|');
-      const key = k.slice(0, i), id = k.slice(i + 1);
-      if (records[key]) {
-        delete records[key][id];
-        if (!Object.keys(records[key]).length) delete records[key];
-      }
-      if (dayLog[key] && dayLog[key][id]) {   // 체크 완료 기록도 함께 삭제 — 그날의 목표·항목 목록은 판정 근거로 남김
-        Object.values(dayLog[key][id].checks || {}).forEach(c => { c.done = false; });
-      }
-    });
-    save();
-    popLayer();   // 선택 모드 종료 (내부에서 renderRecords 실행)
-  }
-
-  function fmtDateHeader(key){
-    const [y,m,d] = key.split('-').map(Number);
-    const day = ['일','월','화','수','목','금','토'][new Date(y, m-1, d).getDay()];
-    return y + '.' + String(m).padStart(2,'0') + '.' + String(d).padStart(2,'0') + ' (' + day + ')';
-  }
   function nameOf(id){ return taskNames[id] || '할 일'; }
-  function chkRowIds(key){
-    const day = dayLog[key];
-    if (!day) return [];
-    const order = id => { const i = tasks.findIndex(t => String(t.id) === id); return i < 0 ? 1e9 + (+id) : i; };
-    return Object.keys(day).filter(id => {
-      const e = day[id];
-      if (!e.nt || !Object.values(e.checks || {}).some(c => c.done)) return false;
-      return !(records[key] && records[key][id] >= MIN_REC_MS);
-    }).sort((a, b) => order(a) - order(b));
+  // 할 일의 순서 — 홈의 원 순서, 지운 할 일은 그 뒤(번호 순)
+  function taskOrder(id){ const i = tasks.findIndex(t => String(t.id) === String(id)); return i < 0 ? 1e9 + (+id) : i; }
+  // 그 날 그 할 일의 시간 (오늘이면 지금 도는 시간까지)
+  function msOn(key, id){
+    if (key === todayKey()) { const t = tasks.find(x => String(x.id) === String(id)); if (t) return todayMs(t); }
+    return (records[key] && records[key][id]) || 0;
+  }
+  const floorMin = ms => Math.floor(ms / 60000) * 60000;
+
+  // ---- 앱을 열지 않은 날의 목표·항목 ----
+  // 지금 설정에서 그 날 뒤의 변경 이력(hist)을 되돌려 그 날 끝의 설정을 만든다.
+  // 그 날보다 앞서 그날 기록(dayLog)에 한 번도 나오지 않은 할 일은 그때 없었거나 목표·항목이 없던 것으로 본다
+  let firstSeenCache = null;
+  function firstSeen(){
+    if (firstSeenCache) return firstSeenCache;
+    const m = {};
+    Object.keys(dayLog).sort().forEach(k => {
+      if (goalsSince && k >= goalsSince) Object.keys(dayLog[k]).forEach(id => { if (!(id in m)) m[id] = k; });
+    });
+    return (firstSeenCache = m);
+  }
+  function rebuildDay(key){
+    const end = parseKey(addDays(key, 1)).getTime();
+    const cfg = {};
+    tasks.forEach(t => {
+      cfg[t.id] = { g: t.goalMs || 0, d: Array.isArray(t.goalDow) ? t.goalDow.slice() : null, nt: !!t.noTimer,
+        items: (t.checklist || []).map(it => ({ id: it.id, text: it.text, daily: !!it.daily,
+          dow: Array.isArray(it.dow) ? it.dow.slice() : null, created: it.created, doneDate: it.doneDate })) };
+    });
+    for (let i = hist.length - 1; i >= 0 && hist[i].ts >= end; i--) {
+      const x = hist[i], c = cfg[x.t];
+      if (!c) continue;
+      if (x.k === 'goal') { c.g = (x.from && x.from.g) || 0; c.d = x.from && Array.isArray(x.from.d) ? x.from.d.slice() : null; }
+      else if (x.k === 'nt') c.nt = !x.v;
+      else if (x.k === 'item+') c.items = c.items.filter(it => it.id !== x.i);
+      else if (x.k === 'item-') {
+        const add = hist.find(y => y.k === 'item+' && y.i === x.i);   // 지운 항목은 더할 때 남긴 글자로
+        if (add && !c.items.some(it => it.id === x.i)) c.items.push({ id: x.i, text: add.x, daily: !!add.d,
+          dow: Array.isArray(add.w) ? add.w.slice() : null, created: dateKey(add.ts), doneDate: null });
+      } else if (x.k === 'item~') {
+        const it = c.items.find(y => y.id === x.i);
+        if (it) { it.daily = x.from === 'daily'; it.dow = Array.isArray(x.from) ? x.from.slice() : null; }
+      }
+    }
+    const fs = firstSeen(), w = dowOf(key), out = {};
+    Object.keys(cfg).forEach(id => {
+      if (!fs[id] || fs[id] > key) return;
+      const c = cfg[id];
+      const g = c.nt ? 0 : (c.d ? (c.d[w] || 0) : c.g);
+      const checks = {};
+      c.items.forEach(it => {
+        const hasDow = Array.isArray(it.dow) && it.dow.length;
+        const on = it.daily || (hasDow ? it.dow.indexOf(w) >= 0
+          : (!!it.created && it.created <= key && (!it.doneDate || it.doneDate > key)));
+        if (!on) return;
+        checks[it.id] = { text: it.text, daily: !!it.daily, done: false };
+        if (hasDow) checks[it.id].dow = it.dow.slice();
+      });
+      if (g || Object.keys(checks).length) { out[id] = { goalMs: g, checks: checks }; if (c.nt) out[id].nt = 1; }
+    });
+    return out;
   }
 
-  let expandables = [];
+  // ---- 그 날의 판정 근거 ----
+  // judged: 그날의 목록을 남기기 시작한 날(goalsSince)부터 오늘까지. 그 전 날은 시간만 (흰 캡슐)
+  // goals: 목표가 있는 할 일 {id, g, ms} / free: 목표 없이 시간만 있는 할 일 {id, ms} / groups: 그날의 항목
+  function dayData(key){
+    const today = todayKey();
+    const judged = !!goalsSince && key >= goalsSince && key <= today;
+    const log = judged ? (dayLog[key] || (key < today ? rebuildDay(key) : {})) : {};
+    const goals = [], free = [], groups = [];
+    let gSum = 0, gFill = 0, n = 0, d = 0, total = 0;
+    const ids = new Set(Object.keys(log).concat(Object.keys(records[key] || {})));
+    if (key === today && focusId !== null && runningSince) ids.add(String(focusId));
+    Array.from(ids).sort((a, b) => taskOrder(a) - taskOrder(b)).forEach(id => {
+      const e = log[id], ms = msOn(key, id);
+      const g = e && !e.nt ? (e.goalMs || 0) : 0;
+      if (g) { goals.push({ id: id, g: g, ms: ms }); gSum += g; gFill += Math.min(ms, g); }
+      else if (ms >= MIN_REC_MS) free.push({ id: id, ms: ms });
+      if (ms >= MIN_REC_MS) total += ms;
+      const ch = e ? e.checks || {} : {};
+      const t = tasks.find(x => String(x.id) === id);
+      const idx = cid => { const i = t ? (t.checklist || []).findIndex(it => String(it.id) === cid) : -1; return i < 0 ? 1e6 + (+cid) : i; };
+      const items = Object.keys(ch).map(cid => Object.assign({ cid: cid }, ch[cid]))
+        .sort((a, b) => (isRep(b) ? 1 : 0) - (isRep(a) ? 1 : 0) || idx(a.cid) - idx(b.cid));   // 반복 항목이 위
+      if (items.length) {
+        groups.push({ id: id, items: items });
+        n += items.length;
+        d += items.filter(c => c.done).length;
+      }
+    });
+    return { judged: judged, goals: goals, free: free, groups: groups, gSum: gSum, gFill: gFill, n: n, d: d, total: total };
+  }
+  // 달성 캘린더의 판정 — 목표시간 막대만. 100%에서 멈춘다(넘친 시간은 세지 않는다)
+  function judgeOf(dd){
+    if (!dd || !dd.judged || !dd.gSum) return 'none';
+    if (dd.gFill >= dd.gSum) return 'full';
+    return floorMin(dd.gFill) > 0 ? 'part' : 'zero';
+  }
+  function recBar(cls, ico, label, r){
+    return barHtml(cls, ico, label).replace('<div class="fill">', '<div class="fill" style="clip-path:inset(0 ' + (100 - Math.min(1, r) * 100) + '% 0 0)">');
+  }
+  function dayLabel(key){
+    const d = parseKey(key), p = n => String(n).padStart(2, '0');
+    return p(d.getMonth() + 1) + '.' + p(d.getDate()) + ' (' + DOW_KO[d.getDay()] + ')';
+  }
+
   function renderRecords(){
-    // 날짜별 목록 (최신 날짜가 위)
-    dailyList.innerHTML = '';
-    expandables = [];
-    // 1분을 넘긴 기록이나 체크리스트 전용 할 일의 체크가 하나라도 있는 날짜만
-    const keySet = new Set(Object.keys(records).filter(k => Object.values(records[k]).some(ms => ms >= MIN_REC_MS)));
-    Object.keys(dayLog).forEach(k => { if (chkRowIds(k).length) keySet.add(k); });
-    const keys = Array.from(keySet).sort().reverse();
-    if (!keys.length) {
-      dailyList.innerHTML = '<div class="recEmpty">아직 기록이 없습니다</div>';
+    firstSeenCache = null;
+    const today = todayKey();
+    acMon.textContent = recY + '년 ' + (recM + 1) + '월';
+    const firstDow = new Date(recY, recM, 1).getDay();
+    const lastDate = new Date(recY, recM + 1, 0).getDate();
+    const days = {};
+    let g = '';
+    for (let i = 0; i < firstDow; i++) g += '<div class="ac empty"></div>';
+    for (let dt = 1; dt <= lastDate; dt++) {
+      const k = keyOf(recY, recM, dt);
+      const dd = k <= today ? (days[k] = dayData(k)) : null;
+      const j = judgeOf(dd);
+      g += '<div class="ac ' + j + (k === today ? ' today' : '') + '" data-k="' + k + '">' +
+        (j === 'full' || j === 'part' ? '<span class="sq"></span>' : '') + '<span class="nm">' + dt + '</span></div>';
+    }
+    acGrid.innerHTML = g;
+    // 날짜별 막대 — 최신 날이 위. goalsSince부터 오늘까지는 모든 날, 그 전 날은 기록이 있는 날만
+    let rows = '';
+    for (let dt = lastDate; dt >= 1; dt--) {
+      const k = keyOf(recY, recM, dt);
+      const dd = days[k];
+      if (!dd || (!dd.judged && !dd.total)) continue;
+      let gc = '', cc = '';
+      if (dd.judged && dd.gSum) {
+        gc = recBar('goal', '', fmtGoal(floorMin(dd.gFill)) + ' / ' + fmtGoal(dd.gSum), dd.gFill / dd.gSum);
+      } else if (dd.total) {
+        gc = '<div class="bar capB"><div class="lbl">' + fmtGoal(floorMin(dd.total)) + '</div></div>';   // 시간은 있지만 견줄 목표가 없다
+      }
+      if (dd.judged && dd.n) cc = recBar('chk', '✓', dd.d + ' / ' + dd.n, dd.d / dd.n);
+      rows += '<div class="dRow" data-k="' + k + '"><span class="dLbl' + (dowOf(k) === 0 ? ' sun' : '') + '">' + dayLabel(k) + '</span>' +
+        '<div class="dBars"><div class="dG"' + (gc ? ' data-pop="goal" data-k="' + k + '"' : '') + '>' + gc + '</div>' +
+        '<div class="dC"' + (cc ? ' data-pop="chk" data-k="' + k + '"' : '') + '>' + cc + '</div></div></div>';
+    }
+    dayCard.innerHTML = rows;
+    dayCard.style.display = rows ? '' : 'none';
+    fitBarLabels(dayCard);
+    renderRange();
+  }
+  function recToThisMonth(){
+    const d = new Date();
+    recY = d.getFullYear(); recM = d.getMonth();
+    renderRecords();
+    recBody.scrollTop = 0;
+  }
+  document.getElementById('acPrev').addEventListener('click', () => { recM--; if (recM < 0) { recM = 11; recY--; } renderRecords(); });
+  document.getElementById('acNext').addEventListener('click', () => { recM++; if (recM > 11) { recM = 0; recY++; } renderRecords(); });
+  // 달성 캘린더의 칸을 누르면 아래 날짜별 막대의 그 날짜 줄로
+  acGrid.addEventListener('click', e => {
+    const c = e.target.closest('.ac');
+    if (!c || !c.dataset.k) return;
+    const row = dayCard.querySelector('.dRow[data-k="' + c.dataset.k + '"]');
+    if (!row) return;
+    const r = row.getBoundingClientRect(), b = recBody.getBoundingClientRect();
+    recBody.scrollTo({ top: recBody.scrollTop + r.top - b.top - b.height * 0.4, behavior: 'smooth' });
+  });
+  dayCard.addEventListener('click', e => {
+    const c = e.target.closest('[data-pop]');
+    if (c) openDayPop(c.dataset.k, c.dataset.pop);
+  });
+
+  // ---- 그날의 목표시간 막대 팝업 · 체크리스트 막대 팝업 — 보기만. 목표시간 쪽은 줄을 꾹 눌러 시간 삭제 ----
+  const dayPopBg = document.getElementById('dayPopBg');
+  const dayPopBox = document.getElementById('dayPopBox');
+  const dayPopList = document.getElementById('dayPopList');
+  const dayPopTitle = document.getElementById('dayPopTitle');
+  const dayPopClose = document.getElementById('dayPopClose');
+  let dayPop = null;      // { key, mode: 'goal' | 'chk' }
+  let lift = null;        // ✕가 뜬 줄의 할 일 번호 (문자열)
+  function dayPopOpen(){ return dayPopBg.style.display === 'flex'; }
+  function openDayPop(key, mode){
+    dayPop = { key: key, mode: mode };
+    lift = null;
+    renderDayPop();
+    dayPopBg.style.display = 'flex';
+    dayPopList.scrollTop = 0;
+    pushLayer(closeDayPop);
+  }
+  function closeDayPop(){ dayPopBg.style.display = 'none'; dayPop = null; lift = null; }
+  function renderDayPop(){
+    if (!dayPop) return;
+    const dd = dayData(dayPop.key);
+    dayPopTitle.textContent = fmtMDW(dayPop.key);     // 제목은 날짜만
+    const names = [];
+    let h = '';
+    const x = '<button class="recDel" aria-label="시간 삭제">✕</button>';
+    if (dayPop.mode === 'goal') {
+      dd.goals.forEach(r => {
+        const right = r.ms >= r.g ? '<span class="gpRem ach">달성</span>'
+          : '<span class="gpRem">' + fmtGoal(floorMin(Math.min(r.ms, r.g))) + ' / ' + fmtGoal(r.g) + '</span>';
+        h += '<li class="gpRow' + (lift === r.id ? ' lift' : '') + '" data-id="' + r.id + '"><div class="gpTop"><span class="gpName"></span>' +
+          '<span class="gpRight">' + right + (lift === r.id ? x : '') + '</span></div>' +
+          '<div class="gpMini"><i style="width:' + Math.min(1, r.ms / r.g) * 100 + '%"></i></div></li>';
+        names.push(nameOf(r.id));
+      });
+      // 목표가 없는 할 일은 맨 아래 — 이름과 시간만(흰 캡슐), 목표 있는 줄들과 가는 선으로 나눈다
+      dd.free.forEach((r, i) => {
+        h += '<li class="gpRow' + (i === 0 && dd.goals.length ? ' sep' : '') + (lift === r.id ? ' lift' : '') + '" data-id="' + r.id + '">' +
+          '<div class="gpTop"><span class="gpName"></span><span class="gpRight"><span class="capT">' + fmtGoal(floorMin(r.ms)) + '</span>' +
+          (lift === r.id ? x : '') + '</span></div></li>';
+        names.push(nameOf(r.id));
+      });
     } else {
-      keys.forEach(key => {
-        const h = document.createElement('div');
-        h.className = 'recDate';
-        h.textContent = fmtDateHeader(key);
-        const mk = dayMarks(key);
-        if (mk.goal || mk.chk) {
-          const mkEl = document.createElement('span');
-          mkEl.className = 'marks';
-          mkEl.innerHTML = (mk.goal ? '<span class="mGoal"></span>' : '') + (mk.chk ? '<span class="mChk">✓</span>' : '');
-          h.appendChild(mkEl);
-        }
-        dailyList.appendChild(h);
-        const card = document.createElement('div');
-        card.className = 'recCard';
-        const entries = Object.entries(records[key] || {})
-          .filter(([, ms]) => ms >= MIN_REC_MS)     // 1분 미만은 숨김
-          .sort((a,b) => b[1]-a[1]);
-        // 시간이 있는 줄들 아래에 체크리스트 전용 할 일의 줄 (시간 칸은 비움)
-        chkRowIds(key).forEach(id => entries.push([id, null]));
-        entries.forEach(([id, ms]) => {
-          const e = (dayLog[key] && dayLog[key][id]) || null;
-          const gMs = e && !e.nt ? (e.goalMs || 0) : 0;      // 체크리스트 전용이던 날은 목표 없음
-          const items = e ? Object.values(e.checks || {}) : [];
-          const goalMet = gMs > 0 && ms >= gMs;
-          const checkMet = items.length > 0 && items.every(it => it.done);
-
-          const row = document.createElement('div');
-          row.className = 'recRow selectable';
-          row.dataset.key = key; row.dataset.tid = id;
-          row.innerHTML = '<span class="rLeft"><span class="chk">✓</span><span class="rName"></span>' +
-            (goalMet ? '<span class="badge goal"></span>' : '') +
-            (checkMet ? '<span class="badge check">✓</span>' : '') +
-            '</span><span class="rTime"></span>';
-          row.querySelector('.rName').textContent = nameOf(id);
-          row.querySelector('.rTime').textContent = ms === null ? '' : fmt(ms);
-          if (selected.has(key + '|' + id)) row.classList.add('sel');
-          bindRowSelect(row, key, id);
-          card.appendChild(row);
-
-          // 목표나 체크리스트가 있으면 탭해서 자세히 보기
-          if (gMs > 0 || items.length) {
-            row.classList.add('expandable');
-            const detail = document.createElement('div');
-            detail.className = 'recDetail';
-            detail.style.display = 'none';
-            let html = '';
-            if (gMs > 0) {
-              // 체크리스트와 같은 모양: 목표 글자에 취소선, 괄호는 색·볼드로 달성 표시
-              const gTxt = goalMet ? '달성' : '미달성';
-              const gCls = goalMet ? ' class="mark"' : '';
-              html += '<div class="dGoal"><span class="gTxt' + (goalMet ? ' done' : '') + '">목표 ' +
-                fmtGoal(gMs) + '</span> <span' + gCls + '>(' + gTxt + ')</span></div>';
-            }
-            items.forEach(it => {
-              const d = document.createElement('div');
-              d.className = 'dItem ' + (it.done ? 'on' : 'off');
-              d.innerHTML = '<span class="mk">✓</span><span class="tx"></span>';
-              const lb = repLabel(it);                 // 그날 남긴 반복 값 — 나중에 요일을 바꿔도 지난 날은 그대로
-              d.querySelector('.tx').textContent = it.text + (lb ? ' (' + lb + ')' : '');
-              html += d.outerHTML;
-            });
-            detail.innerHTML = html;
-            card.appendChild(detail);
-            expandables.push({ row: row, detail: detail });
-          }
+      dd.groups.forEach(gp => {
+        h += '<li class="grp"></li>';
+        names.push(nameOf(gp.id));
+        gp.items.forEach(it => {
+          const tg = repLabel(it);
+          h += '<li class="ci' + (it.done ? ' on' : '') + '"><span class="mk">✓</span><span class="tx"></span>' + (tg ? '<span class="tag">' + tg + '</span>' : '') + '</li>';
+          names.push(it.text);
         });
-        dailyList.appendChild(card);
       });
     }
-    // 자세히 보기 토글 연결
-    expandables.forEach(x => {
-      x.row.addEventListener('click', () => {
-        if (selecting) return;      // 기록 선택 모드에서는 펼치지 않음
-        x.detail.style.display = x.detail.style.display === 'none' ? 'flex' : 'none';
-      });
-    });
-    renderRange();
+    dayPopList.innerHTML = h;
+    let i = 0;
+    dayPopList.querySelectorAll('.gpName, .grp, .ci .tx').forEach(el => { el.textContent = names[i++]; });
+  }
+  // 꾹 누르면 ✕ — 다른 줄을 꾹 누르면 ✕가 옮겨 간다(층은 하나). 빈 곳 누름·뒤로가기 = ✕만 사라짐 (일정 삭제 모드와 같다)
+  function startLift(id){
+    if (!dayPop || msOn(dayPop.key, id) < MIN_REC_MS) return;   // 시간이 0인 줄은 반응하지 않는다
+    swallowNextClick();
+    const had = lift !== null;
+    lift = id;
+    renderDayPop();
+    if (!had) pushLayer(endLift);
+  }
+  function endLift(){ lift = null; renderDayPop(); }
+  let lp = null;
+  dayPopList.addEventListener('pointerdown', e => {
+    if (!dayPop || dayPop.mode !== 'goal' || e.target.closest('.recDel')) return;
+    const li = e.target.closest('.gpRow');
+    if (!li) return;
+    const p = { x: e.clientX, y: e.clientY };
+    lp = p;
+    p.timer = setTimeout(() => { if (lp === p) { lp = null; startLift(li.dataset.id); } }, 550);
+  });
+  dayPopList.addEventListener('pointermove', e => {
+    if (lp && Math.abs(e.clientX - lp.x) + Math.abs(e.clientY - lp.y) > 10) { clearTimeout(lp.timer); lp = null; }
+  });
+  const lpEnd = () => { if (lp) { clearTimeout(lp.timer); lp = null; } };
+  dayPopList.addEventListener('pointerup', lpEnd);
+  dayPopList.addEventListener('pointercancel', lpEnd);
+  dayPopList.addEventListener('contextmenu', e => e.preventDefault());
+  // ✕ — 그 할 일의 그날 시간을 삭제한다. 확인 팝업 없음. 체크와 목표는 남는다
+  dayPopList.addEventListener('click', e => {
+    if (!e.target.closest('.recDel') || !dayPop || lift === null) return;
+    e.stopPropagation();
+    deleteDayTime(dayPop.key, lift);
+    popLayer();                 // ✕ 상태 닫기 (팝업은 남는다)
+    renderRecords();
+  });
+  dayPopBox.addEventListener('click', e => {
+    if (lift !== null && e.target !== dayPopClose) popLayer();      // 빈 곳 누름 = ✕만 사라짐
+  });
+  dayPopBg.addEventListener('click', e => { if (e.target === dayPopBg) popLayer(); });
+  dayPopClose.addEventListener('click', e => {
+    e.stopPropagation();
+    if (lift !== null) { popLayer(); whenSettled(popLayer); } else popLayer();
+  });
+  // 그날 시간 삭제 — 기록(records)에서 지우면 모든 곳에서 지워진다(오늘이면 홈 원의 숫자도 준다).
+  // 오늘 돌고 있는 할 일이면 지금까지를 기록하고(자정 앞은 어제로) 0부터 다시 센다. 지운 사실은 이력에 남긴다
+  function deleteDayTime(key, id){
+    if (key === todayKey() && String(focusId) === String(id) && runningSince) {
+      const now = Date.now();
+      commitRecord(focusId, runningSince, now);
+      logRun(focusId, runningSince, now);
+      runningSince = now;
+    }
+    const ms = (records[key] && records[key][id]) || 0;
+    if (records[key]) {
+      delete records[key][id];
+      if (!Object.keys(records[key]).length) delete records[key];
+    }
+    if (ms) logHist({ k: 'rec-', t: +id, d: key, ms: ms });
+    save();
   }
 
   // 기간별 합계
@@ -3346,7 +3343,6 @@
   const backupBg = document.getElementById('backupBg');
   function closeBackup(){ backupBg.style.display = 'none'; }
   backupBtn.addEventListener('click', () => {
-    if (selecting) { deleteSelected(); return; }   // 선택 모드에서는 '삭제'
     backupBg.style.display = 'flex';
     pushLayer(closeBackup);
   });
@@ -3403,27 +3399,6 @@
     reader.readAsText(file);
   });
 
-  // ---- 메뉴 팝업 ----
-  // 항목을 고르면 메뉴를 먼저 닫고(뒤로가기 층을 정리하고) 나서 화면을 연다.
-  // 그래야 기록에서 뒤로가기 한 번에 홈으로 온다.
-  const menuBg = document.getElementById('menuBg');
-  let menuPending = null;
-  function closeMenu(){
-    menuBg.style.display = 'none';
-    const f = menuPending;
-    menuPending = null;
-    if (f) setTimeout(f, 0);
-  }
-  function pickMenu(fn){ menuPending = fn; popLayer(); }
-  document.getElementById('menuBtn').addEventListener('click', () => {
-    if (editingId !== null) finishEdit();
-    menuPending = null;
-    menuBg.style.display = 'flex';
-    pushLayer(closeMenu);
-  });
-  menuBg.addEventListener('click', e => { if (e.target === menuBg) popLayer(); });
-  document.getElementById('menuRecords').addEventListener('click', () => pickMenu(openRecordsScreen));
-  document.getElementById('menuResetAll').addEventListener('click', () => pickMenu(openResetAll));
 
   // ---- 요일 끌어서 고르기 (반복 줄 · 반복 수정 팝업 · 일정 화면 반복 카드) ----
   // 한 번 누르기는 그 요일만 켜고 끈다. 누른 채 옆 요일로 밀면, 처음 누른 요일을 누른 결과(켬/끔)가
@@ -3647,6 +3622,7 @@
   const schAdd = document.getElementById('schAdd');
   const tabHome = document.getElementById('tabHome');
   const tabSched = document.getElementById('tabSched');
+  const tabRec = document.getElementById('tabRec');
   const schSeg = document.getElementById('schSeg');
   schCanvas.style.height = (TOP_PX + 24 * HOUR_PX + 24) + 'px';
   let schDay = todayKey();      // 고른 날
@@ -3817,34 +3793,49 @@
   function syncTabs(){
     tabHome.classList.toggle('on', home.classList.contains('active'));
     tabSched.classList.toggle('on', schedView.classList.contains('active'));
+    tabRec.classList.toggle('on', recordsView.classList.contains('active'));
   }
-  function openSchedTab(){
+  function onTab(){ return schedView.classList.contains('active') || recordsView.classList.contains('active'); }
+  // which = 'sched' | 'rec'. 홈에서 열면 층 하나를 쌓고, 다른 탭에서 옮겨 오면 그 층을 그대로 쓴다 — 뒤로가기 한 번이면 홈
+  function showTab(which){
     if (editingId !== null) finishEdit();
     whenSettled(() => {
-      if (!home.classList.contains('active')) return;
+      const fromHome = home.classList.contains('active');
+      if (!fromHome && !onTab()) return;
+      xMode = null;
       home.classList.remove('active');
-      schedView.classList.add('active');
+      schedView.classList.remove('active');
+      recordsView.classList.remove('active');
+      if (which === 'sched') {
+        schedView.classList.add('active');
+        schDay = todayKey();
+        renderSched();
+        scrollToNow();
+      } else {
+        recordsView.classList.add('active');
+        recToThisMonth();
+      }
       syncTabs();
-      schDay = todayKey();
-      renderSched();
-      scrollToNow();
-      pushLayer(closeSchedTab);
+      if (fromHome) pushLayer(closeTab);
     });
   }
-  function closeSchedTab(){
+  function closeTab(){
     xMode = null;
     schedView.classList.remove('active');
+    recordsView.classList.remove('active');
     home.classList.add('active');
     syncTabs();
     renderHome();
   }
   tabSched.addEventListener('click', () => {
-    if (home.classList.contains('active')) { openSchedTab(); return; }
-    if (schedView.classList.contains('active')) {   // 일정 탭을 다시 누르면 오늘로
-      schDay = todayKey(); renderSched(); scrollToNow();
-    }
+    if (schedView.classList.contains('active')) { schDay = todayKey(); renderSched(); scrollToNow(); return; }   // 다시 누르면 오늘로
+    showTab('sched');
   });
-  tabHome.addEventListener('click', () => { if (schedView.classList.contains('active')) popLayer(); });
+  tabRec.addEventListener('click', () => {
+    if (recordsView.classList.contains('active')) { recToThisMonth(); return; }   // 다시 누르면 이번 달·맨 위로
+    showTab('rec');
+  });
+  tabHome.addEventListener('click', () => { if (onTab()) popLayer(); });
 
   // ---- 보기 바꾸기 [1일·3일·7일] — 고른 보기를 기억한다 ----
   schSeg.addEventListener('click', e => {
@@ -4639,6 +4630,7 @@
     snapDay = todayKey();
     save();
     if (home.classList.contains('active') && editingId === null && !dragTask) renderHome();
+    if (recordsView.classList.contains('active') && !dayPopOpen()) renderRecords();
   }, 30000);
 
   save();   // 오늘의 목표·항목을 기록에 남기고, 정리된 결과(옛 데이터 정리)를 저장
