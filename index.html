@@ -263,6 +263,8 @@
   #dayPopList .ci .tag{margin-left:auto;flex:0 0 auto;font-size:11px;color:var(--muted);border:1px solid var(--circle-edge);border-radius:20px;padding:2px 8px;white-space:nowrap;}
   #dayPopClose{flex:0 0 auto;margin-top:14px;padding:12px 0;border-radius:10px;cursor:pointer;background:none;color:var(--muted);border:1px solid var(--circle-edge);font-size:15px;font-weight:500;font-family:inherit;}
 
+  /* 개발 중에만 — 지금 보이는 판의 번호(앱을 공개할 때 없앤다, TK 2026-10-26) */
+  #verTag{position:absolute;top:28px;right:16px;line-height:32px;font-size:11px;font-weight:400;letter-spacing:0;color:#B4BCC5;font-variant-numeric:tabular-nums;pointer-events:none;}
   /* 홈 막대 — 제목 줄 바로 아래 한 줄에 나란히. 양 끝은 화면 가장자리에서 68px(햄버거 오른쪽 끝 43px + 25px),
      사이 8px, 폭은 목표시간 2 : 체크리스트 1. 하나뿐인 날은 혼자 전체 폭.
      위아래로 12px씩 더 받아 누르기 쉽게(제목 줄 아래 여백·원 목록 위 여백 안) — 모양과 자리는 그대로 */
@@ -889,7 +891,7 @@
 </svg>
 
 <div id="home" class="view active">
-  <div id="homeTitle">순실행시간</div>
+  <div id="homeTitle">순실행시간<span id="verTag"></span></div>
   <div id="bars"></div>
   <div id="grid"></div>
   <div id="empty">+ 버튼을 눌러 할 일을 추가하세요</div>
@@ -1155,6 +1157,8 @@
   // 스마트폰(브라우저)의 localStorage에 저장. 저장이 막힌 환경(이 미리보기 등)에서는
   // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
   const STORAGE_KEY = 'sunwork-v1';
+  // 개발 중에만 — 이 index.html의 판 번호. sw.js의 캐시 이름(sunwork-vN)과 늘 같게 올린다. 앱을 공개할 때 없앤다
+  const APP_VER = 'v68';
   let tasks = [{ id: 1, name: '할 일' }];
   let nextId = 2;
   let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
@@ -4642,6 +4646,16 @@
     if (home.classList.contains('active') && editingId === null && !dragTask) renderHome();
     if (recordsView.classList.contains('active') && !dayPopOpen()) renderRecords();
   }, 30000);
+
+  (function showVer(){
+    const el = document.getElementById('verTag');
+    el.textContent = APP_VER;
+    if (!('caches' in window)) return;
+    caches.keys().then(ks => {
+      const sw = ks.filter(k => /^sunwork-v\d+$/.test(k)).map(k => k.slice(8)).sort((a, b) => +b.slice(1) - +a.slice(1))[0];
+      if (sw && sw !== APP_VER) el.textContent = APP_VER + ' · 받음 ' + sw;
+    }).catch(() => {});
+  })();
 
   save();   // 오늘의 목표·항목을 기록에 남기고, 정리된 결과(옛 데이터 정리)를 저장
 
