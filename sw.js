@@ -1,4 +1,4 @@
-const CACHE = 'sunwork-v62';
+const CACHE = 'sunwork-v63';
 const ASSETS = [
   './',
   './index.html',
@@ -55,15 +55,32 @@ function dbSet(key, val){
 
 const NOTI_TAG = 'sunwork-timer';
 
+// 알림 아이콘 — 서비스워커가 띄우는 알림의 아이콘은 이 캐시를 거치지 않고 네트워크에서 받아 오므로,
+// 받지 못하면 폰이 주소 첫 글자('T')로 대신 그린다. 캐시해 둔 파일을 data URL로 바꿔 넣는다
+const iconCache = {};
+function iconData(f){
+  if (iconCache[f]) return Promise.resolve(iconCache[f]);
+  return caches.open(CACHE).then(c => c.match('./' + f)).then(r => r ? r.arrayBuffer() : null).then(buf => {
+    if (!buf) return f;
+    let bin = '';
+    const u = new Uint8Array(buf);
+    for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+    iconCache[f] = 'data:image/png;base64,' + btoa(bin);
+    return iconCache[f];
+  }).catch(() => f);
+}
+
 function showTimerNotification(view){
   if (!view || !view.active) return self.registration.getNotifications({ tag: NOTI_TAG })
     .then(list => list.forEach(n => n.close()));
   const run = !!view.running;
-  return self.registration.showNotification(run ? '진행 중' : '일시정지', {
+  const ic = run ? 'icon-192.png' : 'icon-pause-192.png', bd = run ? 'icon-badge.png' : 'icon-badge-pause.png';
+  const title = run ? '진행 중' : '일시정지';
+  const opts = (icon, badge) => ({
     tag: NOTI_TAG,
     body: view.name + ' - ' + (run ? '진행 중' : '일시정지'),
-    icon: run ? 'icon-192.png' : 'icon-pause-192.png',
-    badge: run ? 'icon-badge.png' : 'icon-badge-pause.png',
+    icon: icon,
+    badge: badge,
     silent: true,
     renotify: false,
     requireInteraction: true,
@@ -71,6 +88,10 @@ function showTimerNotification(view){
       ? [{ action: 'pause', title: '일시정지' }]
       : [{ action: 'resume', title: '시작' }]
   });
+  // data URL을 받지 않는 폰이면 파일 주소로 다시 띄운다 (알림이 아예 안 뜨는 일이 없게)
+  return Promise.all([iconData(ic), iconData(bd)])
+    .then(([icon, badge]) => self.registration.showNotification(title, opts(icon, badge)))
+    .catch(() => self.registration.showNotification(title, opts(ic, bd)));
 }
 
 // 알림의 버튼을 눌렀을 때: 앱을 열지 않고 여기서 처리
