@@ -228,9 +228,11 @@
   .dRow{display:flex;align-items:center;gap:8px;}
   .dRow .dLbl{flex:0 0 70px;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;}
   .dRow .dLbl.sun{color:#D9705F;}
+  .dRow{margin:0 -8px;padding:0 8px;border-radius:8px;transition:background-color .8s ease;}
+  .dRow.flash{background-color:#FDEBCE;transition:none;}
   .dRow .dBars{flex:1 1 auto;min-width:0;display:flex;gap:8px;}
-  .dRow .dG{flex:2 1 0;min-width:0;padding:8px 0;}
-  .dRow .dC{flex:1 1 0;min-width:0;padding:8px 0;}      /* 줄 높이 전체를 누름으로 */
+  .dRow .dG{flex:2 1 0;min-width:0;padding:12px 0;}
+  .dRow .dC{flex:1 1 0;min-width:0;padding:12px 0;}      /* 줄 높이 전체를 누름으로 */
   .dRow .dG .bar, .dRow .dC .bar{cursor:pointer;}
   /* 흰 캡슐 — 시간은 있지만 견줄 목표가 없다 */
   .bar.capB{background:#fff;border:1px solid var(--circle-edge);}
@@ -240,10 +242,10 @@
   #dayPopBg{position:absolute;inset:0;background:rgba(35,41,47,.35);display:none;align-items:center;justify-content:center;z-index:20;padding:24px;}
   #dayPopBox{background:#fff;border-radius:16px;padding:22px 20px;width:min(88vw,340px);max-height:84%;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(35,41,47,.18);}
   #dayPopBox .tTitle{font-size:17px;font-weight:700;text-align:center;margin-bottom:4px;flex:0 0 auto;}
-  #dayPopList{list-style:none;overflow-y:auto;min-height:0;flex:1 1 auto;margin-top:4px;}
+  #dayPopList{list-style:none;overflow-y:auto;overflow-x:hidden;min-height:0;flex:1 1 auto;margin:4px -6px 0;padding:0 6px;}
   #dayPopList .gpRow{touch-action:pan-y;transition:box-shadow .15s;}
   #dayPopList .gpRow.sep{border-top:1px solid var(--circle-edge);margin-top:4px;}
-  #dayPopList .gpRow.lift{background:#fff;box-shadow:0 6px 18px rgba(35,41,47,.18);border-radius:10px;margin:0 -6px;padding:10px;border-top-color:transparent;position:relative;z-index:1;}
+  #dayPopList .gpRow.lift{background:#fff;box-shadow:0 0 0 1px rgba(35,41,47,.04),0 8px 12px -6px rgba(35,41,47,.28);border-radius:10px;margin:0 -6px;padding:10px;border-top-color:transparent;position:relative;z-index:1;}
   #dayPopList .gpRow.lift + .gpRow{border-top-color:transparent;}
   #dayPopList .gpTop{align-items:center;}
   .gpRight{flex:0 0 auto;display:flex;align-items:center;gap:8px;}
@@ -3073,8 +3075,14 @@
     const row = dayCard.querySelector('.dRow[data-k="' + c.dataset.k + '"]');
     if (!row) return;
     const r = row.getBoundingClientRect(), b = recBody.getBoundingClientRect();
-    recBody.scrollTo({ top: recBody.scrollTop + r.top - b.top - b.height * 0.4, behavior: 'smooth' });
+    recBody.scrollTo({ top: recBody.scrollTop + r.top - b.top - (b.height - r.height) / 2, behavior: 'smooth' });
+    // 내려간 뒤 그 줄이 어디인지 보이게 — 연한 호박 바탕으로 1.2초 비춘 뒤 0.8초에 걸쳐 사라진다
+    dayCard.querySelectorAll('.dRow.flash').forEach(x => x.classList.remove('flash'));
+    clearTimeout(flashT);
+    row.classList.add('flash');
+    flashT = setTimeout(() => row.classList.remove('flash'), 1200);
   });
+  let flashT = 0;
   dayCard.addEventListener('click', e => {
     const c = e.target.closest('[data-pop]');
     if (c) openDayPop(c.dataset.k, c.dataset.pop);
