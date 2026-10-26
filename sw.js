@@ -1,4 +1,4 @@
-const CACHE = 'sunwork-v69';
+const CACHE = 'sunwork-v70';
 const ASSETS = [
   './',
   './index.html',
@@ -12,7 +12,9 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // 브라우저의 HTTP 캐시를 거치지 않고 서버에서 새로 받는다 (cache: 'reload').
+  // 깃허브 페이지는 파일을 10분 동안 브라우저에 캐시하게 해서, 그냥 받으면 새 sw.js가 옛 index.html을 새 캐시에 담는 일이 생긴다
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
