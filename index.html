@@ -217,6 +217,7 @@
   .ac{position:relative;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .ac .sq{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
   .ac.full .sq{width:28px;height:28px;border-radius:7px;background:var(--run);}
+  .ac.rest .sq{width:16px;height:16px;border-radius:4px;}
   .ac.part .sq{width:16px;height:16px;border-radius:4px;background:rgba(245,158,27,.18);}   /* 18% — 30%는 다 찬 날처럼, 12%는 너무 안 보였다 (TK 2026-10-26) */
   .ac .nm{position:relative;font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;}
   .ac.full .nm{color:#fff;font-weight:700;}
@@ -770,6 +771,14 @@
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .cap.on{background:var(--run);color:#fff;border-color:var(--run);font-weight:700;}
+  /* [쉬는 날] — 할 일 캡슐들 맨 끝, 흰 바탕 점선. 고르면 다른 캡슐처럼 호박 채움 */
+  #edCaps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  #edCaps .cap{max-width:none;text-align:center;padding:0 8px;font-size:14px;}
+  .cap.rest{background:#fff;border:1.5px dashed #B4BCC5;}
+  .cap.rest.on{background:var(--run);border:1.5px solid var(--run);}
+  /* 쉬는 날 빗금 — 어디서나 같은 무늬. 작은 칸 / 일정표 바탕 */
+  .wd.rest .dn, #calGrid .cell.rest:not(.s):not(.e) .num, .ac.rest .sq{background:repeating-linear-gradient(135deg,#D2D8DF 0 1.5px,transparent 1.5px 5px);}
+  .restBg{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,#E1E5EA 0 1px,transparent 1px 10px);pointer-events:none;}
   /* 직접 입력칸 — 캡슐과 모양을 달리해 '할 일이 아닌 것'으로 보이게 한다 */
   #edName{
     margin-top:14px;width:100%;border:none;border-bottom:1.5px solid var(--circle-edge);border-radius:0;
@@ -794,7 +803,11 @@
   .tBtn{font-family:inherit;}
   /* 종료 날짜는 앱이 정하는 값이라 누를 수 없다 — 칸 없이 회색 글자 (시작 날짜 칸과 줄을 맞춤) */
   .tPlain{font-size:16px;color:var(--muted);padding:9px 12px;border:1px solid transparent;font-variant-numeric:tabular-nums;white-space:nowrap;}
-  #edMsg{margin-top:10px;font-size:13px;color:var(--danger);font-weight:500;word-break:keep-all;display:none;}
+  /* 안내 칸 — 막힌 그 순간에만. 연한 빨강 바탕, 마침표 없음, 두 줄까지 (11-6) */
+  #edMsg, #repWhy, #calWarn{background:#FCEBEB;color:var(--danger);font-size:13px;font-weight:500;line-height:1.5;
+    border-radius:8px;padding:8px 10px;text-align:center;word-break:keep-all;display:none;}
+  #edMsg{margin-top:10px;}
+  #calWarn{margin-top:10px;}
   .nw{white-space:nowrap;}
   #edFreq{display:flex;gap:8px;}
   #edDays{margin-top:12px;display:none;justify-content:space-between;touch-action:pan-y;}
@@ -844,11 +857,11 @@
     font-family:inherit;font-size:24px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;padding:0;}
 
   /* ===== 일정 팝업 (반복 일정 저장·지우기 / 할 일 삭제) ===== */
-  #repBg, #taskDelBg{
+  #repBg, #taskDelBg, #restBg{
     position:absolute;inset:0;background:rgba(35,41,47,.35);
     display:none;align-items:center;justify-content:center;z-index:20;
   }
-  #repBox, #taskDelBox{
+  #repBox, #taskDelBox, #restBox{
     background:#fff;border-radius:16px;padding:24px;
     width:min(80vw,300px);display:flex;flex-direction:column;gap:18px;
     box-shadow:0 8px 30px rgba(35,41,47,.18);
@@ -856,8 +869,11 @@
   #repBox .rTop{display:flex;flex-direction:column;gap:8px;}
   #repTitle, #taskDelBox p{font-size:clamp(12px,4.2vw,16px);text-align:center;white-space:nowrap;overflow:hidden;}
   /* 팝업 문구는 한 줄이 원칙 — 빨간 이유 줄만 넘치면 줄을 바꾼다 */
-  #repWhy{font-size:13px;color:var(--danger);font-weight:500;text-align:center;word-break:keep-all;display:none;}
-  #repBox .rBtns{display:flex;flex-direction:column;gap:10px;}
+  #repBox .rBtns, #restBox .rBtns{display:flex;flex-direction:column;gap:10px;}
+  /* 쉬는 날 팝업 — 제목 '쉬는 날 (추석 연휴)' 16px, 아래 날짜 13px */
+  #restBox .rTop{display:flex;flex-direction:column;gap:6px;}
+  #restTitle{font-size:16px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #restDates{font-size:13px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums;}
   .pRow{display:flex;gap:10px;}
   .pBtn{
     flex:1;padding:12px 0;border-radius:10px;border:none;cursor:pointer;
@@ -988,12 +1004,12 @@
       <input id="edName" maxlength="20" placeholder="이름 직접 입력" autocomplete="off" aria-label="일정 이름 직접 입력">
     </div>
     <div class="edCard">
-      <div class="edLabel">시간</div>
+      <div class="edLabel" id="edTimeLbl">시간</div>
       <div id="edTimes"></div>
       <div id="edMsg"></div>
       <button id="edPer"><span class="bx">✓</span>요일마다 다르게</button>
     </div>
-    <div class="edCard">
+    <div class="edCard" id="edRepCard">
       <div class="edLabel">반복</div>
       <div id="edFreq"><button class="cap" data-f="none">안 함</button><button class="cap" data-f="daily">매일</button><button class="cap" data-f="weekly">요일 선택</button></div>
       <div id="edDays"></div>
@@ -1050,6 +1066,7 @@
     <div id="calPick">~</div>
     <div class="dow"><div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div></div>
     <div id="calGrid"></div>
+    <div id="calWarn">쉬는 날은 내일부터 설정할 수 있어요<br>오늘은 홈에서 '오늘만 줄이기'로 줄여 보세요</div>
     <div class="calBtns">
       <button id="calCancel">취소</button>
       <button id="calOk">확인</button>
@@ -1127,6 +1144,17 @@
   </div>
 </div>
 
+<!-- 쉬는 날 팝업 (일정 화면의 빗금 바탕을 꾹 누름) -->
+<div id="restBg">
+  <div id="restBox">
+    <div class="rTop"><p id="restTitle"></p><p id="restDates"></p></div>
+    <div class="rBtns">
+      <div class="pRow" id="restAct"><button class="pBtn del" id="restDel">삭제</button><button class="pBtn go" id="restEdit">수정</button></div>
+      <div class="pRow"><button class="pBtn no" id="restNo">취소</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- 시간 고르기 창 -->
 <div id="tpBg">
   <div id="tpBox">
@@ -1158,7 +1186,7 @@
   // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
   const STORAGE_KEY = 'sunwork-v1';
   // 개발 중에만 — 이 index.html의 판 번호. sw.js의 캐시 이름(sunwork-vN)과 늘 같게 올린다. 앱을 공개할 때 없앤다
-  const APP_VER = 'v70';
+  const APP_VER = 'v71';
   let tasks = [{ id: 1, name: '할 일' }];
   let nextId = 2;
   let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
@@ -1174,6 +1202,9 @@
   let schedules = [];       // 일정 (형식은 아래 '일정' 절)
   let nextSchedId = 1;
   let schView = 1;          // 일정 보기 1·3·7일 (마지막 고른 것을 기억)
+  // 쉬는 날 — { id, name, s:'YYYY-MM-DD', e:'YYYY-MM-DD' }. 그날은 목표도 항목도 없다(기록은 된다). 내일부터만 정한다
+  let rests = [];
+  let nextRestId = 1;
   // 이 날부터 앱을 쓴 날에는 모든 할 일의 목표·항목을 그날 기록(dayLog)에 남긴다 — 기록 화면 날짜 옆 표시의 판정 근거.
   // 그 전 날에는 누르지 않은 할 일의 목표가 없어 판정하지 않는다
   let goalsSince = null;
@@ -1185,6 +1216,7 @@
   //  { ts, k:'item+', t, i, x, d, w } / { ts, k:'item-', t, i }   체크리스트 항목 추가·삭제 (w = 요일 항목의 요일, 없으면 생략)
   //  { ts, k:'item~', t, i, from, to }            항목의 반복 수정 — 'none'(반복 안 함) · 'daily' · 요일 배열(0=일 … 6=토)
   //  { ts, k:'rec-', t, d, ms }                   기록 화면에서 그 할 일의 그날(d) 시간을 삭제 (ms = 지운 시간)
+  //  { ts, k:'rest+', i, n, s, e } / { ts, k:'rest~', i, from:{n,s,e}, to:{n,s,e} } / { ts, k:'rest-', i, n, s, e }   쉬는 날 만들기·수정·삭제
   let hist = [];
   // 화면에 보이지만 기록 중인 할 일(focusId)이 아닌 것 — 체크리스트 화면의 할 일, 또는 체크리스트 전용에서
   // 타이머로 막 바꾼(아직 시작 전) 할 일. 다른 할 일의 기록은 그동안 그대로 돈다
@@ -1222,7 +1254,7 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         tasks, nextId, records, taskNames, focusId, runningSince, dayLog, nextItemId,
-        schedules, nextSchedId, schView, goalsSince, runs, hist,
+        schedules, nextSchedId, schView, goalsSince, runs, hist, rests, nextRestId,
         showFocus, cleaned_v6: true, migrated_doneDate: true
       }));
     } catch(e) { /* 저장 불가 환경: 메모리 모드 */ }
@@ -1241,6 +1273,8 @@
       if (d.dayLog) dayLog = d.dayLog;
       if (typeof d.nextItemId === 'number') nextItemId = d.nextItemId;
       if (Array.isArray(d.schedules)) schedules = d.schedules;
+      if (Array.isArray(d.rests)) rests = d.rests;
+      if (typeof d.nextRestId === 'number') nextRestId = d.nextRestId;
       if (typeof d.nextSchedId === 'number') nextSchedId = d.nextSchedId;
       if ([1, 3, 7].indexOf(d.schView) >= 0) schView = d.schView;
       if (typeof d.goalsSince === 'string') goalsSince = d.goalsSince;
@@ -1362,8 +1396,11 @@
     return ms;
   }
   // 그 날(key)의 목표 — 요일마다 시간이 다르면 그 요일의 값. 체크리스트 전용이면 목표 없음(값은 보관)
+  // 쉬는 날 — 그 날을 덮는 쉬는 날(없으면 null)
+  function restOf(k){ return rests.find(r => r.s <= k && k <= r.e) || null; }
+  function isRest(k){ return !!restOf(k); }
   function goalOn(t, key){
-    if (!t || t.noTimer) return 0;
+    if (!t || t.noTimer || isRest(key)) return 0;           // 쉬는 날에는 목표가 없다
     if (Array.isArray(t.goalDow)) return t.goalDow[dowOf(key)] || 0;
     return t.goalMs || 0;
   }
@@ -1461,6 +1498,7 @@
   //  - 반복 안 함 항목: 완료 전까지 계속 (완료하면 다음 날부터 사라짐)
   function todayItems(t){
     const k = todayKey(), w = dowOf(k);
+    if (isRest(k)) return [];                     // 쉬는 날에는 항목이 없다 (반복 안 함 항목은 다음 날로 넘어간다)
     const list = (t.checklist || []).filter(it => {
       if (it.daily) return true;
       if (Array.isArray(it.dow) && it.dow.length) return it.dow.indexOf(w) >= 0;
@@ -1474,9 +1512,11 @@
   // 반복 안 함 항목이 며칠 밀렸는지 (0이면 당일)
   function delayDays(it){
     if (isRep(it) || !it.created) return 0;
-    const a = new Date(it.created + 'T00:00:00');
-    const b = new Date(todayKey() + 'T00:00:00');
-    return Math.max(0, Math.round((b - a) / 86400000));
+    // 쉬는 날은 '미뤄짐' 날수에 세지 않는다
+    const today = todayKey();
+    let n = 0;
+    for (let k = addDays(it.created, 1); k <= today && n < 3660; k = addDays(k, 1)) if (!isRest(k)) n++;
+    return n;
   }
   function itemDone(t, itemId){
     const e = dayLog[todayKey()] && dayLog[todayKey()][t.id];
@@ -2380,7 +2420,8 @@
 
     // 체크리스트 표시 — 오늘 할 항목이 없는데 다른 요일의 항목은 있으면 그 말을 목록 자리에
     const items = todayItems(t);
-    noTodayMsg.style.display = !items.length && (t.checklist || []).some(isRep) ? 'block' : 'none';
+    const restNow = isRest(todayKey());
+    noTodayMsg.style.display = !items.length && (restNow ? (t.checklist || []).length > 0 : (t.checklist || []).some(isRep)) ? 'block' : 'none';
     checkView.innerHTML = '';
     items.forEach(it => {
       const li = document.createElement('li');
@@ -2989,7 +3030,7 @@
   function dayData(key){
     const today = todayKey();
     const judged = !!goalsSince && key >= goalsSince && key <= today;
-    const log = judged ? (dayLog[key] || (key < today ? rebuildDay(key) : {})) : {};
+    const log = !judged || isRest(key) ? {} : (dayLog[key] || (key < today ? rebuildDay(key) : {}));
     const goals = [], free = [], groups = [];
     let gSum = 0, gFill = 0, n = 0, d = 0, total = 0;
     const ids = new Set(Object.keys(log).concat(Object.keys(records[key] || {})));
@@ -3014,7 +3055,8 @@
     return { judged: judged, goals: goals, free: free, groups: groups, gSum: gSum, gFill: gFill, n: n, d: d, total: total };
   }
   // 달성 캘린더의 판정 — 목표시간 막대만. 100%에서 멈춘다(넘친 시간은 세지 않는다)
-  function judgeOf(dd){
+  function judgeOf(dd, key){
+    if (isRest(key)) return 'rest';                // 쉬는 날 — 앞날도 빗금으로 보인다
     if (!dd || !dd.judged || !dd.gSum) return 'none';
     if (dd.gFill >= dd.gSum) return 'full';
     return floorMin(dd.gFill) > 0 ? 'part' : 'zero';
@@ -3039,9 +3081,9 @@
     for (let dt = 1; dt <= lastDate; dt++) {
       const k = keyOf(recY, recM, dt);
       const dd = k <= today ? (days[k] = dayData(k)) : null;
-      const j = judgeOf(dd);
+      const j = judgeOf(dd, k);
       g += '<div class="ac ' + j + (k === today ? ' today' : '') + '" data-k="' + k + '">' +
-        (j === 'full' || j === 'part' ? '<span class="sq"></span>' : '') + '<span class="nm">' + dt + '</span></div>';
+        (j === 'full' || j === 'part' || j === 'rest' ? '<span class="sq"></span>' : '') + '<span class="nm">' + dt + '</span></div>';
     }
     acGrid.innerHTML = g;
     // 날짜별 막대 — 최신 날이 위. goalsSince부터 오늘까지는 모든 날, 그 전 날은 기록이 있는 날만
@@ -3291,8 +3333,10 @@
 
   function renderCal(){
     calMon.textContent = calY + '년 ' + (calM + 1) + '월';
-    if (calMode !== 'range') calPick.textContent = tmpS ? fmtMDW(tmpS) : '';
+    if (calMode === 'rpick') calPick.textContent = tmpS ? (tmpE && tmpE !== tmpS ? fmtMDW(tmpS) + ' ~ ' + fmtMDW(tmpE) : fmtMDW(tmpS)) : '';
+    else if (calMode !== 'range') calPick.textContent = tmpS ? fmtMDW(tmpS) : '';
     else calPick.textContent = tmpS ? (fmtDot(tmpS) + ' ~ ' + fmtDot(tmpE || tmpS)) : '~';
+    if (calMode !== 'rpick') calWarn.style.display = 'none';
     const firstDow = new Date(calY, calM, 1).getDay();
     const lastDate = new Date(calY, calM + 1, 0).getDate();
     const today = todayKey();
@@ -3309,19 +3353,39 @@
       }
       if (k === today) cls += ' today';
       if (calMode === 'pick' && k < today) cls += ' past';
+      if (calMode === 'rpick' && k < calMin) cls += ' past';
+      const rr = restOf(k);
+      if (rr && !(calMode === 'rpick' && ed && rr.id === ed.restId)) cls += ' rest';      // 쉬는 날 빗금 (고치는 쉬는 날 자신은 빼고)
       html += '<div class="' + cls + '" data-k="' + k + '"><span class="num">' + d + '</span></div>';
     }
     calGrid.innerHTML = html;
   }
 
+  const calWarn = document.getElementById('calWarn');
+  let calWarnNew = false;
+  document.getElementById('calBox').addEventListener('click', () => {
+    if (calWarnNew) { calWarnNew = false; return; }
+    calWarn.style.display = 'none';
+  });
   calGrid.addEventListener('click', ev => {
     const cell = ev.target.closest('.cell');
     if (!cell || !cell.dataset.k) return;
     const k = cell.dataset.k;
     if (calMode === 'pick' && k < todayKey()) return;                     // 지난 날은 못 고름
+    if (calMode === 'rpick' && k < calMin) {
+      // 회색 오늘을 누른 순간 — 쉬는 날은 내일부터, 오늘은 줄이기로. 다음 누름에 사라진다
+      if (k === todayKey()) { calWarn.style.display = 'block'; calWarnNew = true; }
+      return;
+    }
+    if (calMode === 'rpick') {
+      if (calFixedS) tmpE = k;                                     // 이미 시작한 쉬는 날 — 종료만
+      else if (!tmpS || tmpE || k < tmpS) { tmpS = k; tmpE = null; }   // 처음부터 다시 (TK 2026-10-27 — 앞선 날을 누르면 그 날부터)
+      else tmpE = k;                                               // 시작과 같은 날이면 하루
+      renderCal();
+      return;
+    }
     if (calMode !== 'range') { tmpS = k; tmpE = k; renderCal(); return; }  // 하루 고르기
-    if (!tmpS || tmpE) { tmpS = k; tmpE = null; }      // 처음 고르기 / 다시 고르기
-    else if (k < tmpS) { tmpE = tmpS; tmpS = k; }      // 거꾸로 눌렀으면 앞뒤를 바꿈
+    if (!tmpS || tmpE || k < tmpS) { tmpS = k; tmpE = null; }   // 처음 고르기 / 다시 고르기 / 앞선 날이면 그 날부터 다시
     else tmpE = k;                                     // 같은 날을 다시 누르면 하루짜리
     renderCal();
   });
@@ -3340,6 +3404,12 @@
       if (tmpS) schDay = tmpS;
       popLayer();
       renderSched();
+      return;
+    }
+    if (calMode === 'rpick') {     // 쉬는 날: 고른 범위 그대로 (하나만 골랐으면 그 하루)
+      if (ed && tmpS) { ed.rs = tmpS; ed.re = tmpE || tmpS; }
+      popLayer();
+      renderEditor();
       return;
     }
     if (calMode === 'pick') {      // 시작 날짜만 바뀌고 시각·길이는 그대로
@@ -3364,7 +3434,7 @@
   backupBg.addEventListener('click', e => { if (e.target === backupBg) popLayer(); });
 
   document.getElementById('backupSave').addEventListener('click', () => {
-    const data = JSON.stringify({ tasks, nextId, records, taskNames, dayLog, nextItemId, schedules, nextSchedId, goalsSince, runs, hist });
+    const data = JSON.stringify({ tasks, nextId, records, taskNames, dayLog, nextItemId, schedules, nextSchedId, goalsSince, runs, hist, rests, nextRestId });
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const now = new Date();
@@ -3395,6 +3465,8 @@
         if (typeof d.nextItemId === 'number') nextItemId = d.nextItemId;
         // 일정은 할 일 번호에 묶여 있으므로 할 일과 함께 통째로 바뀐다 (옛 백업에는 일정이 없다)
         schedules = Array.isArray(d.schedules) ? d.schedules : [];
+        rests = Array.isArray(d.rests) ? d.rests : [];          // 옛 백업에는 쉬는 날이 없다
+        nextRestId = typeof d.nextRestId === 'number' ? d.nextRestId : (Math.max(0, ...rests.map(x => x.id)) + 1);
         nextSchedId = typeof d.nextSchedId === 'number' ? d.nextSchedId : (Math.max(0, ...schedules.map(x => x.id)) + 1);
         normTasks(tasks);
         // 옛 백업(이 묶음 전)에는 그날 모든 할 일의 목표가 없으므로 날짜 옆 표시는 불러온 날부터
@@ -3648,9 +3720,10 @@
     const prev = addDays(k, -1), out = [];
     schedules.forEach(e => {
       const o = occAt(e, k);
+      if (o && e.taskId != null && isRest(k)) return;     // 쉬는 날에는 할 일 일정을 숨긴다 (일반 일정은 보인다)
       if (o) out.push({ ev: e, date: k, s: o.s, d: o.d, a: o.s, b: Math.min(o.s + o.d, 1440) });
       const p = occAt(e, prev);
-      if (p && p.s + p.d > 1440) out.push({ ev: e, date: prev, s: p.s, d: p.d, a: 0, b: p.s + p.d - 1440 });
+      if (p && !(e.taskId != null && isRest(prev)) && p.s + p.d > 1440) out.push({ ev: e, date: prev, s: p.s, d: p.d, a: 0, b: p.s + p.d - 1440 });
     });
     return out;
   }
@@ -3696,11 +3769,17 @@
       const w = dowOf(k);
       const sel = n === 1 ? k === schDay : k === today;
       const dot = n === 1 && k === today;
-      wh += '<button class="wd' + (w === 0 ? ' sun' : '') + (sel ? ' sel' : '') + (dot ? ' today' : '') +
+      wh += '<button class="wd' + (w === 0 ? ' sun' : '') + (sel ? ' sel' : '') + (dot ? ' today' : '') + (!sel && isRest(k) ? ' rest' : '') +
         '" data-k="' + k + '"><span class="dw">' + DOW_KO[w] + '</span><span class="dn">' + parseKey(k).getDate() + '</span></button>';
     });
     schWeek.innerHTML = wh;
     let h = '';
+    // 쉬는 날 — 일정표 바탕에 빗금 (1일 보기는 전체, 3일·7일은 그 날짜 칸만)
+    days.forEach((k, di) => {
+      if (!isRest(k)) return;
+      h += n === 1 ? '<div class="restBg" style="left:60px;right:0"></div>'
+        : '<div class="restBg" style="left:' + colX(di, n) + ';width:calc((100% - 64px) / ' + n + ')"></div>';
+    });
     for (let i = 0; i < 24; i++) {
       const y = TOP_PX + i * HOUR_PX;
       h += '<div class="hrLbl" style="top:' + (y - 8) + 'px">' + hm(i * 60) + '</div><div class="hrLine" style="top:' + y + 'px"></div>';
@@ -3904,7 +3983,9 @@
     press = p;
     p.timer = setTimeout(() => {
       p.long = true;
-      if (sg) enterX(sg);      // 지난 일정·할 일을 지워 남은 일정도 꾹 눌러 지울 수 있다(고치기는 막음). 빈 칸은 반응 없음
+      if (sg) { enterX(sg); return; }      // 지난 일정·할 일을 지워 남은 일정도 꾹 눌러 지울 수 있다(고치기는 막음)
+      const day = dayAtX(p.x, true), r = day ? restOf(day) : null;
+      if (r) { swallowNextClick(); openRestPop(r); }      // 빗금 바탕 = 쉬는 날 팝업. 그 밖의 빈 칸은 반응 없음
     }, 550);
   });
   schBody.addEventListener('pointermove', e => {
@@ -3939,20 +4020,62 @@
     }
     // 빈 칸: 그 칸의 날짜·정시부터 1시간
     const r = schCanvas.getBoundingClientRect();
-    const days = viewDays();
-    let di = 0;
-    if (days.length > 1) {
-      const x = p.x - r.left - 60;
-      if (x < 0) return;                                    // 시각 칸
-      di = Math.min(days.length - 1, Math.floor(x / ((r.width - 64) / days.length)));
-    }
-    const day = days[di];
+    const day = dayAtX(p.x, false);
+    if (!day) return;                                      // 시각 칸
     if (day < todayKey()) return;                          // 지난 날짜는 보기만
     const hr = Math.min(23, Math.max(0, Math.floor((p.y - r.top - TOP_PX) / HOUR_PX)));
     swallowNextClick();
     openEditor({ mode: 'new', date: day, s: hr * 60 });
   });
   schBody.addEventListener('contextmenu', e => e.preventDefault());
+  // 손가락 x가 어느 날짜 칸인가. 시각 칸이면 null (1일 보기는 strict일 때만 시각 칸을 뺀다)
+  function dayAtX(x, strict){
+    const r = schCanvas.getBoundingClientRect(), days = viewDays();
+    const dx = x - r.left - 60;
+    if (days.length === 1) return strict && dx < 0 ? null : days[0];
+    if (dx < 0) return null;
+    return days[Math.min(days.length - 1, Math.floor(dx / ((r.width - 64) / days.length)))];
+  }
+
+  // ---- 쉬는 날 팝업: 제목 '쉬는 날 (이름)' + 날짜. [삭제]/[오늘부터 삭제] [수정] / [취소] ----
+  const restBg = document.getElementById('restBg');
+  let restCur = null;
+  function restRange(r){ return r.s === r.e ? fmtMDW(r.s) : fmtMDW(r.s) + ' ~ ' + fmtMDW(r.e); }
+  function openRestPop(r){
+    restCur = r;
+    const today = todayKey();
+    document.getElementById('restTitle').textContent = '쉬는 날' + (r.name ? ' (' + r.name + ')' : '');
+    document.getElementById('restDates').textContent = restRange(r);
+    // 이미 지난 쉬는 날은 보기만 (지난 판정을 바꾸지 않는다)
+    document.getElementById('restAct').style.display = r.e < today ? 'none' : 'flex';
+    document.getElementById('restDel').textContent = r.s <= today ? '오늘부터 삭제' : '삭제';
+    restBg.style.display = 'flex';
+    pushLayer(closeRestPop);
+  }
+  function closeRestPop(){ restBg.style.display = 'none'; }
+  document.getElementById('restNo').addEventListener('click', popLayer);
+  restBg.addEventListener('click', e => { if (e.target === restBg) popLayer(); });
+  // 삭제 — 이미 시작했으면 오늘부터만 지운다. 이미 지난 날은 남는다
+  document.getElementById('restDel').addEventListener('click', () => {
+    const r = restCur, today = todayKey();
+    if (!r) return;
+    if (r.s <= today) {
+      const y = addDays(today, -1);
+      if (y < r.s) { rests = rests.filter(x => x !== r); logHist({ k: 'rest-', i: r.id, n: r.name, s: r.s, e: r.e }); }
+      else { logHist({ k: 'rest~', i: r.id, from: { n: r.name, s: r.s, e: r.e }, to: { n: r.name, s: r.s, e: y } }); r.e = y; }
+    } else {
+      rests = rests.filter(x => x !== r);
+      logHist({ k: 'rest-', i: r.id, n: r.name, s: r.s, e: r.e });
+    }
+    save();
+    popLayer();
+    whenSettled(renderSched);
+  });
+  document.getElementById('restEdit').addEventListener('click', () => {
+    const r = restCur;
+    popLayer();
+    whenSettled(() => { if (r) openEditor({ mode: 'editRest', rest: r }); });
+  });
 
   function enterX(sg){
     swallowNextClick();
@@ -4075,7 +4198,11 @@
     return o;
   }
   function openEditor(o){
-    if (o.mode === 'new') {
+    if (o.mode === 'editRest') {
+      const r = o.rest;
+      ed = { mode: 'editRest', rest: true, restId: r.id, taskId: null, name: r.name || '', rs: r.s, re: r.e,
+             started: r.s <= todayKey(), date: r.s, s: 0, d: 60, rule: 'none', days: [], per: false, times: {} };
+    } else if (o.mode === 'new') {
       ed = { mode: 'new', taskId: null, name: '', date: o.date, s: o.s, d: 60,
              rule: 'none', days: [], per: false, times: {} };
     } else {
@@ -4091,6 +4218,7 @@
     }
     edName.value = ed.name;
     edTitle.textContent = ed.mode === 'new' ? '새 일정' : '일정 수정';
+    edMsg.style.display = 'none';
     schedView.classList.remove('active');
     edView.classList.add('active');
     edBody.scrollTop = 0;
@@ -4245,19 +4373,37 @@
 
   function renderEditor(){
     if (!ed) return;
-    // 무엇을
+    // 무엇을 — 할 일 캡슐들, 새 일정이면 맨 끝에 [쉬는 날]. 쉬는 날을 고치는 화면은 [쉬는 날] 하나뿐
     edCaps.innerHTML = '';
-    tasks.forEach(t => {
+    if (ed.mode !== 'editRest') tasks.forEach(t => {
       const b = document.createElement('button');
-      b.className = 'cap' + (ed.taskId === t.id ? ' on' : '');
+      b.className = 'cap' + (!ed.rest && ed.taskId === t.id ? ' on' : '');
       b.textContent = t.name;
       b.addEventListener('click', () => {      // 캡슐을 고르면 입력칸이 빈다
-        ed.taskId = t.id; ed.name = ''; edName.value = '';
+        ed.rest = false; ed.taskId = t.id; ed.name = ''; edName.value = '';
         edName.blur();
         renderEditor();
       });
       edCaps.appendChild(b);
     });
+    if (ed.mode === 'new' || ed.mode === 'editRest') {
+      const b = document.createElement('button');
+      b.className = 'cap rest' + (ed.rest ? ' on' : '');
+      b.textContent = '쉬는 날';
+      b.addEventListener('click', () => {
+        if (ed.rest) return;
+        // 쉬는 날은 내일부터만 — 시작 날짜가 오늘이면 내일로 (화면에 글자는 없다)
+        const tm = addDays(todayKey(), 1);
+        ed.rest = true; ed.taskId = null;
+        ed.rs = ed.date < tm ? tm : ed.date; ed.re = ed.rs;
+        renderEditor();
+      });
+      edCaps.appendChild(b);
+    }
+    edName.placeholder = ed.rest ? '이름 입력 (예: 추석 연휴)' : '이름 직접 입력';
+    document.getElementById('edTimeLbl').textContent = ed.rest ? '날짜' : '시간';
+    document.getElementById('edRepCard').style.display = ed.rest ? 'none' : '';
+    if (ed.rest) { renderRestDates(); return; }
     edName.classList.toggle('has', !!edName.value);
     // 반복
     const weekly = ed.rule === 'weekly';
@@ -4309,11 +4455,53 @@
     edSave.classList.toggle('off', !ed.canSave);
   }
 
-  // 입력칸에 쓰면 캡슐 선택이 풀린다
+  // 쉬는 날의 날짜 카드 — 시작·종료 날짜 칸 둘 (이미 시작한 쉬는 날이면 시작은 글자로만). 겹치는 쉬는 날이 있으면 저장 회색 + 안내 칸
+  function restOverlap(){ return rests.find(r => r.id !== ed.restId && r.s <= ed.re && ed.rs <= r.e) || null; }
+  function renderRestDates(){
+    edName.classList.toggle('has', !!edName.value);
+    edPer.style.display = 'none';
+    const ov = restOverlap();
+    edTimes.innerHTML = '';
+    const sBox = ed.started ? (() => { const sp = document.createElement('span'); sp.className = 'tPlain'; sp.textContent = fmtMDW(ed.rs); return sp; })()
+      : restDateBox(fmtMDW(ed.rs), !!ov, 's');
+    edTimes.appendChild(tRow('시작', sBox));
+    edTimes.appendChild(tRow('종료', restDateBox(fmtMDW(ed.re), !!ov, 'e')));
+    if (ov) setMsg(edMsg, '이미 쉬는 날이 있어요', '(' + (ov.s === ov.e ? fmtMD(ov.s) : fmtMD(ov.s) + ' ~ ' + fmtMD(ov.e)) + ')');
+    edMsg.style.display = ov ? 'block' : 'none';
+    ed.canSave = !ov;                                  // 이름은 비워도 저장된다
+    edSave.classList.toggle('off', !ed.canSave);
+  }
+  function restDateBox(text, bad, which){
+    const b = document.createElement('button');
+    b.className = 'tBtn' + (bad ? ' bad' : '');
+    b.textContent = text;
+    b.addEventListener('click', () => openRestCal(which));
+    return b;
+  }
+  // 날짜 캘린더 — 쉬는 날은 시작·종료를 한 달력에서 고른다(시작 칸·종료 칸 어느 쪽을 눌러도 같다).
+  // 오늘·지난 날은 회색. 이미 시작한 쉬는 날은 시작이 고정되고 종료는 오늘부터
+  let calMin = null, calFixedS = false;
+  function openRestCal(which){
+    if (!ed) return;
+    calMode = 'rpick';
+    calFixedS = !!ed.started;
+    calMin = calFixedS ? todayKey() : addDays(todayKey(), 1);
+    tmpS = ed.rs;
+    tmpE = ed.re;            // 다 골라진 상태로 연다 — 처음 누르는 날부터 새로 고른다
+    const d = parseKey(which === 'e' ? ed.re : ed.rs);
+    calY = d.getFullYear(); calM = d.getMonth();
+    calWarn.style.display = 'none';
+    calBg.style.display = 'flex';
+    renderCal();
+    pushLayer(closeCal);
+  }
+
+  // 입력칸에 쓰면 캡슐 선택이 풀린다 (쉬는 날은 이름을 써도 그대로)
   edName.addEventListener('input', () => {
     if (!ed) return;
     ed.name = edName.value;
     if (edName.value.trim()) ed.taskId = null;
+    if (ed.rest) { edName.classList.toggle('has', !!edName.value); return; }
     renderEditor();
   });
   edName.addEventListener('keydown', e => { if (e.key === 'Enter') edName.blur(); });
@@ -4367,6 +4555,22 @@
   }
   edSave.addEventListener('click', () => {
     if (!ed || !ed.canSave) return;
+    if (ed.rest) {
+      const nm = ed.name.trim();
+      if (ed.mode === 'editRest') {
+        const r = rests.find(x => x.id === ed.restId);
+        if (r) {
+          const from = { n: r.name, s: r.s, e: r.e }, to = { n: nm, s: ed.rs, e: ed.re };
+          if (JSON.stringify(from) !== JSON.stringify(to)) { logHist({ k: 'rest~', i: r.id, from: from, to: to }); r.name = nm; r.s = ed.rs; r.e = ed.re; }
+        }
+      } else {
+        const r = { id: nextRestId++, name: nm, s: ed.rs, e: ed.re };
+        rests.push(r);
+        logHist({ k: 'rest+', i: r.id, n: nm, s: r.s, e: r.e });
+        if (viewDays().indexOf(r.s) < 0) schDay = r.s;      // 만든 쉬는 날이 보이게
+      }
+      save(); popLayer(); return;
+    }
     if (ed.mode === 'new') {
       const n = addSched(draftSeries());
       // 새 일정이 화면에 보이게: 첫 발생일이 지금 보기에 없으면 그 날로 옮기고, 그 시간대로 스크롤
