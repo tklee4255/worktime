@@ -159,7 +159,13 @@
   #calBox .dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
   #calBox .dow div{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
   #calBox .dow div:first-child{color:#D9705F;}
-  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);}
+  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);touch-action:pan-y;}      /* 좌우로 밀면 앞뒤 달 */
+  /* 기간을 고를 때 — 위 줄에 [시작] ~ [종료]. 지금 고르는 쪽이 진한 글자 + 호박 밑줄, 눌러서 바꾼다 (예약 달력과 같은 방식) */
+  #calPick .pk{display:inline-block;padding:2px 2px 3px;border-bottom:2px solid transparent;cursor:pointer;}
+  #calPick .pk.on{color:var(--text);font-weight:700;border-bottom-color:var(--run);}
+  #calPick .pk.ph{color:#B4BCC5;}
+  #calPick .pk.fixed{cursor:default;}
+  #calPick .tl{margin:0 6px;}
   #calGrid .cell{
     position:relative;height:42px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
@@ -213,7 +219,7 @@
   .acDow{display:grid;grid-template-columns:repeat(7,1fr);}
   .acDow div{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
   .acDow div:first-child{color:#D9705F;}
-  #acGrid{display:grid;grid-template-columns:repeat(7,1fr);}
+  #acGrid{display:grid;grid-template-columns:repeat(7,1fr);touch-action:pan-y;}
   .ac{position:relative;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .ac .sq{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
   .ac.full .sq{width:28px;height:28px;border-radius:7px;background:var(--run);}
@@ -1186,7 +1192,7 @@
   // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
   const STORAGE_KEY = 'sunwork-v1';
   // 개발 중에만 — 이 index.html의 판 번호. sw.js의 캐시 이름(sunwork-vN)과 늘 같게 올린다. 앱을 공개할 때 없앤다
-  const APP_VER = 'v71';
+  const APP_VER = 'v72';
   let tasks = [{ id: 1, name: '할 일' }];
   let nextId = 2;
   let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
@@ -3117,6 +3123,7 @@
   document.getElementById('acPrev').addEventListener('click', () => { recM--; if (recM < 0) { recM = 11; recY--; } renderRecords(); });
   document.getElementById('acNext').addEventListener('click', () => { recM++; if (recM > 11) { recM = 0; recY++; } renderRecords(); });
   // 달성 캘린더의 칸을 누르면 아래 날짜별 막대의 그 날짜 줄로
+  bindMonthSwipe(acGrid, d => { recM += d; if (recM < 0) { recM = 11; recY--; } if (recM > 11) { recM = 0; recY++; } renderRecords(); });
   acGrid.addEventListener('click', e => {
     const c = e.target.closest('.ac');
     if (!c || !c.dataset.k) return;
@@ -3307,7 +3314,8 @@
   const calGrid = document.getElementById('calGrid');
   let tmpS = null, tmpE = null;    // 캘린더에서 고르는 중인 기간
   let calY = 0, calM = 0;          // 지금 보고 있는 달
-  let calMode = 'range';           // 'range' = 기록의 기간 / 'day' = 일정 탭에서 볼 날 / 'pick' = 새 일정·수정의 날짜(지난 날 못 고름)
+  let calMode = 'range';
+  let calMin = null, calFixedS = false;     // 쉬는 날 달력: 고를 수 있는 첫날, 이미 시작해 시작이 고정인가           // 'range' = 기록의 기간 / 'day' = 일정 탭에서 볼 날 / 'pick' = 새 일정·수정의 날짜(지난 날 못 고름)
 
   function fmtDot(key){ return key.replace(/-/g, '.'); }
   function keyOf(y, m, d){
@@ -3317,6 +3325,8 @@
 
   function openCal(){
     calMode = 'range';
+    calFixedS = false;
+    calFocus = 's';
     tmpS = rangeS; tmpE = rangeE;
     const now = new Date();
     if (tmpS) {
@@ -3333,9 +3343,13 @@
 
   function renderCal(){
     calMon.textContent = calY + '년 ' + (calM + 1) + '월';
-    if (calMode === 'rpick') calPick.textContent = tmpS ? (tmpE && tmpE !== tmpS ? fmtMDW(tmpS) + ' ~ ' + fmtMDW(tmpE) : fmtMDW(tmpS)) : '';
-    else if (calMode !== 'range') calPick.textContent = tmpS ? fmtMDW(tmpS) : '';
-    else calPick.textContent = tmpS ? (fmtDot(tmpS) + ' ~ ' + fmtDot(tmpE || tmpS)) : '~';
+    if (calMode === 'rpick' || calMode === 'range') {
+      const f = calMode === 'rpick' ? fmtMDW : fmtDot;
+      const part = (w, v, ph) => '<span class="pk' + (calFocus === w ? ' on' : '') + (v ? '' : ' ph') + (w === 's' && calFixedS ? ' fixed' : '') +
+        '" data-f="' + w + '">' + (v ? f(v) : ph) + '</span>';
+      calPick.innerHTML = part('s', tmpS, '시작') + '<span class="tl">~</span>' + part('e', tmpE, '종료');
+    }
+    else calPick.textContent = tmpS ? fmtMDW(tmpS) : '';
     if (calMode !== 'rpick') calWarn.style.display = 'none';
     const firstDow = new Date(calY, calM, 1).getDay();
     const lastDate = new Date(calY, calM + 1, 0).getDate();
@@ -3367,6 +3381,42 @@
     if (calWarnNew) { calWarnNew = false; return; }
     calWarn.style.display = 'none';
   });
+  // 기간 고르기 — 항공권·숙소 예약 달력(에어비앤비 react-dates)과 같은 규칙. 지금 고르는 쪽(calFocus)이 있다
+  //  시작을 고를 때: 누른 날 = 시작. 종료가 그보다 앞이면 종료를 비운다. 그다음은 종료를 고른다
+  //  종료를 고를 때: 시작 이후(같은 날 포함)면 종료, 시작보다 앞이면 그 날이 새 시작(종료는 비움, 계속 종료를 고른다)
+  //  종료를 고른 뒤에는 다시 시작을 고른다. 이미 시작한 쉬는 날은 시작이 고정 — 늘 종료를 고른다
+  let calFocus = 's';
+  function pickRange(k){
+    if (calFixedS) { tmpE = k; return; }
+    if (calFocus === 's') {
+      tmpS = k;
+      if (tmpE && tmpE < k) tmpE = null;
+      calFocus = 'e';
+    } else if (!tmpS || k < tmpS) { tmpS = k; tmpE = null; }
+    else { tmpE = k; calFocus = 's'; }
+  }
+  // 위 줄의 [시작]·[종료]를 누르면 고르는 쪽을 바꾼다
+  calPick.addEventListener('click', e => {
+    const p = e.target.closest('.pk');
+    if (!p || calFixedS || (calMode !== 'range' && calMode !== 'rpick')) return;
+    calFocus = p.dataset.f;
+    renderCal();
+  });
+  // 좌우로 밀면 앞뒤 달 — 모든 달력 (날짜·기간 캘린더, 기록 화면의 달성 캘린더)
+  function bindMonthSwipe(el, go){
+    let sw = null, swiped = false;
+    el.addEventListener('pointerdown', e => { sw = { x: e.clientX, y: e.clientY }; swiped = false; });
+    el.addEventListener('pointerup', e => {
+      if (!sw) return;
+      const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+      sw = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) { swiped = true; go(dx < 0 ? 1 : -1); }
+    });
+    el.addEventListener('pointercancel', () => { sw = null; });
+    // 민 뒤에 따라오는 누름은 날짜를 고르지 않는다
+    el.addEventListener('click', e => { if (swiped) { swiped = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  }
+  bindMonthSwipe(calGrid, d => { calM += d; if (calM < 0) { calM = 11; calY--; } if (calM > 11) { calM = 0; calY++; } renderCal(); });
   calGrid.addEventListener('click', ev => {
     const cell = ev.target.closest('.cell');
     if (!cell || !cell.dataset.k) return;
@@ -3377,16 +3427,8 @@
       if (k === todayKey()) { calWarn.style.display = 'block'; calWarnNew = true; }
       return;
     }
-    if (calMode === 'rpick') {
-      if (calFixedS) tmpE = k;                                     // 이미 시작한 쉬는 날 — 종료만
-      else if (!tmpS || tmpE || k < tmpS) { tmpS = k; tmpE = null; }   // 처음부터 다시 (TK 2026-10-27 — 앞선 날을 누르면 그 날부터)
-      else tmpE = k;                                               // 시작과 같은 날이면 하루
-      renderCal();
-      return;
-    }
-    if (calMode !== 'range') { tmpS = k; tmpE = k; renderCal(); return; }  // 하루 고르기
-    if (!tmpS || tmpE || k < tmpS) { tmpS = k; tmpE = null; }   // 처음 고르기 / 다시 고르기 / 앞선 날이면 그 날부터 다시
-    else tmpE = k;                                     // 같은 날을 다시 누르면 하루짜리
+    if (calMode !== 'range' && calMode !== 'rpick') { tmpS = k; tmpE = k; renderCal(); return; }  // 하루 고르기
+    pickRange(k);
     renderCal();
   });
   document.getElementById('calPrev').addEventListener('click', () => {
@@ -4480,14 +4522,14 @@
   }
   // 날짜 캘린더 — 쉬는 날은 시작·종료를 한 달력에서 고른다(시작 칸·종료 칸 어느 쪽을 눌러도 같다).
   // 오늘·지난 날은 회색. 이미 시작한 쉬는 날은 시작이 고정되고 종료는 오늘부터
-  let calMin = null, calFixedS = false;
   function openRestCal(which){
     if (!ed) return;
     calMode = 'rpick';
     calFixedS = !!ed.started;
     calMin = calFixedS ? todayKey() : addDays(todayKey(), 1);
     tmpS = ed.rs;
-    tmpE = ed.re;            // 다 골라진 상태로 연다 — 처음 누르는 날부터 새로 고른다
+    tmpE = ed.re;
+    calFocus = calFixedS ? 'e' : which;    // 시작 칸을 눌렀으면 시작부터, 종료 칸을 눌렀으면 종료부터 고른다
     const d = parseKey(which === 'e' ? ed.re : ed.rs);
     calY = d.getFullYear(); calM = d.getMonth();
     calWarn.style.display = 'none';
@@ -4833,6 +4875,7 @@
   // ---- 제목의 달 → 기존 기간 캘린더를 하루 고르기로 ----
   function openDayCal(){
     calMode = 'day';
+    calFixedS = false;
     tmpS = schDay; tmpE = schDay;
     const d = parseKey(schDay);
     calY = d.getFullYear(); calM = d.getMonth();
