@@ -624,11 +624,29 @@
   #todayChkList{list-style:none;overflow-y:auto;min-height:0;flex:1 1 auto;}
   #todayChkList .grp{font-size:13px;color:var(--muted);margin:12px 0 2px;padding:0 4px;cursor:default;}
   #todayChkList li{padding:9px 4px;}
-  #todayChkClose, #goalPopClose{
-    flex:0 0 auto;margin-top:14px;padding:12px 0;border-radius:10px;cursor:pointer;
-    background:none;color:var(--muted);border:1px solid var(--circle-edge);
-    font-size:15px;font-weight:500;font-family:inherit;
-  }
+  /* 막대 팝업 아래 버튼 줄 — 평소 [닫기] [오늘만 줄이기], 오늘만 줄이기 모드 [취소] [완료] */
+  .popBtns{flex:0 0 auto;margin-top:14px;}
+  .pBtn.cut{background:#fff;border:1.5px solid var(--run);color:var(--run-deep);font-weight:700;}
+  /* 오늘만 줄이기 모드 — 목표시간: 오늘 목표 칸(100px 고정, 누르면 시간 설정 팝업), 줄인 줄은 왼쪽에 원래 값 가운데줄 */
+  .cutBox{flex:0 0 100px;width:100px;font-size:15px;color:var(--text);background:var(--bg);border:1px solid var(--circle-edge);border-radius:8px;
+    padding:6px 0;text-align:center;font-family:inherit;cursor:pointer;font-variant-numeric:tabular-nums;}
+  .cutOld{font-size:13px;color:#B4BCC5;text-decoration:line-through;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .gpRight2{flex:0 0 auto;display:flex;align-items:center;gap:6px;}
+  #goalPopList .gpTop{align-items:center;}
+  /* 오늘만 줄이기 모드 — 체크리스트: 항목 이름 칸(눌러서 오늘만 고치기) + [오늘만 빼기] 88px */
+  #todayChkList li.cutLi{gap:8px;padding:4px;cursor:default;}
+  .cutTile{flex:1 1 auto;min-width:0;background:var(--bg);border-radius:8px;padding:8px 10px;font-size:15px;cursor:pointer;
+    display:flex;align-items:baseline;gap:6px;white-space:nowrap;overflow:hidden;}
+  .cutTile .nw{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .cutTile .old{flex:0 100 auto;min-width:0;font-size:12px;color:#B4BCC5;text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;}
+  .cutTile.edited .nw{flex:0 0 auto;}
+  li.cutLi.off .cutTile{color:#B4BCC5;cursor:default;}
+  .cutTile input{flex:1 1 auto;min-width:0;border:none;background:none;outline:none;font-family:inherit;font-size:15px;color:var(--text);padding:0;}
+  .skBtn{flex:0 0 88px;width:88px;font-size:13px;font-family:inherit;border-radius:20px;padding:4px 0;cursor:pointer;
+    background:#fff;border:1px solid var(--run);color:var(--run-deep);}
+  .skBtn.back{border-color:var(--circle-edge);color:var(--muted);}
+  .skBtn.dis{background:#ECEEF1;border-color:#ECEEF1;color:#B4BCC5;cursor:default;}
+  #todayChkList li.cutWarn{display:block;padding:0;margin:2px 4px 4px;cursor:default;}
   /* 목표시간 막대 팝업 — 줄마다 이름 · 남은 시간, 아래 작은 막대 */
   #goalPopList{list-style:none;overflow-y:auto;min-height:0;flex:1 1 auto;margin-top:4px;}
   .gpRow{padding:10px 4px;display:flex;flex-direction:column;gap:7px;}
@@ -666,10 +684,33 @@
     position:relative;flex:0 0 auto;text-align:center;padding:28px 20px 16px;line-height:32px;
   }
   #schMonth{
-    background:none;border:none;font-family:inherit;font-size:20px;font-weight:700;letter-spacing:1px;
-    color:var(--text);padding:0 4px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;line-height:32px;
+    position:relative;background:none;border:none;font-family:inherit;font-size:20px;font-weight:700;letter-spacing:1px;
+    color:var(--text);padding:0;display:inline-block;cursor:pointer;line-height:32px;
   }
-  #schMonth .caret{font-size:13px;color:var(--muted);}
+  #schMonth .caret{position:absolute;left:100%;top:0;margin-left:6px;font-size:13px;font-weight:400;color:var(--muted);}
+  #wgOpen{position:absolute;top:28px;left:12px;height:32px;padding:0 8px;background:none;border:none;font-family:inherit;
+    font-size:15px;color:var(--muted);cursor:pointer;line-height:32px;}
+  /* ===== 요일별 목표 화면 — 보기만. 목표시간 표(h:mm) + 체크리스트 표(요일 점) ===== */
+  #weekGoal{flex-direction:column;}
+  #wgHead{position:relative;flex:0 0 auto;text-align:center;padding:28px 20px 12px;font-size:20px;font-weight:700;letter-spacing:1px;}
+  #wgBack{position:absolute;top:22px;left:14px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:8px 10px;font-family:inherit;font-weight:400;letter-spacing:0;}
+  #wgBody{flex:1 1 auto;min-height:0;overflow-y:auto;padding:0 0 24px;max-width:520px;width:100%;margin:0 auto;}
+  .wcard{background:#fff;border:1px solid var(--circle-edge);border-radius:14px;margin:0 12px 12px;padding:8px 8px 4px;}
+  .wcard .ct{font-size:13px;color:var(--muted);font-weight:500;padding:2px 4px 4px;}
+  .wtab{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums;}
+  .wtab th{font-size:11px;color:var(--muted);font-weight:400;padding:9px 0 4px;text-align:center;position:relative;}
+  .wtab th.sun{color:#D9705F;}
+  .wtab th.td{color:var(--text);font-weight:700;}
+  .wtab th.td::before{content:'';position:absolute;top:2px;left:50%;margin-left:-2px;width:4px;height:4px;border-radius:50%;background:var(--muted);}
+  .wtab td{font-size:12px;text-align:center;padding:5px 0;border-top:1px solid var(--bg);line-height:16px;}
+  .wtab td.b{font-weight:700;}
+  .wtab td.n{text-align:left;padding-left:4px;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wtab td.it{text-align:left;padding-left:10px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wtab td.z{color:#D2D8DF;}
+  .wtab tr.grpr td{border-top:1px solid var(--circle-edge);font-size:11px;color:var(--muted);text-align:left;padding:7px 4px 1px;}
+  .wtab tr.sum td{border-top:1px solid var(--circle-edge);font-weight:700;color:var(--run-deep);}
+  .wtab .dot6{display:inline-block;width:6px;height:6px;border-radius:50%;background:#2E9E5B;}
+  #wgEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
   /* 날짜 줄 — 좌우로 밀면 주가 바뀌므로 가로 손짓은 앱이 받는다 */
   #schWeek{
     flex:0 0 auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
@@ -716,7 +757,7 @@
   .colLine{position:absolute;top:0;bottom:0;border-left:1px solid var(--circle-edge);pointer-events:none;}
   /* 보기 바꾸기 [1일·3일·7일] */
   #schSeg{
-    position:absolute;top:28px;right:14px;width:120px;height:32px;box-sizing:border-box;padding:1px;
+    position:absolute;top:28px;right:14px;width:108px;height:32px;box-sizing:border-box;padding:1px;
     display:flex;gap:2px;background:#fff;border:1px solid var(--circle-edge);border-radius:10px;
   }
   #schSeg button{
@@ -810,10 +851,12 @@
   /* 종료 날짜는 앱이 정하는 값이라 누를 수 없다 — 칸 없이 회색 글자 (시작 날짜 칸과 줄을 맞춤) */
   .tPlain{font-size:16px;color:var(--muted);padding:9px 12px;border:1px solid transparent;font-variant-numeric:tabular-nums;white-space:nowrap;}
   /* 안내 칸 — 막힌 그 순간에만. 연한 빨강 바탕, 마침표 없음, 두 줄까지 (11-6) */
-  #edMsg, #repWhy, #calWarn{background:#FCEBEB;color:var(--danger);font-size:13px;font-weight:500;line-height:1.5;
+  #edMsg, #repWhy, #calWarn, #tpWarn, .warnBox{background:#FCEBEB;color:var(--danger);font-size:13px;font-weight:500;line-height:1.5;
     border-radius:8px;padding:8px 10px;text-align:center;word-break:keep-all;display:none;}
   #edMsg{margin-top:10px;}
   #calWarn{margin-top:10px;}
+  #tpWarn{margin-top:12px;}
+  .warnBox{display:block;}
   .nw{white-space:nowrap;}
   #edFreq{display:flex;gap:8px;}
   #edDays{margin-top:12px;display:none;justify-content:space-between;touch-action:pan-y;}
@@ -994,10 +1037,20 @@
 
 <!-- 일정 화면 -->
 <div id="sched" class="view">
-  <div id="schHead"><button id="schMonth"><span id="schMonthTxt"></span><span class="caret">▾</span></button><div id="schSeg"><button data-v="1">1일</button><button data-v="3">3일</button><button data-v="7">7일</button></div></div>
+  <div id="schHead"><button id="wgOpen">요일별 목표</button><button id="schMonth"><span id="schMonthTxt"></span><span class="caret">▾</span></button><div id="schSeg"><button data-v="1">1일</button><button data-v="3">3일</button><button data-v="7">7일</button></div></div>
   <div id="schWeek"></div>
   <div id="schBody"><div id="schCanvas"></div></div>
   <button id="schAdd" aria-label="일정 만들기">+</button>
+</div>
+
+<!-- 요일별 목표 화면 (일정 화면 머리줄 왼쪽 [요일별 목표]) — 보기만 -->
+<div id="weekGoal" class="view">
+  <div id="wgHead"><button id="wgBack">← 뒤로가기</button>요일별 목표</div>
+  <div id="wgBody">
+    <div class="wcard" id="wgGoalCard"><div class="ct">목표시간</div><table class="wtab" id="wgGoal"></table></div>
+    <div class="wcard" id="wgChkCard"><div class="ct">체크리스트</div><table class="wtab" id="wgChk"></table></div>
+    <div id="wgEmpty">아직 정한 목표가 없어요</div>
+  </div>
 </div>
 
 <!-- 새 일정 / 일정 수정 화면 -->
@@ -1106,7 +1159,8 @@
   <div id="todayChkBox">
     <div class="tTitle">오늘 체크리스트</div>
     <ul id="todayChkList"></ul>
-    <button id="todayChkClose">닫기</button>
+    <div class="pRow popBtns" id="chkBtns"><button class="pBtn no" id="todayChkClose">닫기</button><button class="pBtn cut" id="chkCutOpen">오늘만 줄이기</button></div>
+    <div class="pRow popBtns" id="chkCutBtns" style="display:none"><button class="pBtn no" id="chkCutNo">취소</button><button class="pBtn go" id="chkCutOk">완료</button></div>
   </div>
 </div>
 
@@ -1124,7 +1178,8 @@
   <div id="goalPopBox">
     <div class="tTitle">오늘 목표시간</div>
     <ul id="goalPopList"></ul>
-    <button id="goalPopClose">닫기</button>
+    <div class="pRow popBtns" id="goalBtns"><button class="pBtn no" id="goalPopClose">닫기</button><button class="pBtn cut" id="goalCutOpen">오늘만 줄이기</button></div>
+    <div class="pRow popBtns" id="goalCutBtns" style="display:none"><button class="pBtn no" id="goalCutNo">취소</button><button class="pBtn go" id="goalCutOk">완료</button></div>
   </div>
 </div>
 
@@ -1171,6 +1226,7 @@
       <div class="tpHit" id="tpHitH"></div><div class="tpHit" id="tpHitM"></div>
       <input id="tpInput" inputmode="numeric" maxlength="2" autocomplete="off" aria-label="직접 입력">
     </div>
+    <div id="tpWarn"></div>
     <div class="pRow" style="margin-top:16px"><button class="pBtn no" id="tpNo">취소</button><button class="pBtn go" id="tpOk">확인</button></div>
   </div>
 </div>
@@ -1192,7 +1248,7 @@
   // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
   const STORAGE_KEY = 'sunwork-v1';
   // 개발 중에만 — 이 index.html의 판 번호. sw.js의 캐시 이름(sunwork-vN)과 늘 같게 올린다. 앱을 공개할 때 없앤다
-  const APP_VER = 'v72';
+  const APP_VER = 'v73';
   let tasks = [{ id: 1, name: '할 일' }];
   let nextId = 2;
   let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
@@ -1211,6 +1267,8 @@
   // 쉬는 날 — { id, name, s:'YYYY-MM-DD', e:'YYYY-MM-DD' }. 그날은 목표도 항목도 없다(기록은 된다). 내일부터만 정한다
   let rests = [];
   let nextRestId = 1;
+  // 오늘만 줄이기 — { 'YYYY-MM-DD': { 할 일: { g: 줄인 목표(ms), skip: [뺀 항목], txt: { 항목: 오늘 이름 } } } }. 그날만 쓰이고 다음 날은 원래대로
+  let cuts = {};
   // 이 날부터 앱을 쓴 날에는 모든 할 일의 목표·항목을 그날 기록(dayLog)에 남긴다 — 기록 화면 날짜 옆 표시의 판정 근거.
   // 그 전 날에는 누르지 않은 할 일의 목표가 없어 판정하지 않는다
   let goalsSince = null;
@@ -1222,6 +1280,7 @@
   //  { ts, k:'item+', t, i, x, d, w } / { ts, k:'item-', t, i }   체크리스트 항목 추가·삭제 (w = 요일 항목의 요일, 없으면 생략)
   //  { ts, k:'item~', t, i, from, to }            항목의 반복 수정 — 'none'(반복 안 함) · 'daily' · 요일 배열(0=일 … 6=토)
   //  { ts, k:'rec-', t, d, ms }                   기록 화면에서 그 할 일의 그날(d) 시간을 삭제 (ms = 지운 시간)
+  //  { ts, k:'cut', t, d, from, to }             오늘만 줄이기 — 그날(d) 그 할 일의 {g, skip, txt} 바뀌기 전·후 (없으면 null)
   //  { ts, k:'rest+', i, n, s, e } / { ts, k:'rest~', i, from:{n,s,e}, to:{n,s,e} } / { ts, k:'rest-', i, n, s, e }   쉬는 날 만들기·수정·삭제
   let hist = [];
   // 화면에 보이지만 기록 중인 할 일(focusId)이 아닌 것 — 체크리스트 화면의 할 일, 또는 체크리스트 전용에서
@@ -1260,7 +1319,7 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         tasks, nextId, records, taskNames, focusId, runningSince, dayLog, nextItemId,
-        schedules, nextSchedId, schView, goalsSince, runs, hist, rests, nextRestId,
+        schedules, nextSchedId, schView, goalsSince, runs, hist, rests, nextRestId, cuts,
         showFocus, cleaned_v6: true, migrated_doneDate: true
       }));
     } catch(e) { /* 저장 불가 환경: 메모리 모드 */ }
@@ -1281,6 +1340,7 @@
       if (Array.isArray(d.schedules)) schedules = d.schedules;
       if (Array.isArray(d.rests)) rests = d.rests;
       if (typeof d.nextRestId === 'number') nextRestId = d.nextRestId;
+      if (d.cuts && typeof d.cuts === 'object') cuts = d.cuts;
       if (typeof d.nextSchedId === 'number') nextSchedId = d.nextSchedId;
       if ([1, 3, 7].indexOf(d.schView) >= 0) schView = d.schView;
       if (typeof d.goalsSince === 'string') goalsSince = d.goalsSince;
@@ -1405,10 +1465,13 @@
   // 쉬는 날 — 그 날을 덮는 쉬는 날(없으면 null)
   function restOf(k){ return rests.find(r => r.s <= k && k <= r.e) || null; }
   function isRest(k){ return !!restOf(k); }
-  function goalOn(t, key){
+  function cutOf(k, id){ return (cuts[k] && cuts[k][id]) || null; }
+  // raw = 오늘만 줄이기를 빼고 본 원래 목표
+  function goalOn(t, key, raw){
     if (!t || t.noTimer || isRest(key)) return 0;           // 쉬는 날에는 목표가 없다
-    if (Array.isArray(t.goalDow)) return t.goalDow[dowOf(key)] || 0;
-    return t.goalMs || 0;
+    const base = Array.isArray(t.goalDow) ? (t.goalDow[dowOf(key)] || 0) : (t.goalMs || 0);
+    const c = raw ? null : cutOf(key, t.id);
+    return c && c.g != null && base ? Math.min(c.g, base) : base;
   }
   function goalNow(t){ return goalOn(t, todayKey()); }
   // 어느 요일이든 목표가 정해져 있는가 (값만 보관 중인 체크리스트 전용은 제외)
@@ -1502,7 +1565,15 @@
   // 오늘 보여줄 체크리스트
   //  - 매일 항목: 항상 / 요일 항목: 그 요일에만 (둘 다 미뤄지지 않는다)
   //  - 반복 안 함 항목: 완료 전까지 계속 (완료하면 다음 날부터 사라짐)
-  function todayItems(t){
+  // 오늘 화면의 항목 — 오늘만 뺀 항목은 빠지고, 오늘만 고친 이름으로 보인다 (raw = 줄이기 전)
+  function todayItems(t, raw){
+    const list = todayItemsRaw(t);
+    const c = raw ? null : cutOf(todayKey(), t.id);
+    if (!c) return list;
+    return list.filter(it => !(c.skip || []).some(x => String(x) === String(it.id)))
+      .map(it => c.txt && c.txt[it.id] ? Object.assign({}, it, { text: c.txt[it.id] }) : it);
+  }
+  function todayItemsRaw(t){
     const k = todayKey(), w = dowOf(k);
     if (isRest(k)) return [];                     // 쉬는 날에는 항목이 없다 (반복 안 함 항목은 다음 날로 넘어간다)
     const list = (t.checklist || []).filter(it => {
@@ -1639,17 +1710,23 @@
   }
 
   // ---- 체크리스트 막대 팝업: 체크리스트 막대를 누르면 오늘의 항목 전부를 할 일마다 묶어 보여 주고 바로 체크한다 ----
+  // 아래 [닫기] [오늘만 줄이기] — 오늘만 줄이기 모드에서는 안 한 항목의 이름을 오늘만 고치거나 오늘만 뺀다([완료]를 눌러야 반영)
   const todayChkBg = document.getElementById('todayChkBg');
   const todayChkList = document.getElementById('todayChkList');
+  let cutMode = null;        // null | 'goal' | 'chk' — 오늘만 줄이기 모드
+  let cutDraft = null;       // { g: {할 일: ms}, skip: {할 일: [항목]}, txt: {할 일: {항목: 이름}} } — [완료] 전까지의 초안
+  let cutWarnId = null, cutWarnNew = false;   // 마지막 항목의 회색 [오늘만 빼기]를 누른 순간의 안내 칸
+  let cutEditId = null;      // 이름을 고치는 중인 항목
   function renderTodayChk(){
     todayChkList.innerHTML = '';
     tasks.forEach(t => {
-      const items = todayItems(t);
+      const items = cutMode === 'chk' ? todayItems(t, true) : todayItems(t);
       if (!items.length) return;
       const g = document.createElement('li');
       g.className = 'grp';
       g.textContent = t.name;
       todayChkList.appendChild(g);
+      if (cutMode === 'chk') { renderCutItems(t, items); return; }
       items.forEach(it => {
         const li = document.createElement('li');
         li.className = itemDone(t, it.id) ? 'on' : '';
@@ -1666,6 +1743,69 @@
       });
     });
   }
+  // 오늘만 줄이기 모드의 항목 줄 — 체크한 항목은 그대로, 안 한 항목은 이름 칸 + [오늘만 빼기]/[되돌리기]
+  function renderCutItems(t, items){
+    const skip = cutDraft.skip[t.id] || [], txt = cutDraft.txt[t.id] || {};
+    const isSkip = it => skip.some(x => String(x) === String(it.id));
+    // 할 일마다 안 한 항목이 적어도 하나는 남아야 한다
+    const left = items.filter(it => !itemDone(t, it.id) && !isSkip(it)).length;
+    items.forEach(it => {
+      const li = document.createElement('li');
+      if (itemDone(t, it.id)) {
+        li.className = 'on';
+        li.style.cursor = 'default';
+        li.innerHTML = '<span class="box">✓</span><span class="txt"></span>';
+        li.querySelector('.txt').textContent = txt[it.id] || it.text;
+        todayChkList.appendChild(li);
+        return;
+      }
+      const sk = isSkip(it), last = !sk && left === 1, nw = txt[it.id];
+      li.className = 'cutLi' + (sk ? ' off' : '');
+      li.innerHTML = '<span class="cutTile' + (nw ? ' edited' : '') + '"></span><button class="skBtn' + (sk ? ' back' : last ? ' dis' : '') + '">' + (sk ? '되돌리기' : '오늘만 빼기') + '</button>';
+      const tile = li.querySelector('.cutTile');
+      if (cutEditId === it.id) {
+        const inp = document.createElement('input');
+        inp.maxLength = 40;
+        inp.value = nw || it.text;
+        tile.appendChild(inp);
+        const done = () => {
+          if (cutEditId !== it.id) return;
+          cutEditId = null;
+          const v = inp.value.trim();
+          const m = cutDraft.txt[t.id] = cutDraft.txt[t.id] || {};
+          if (!v || v === it.text) delete m[it.id]; else m[it.id] = v;
+          renderTodayChk();
+        };
+        inp.addEventListener('blur', done);
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+        setTimeout(() => { inp.focus(); const v = inp.value; inp.value = ''; inp.value = v; }, 0);
+      } else {
+        // 고친 항목은 칸 안 왼쪽에 원래 이름(가운데줄), 오른쪽에 오늘 이름
+        tile.innerHTML = (nw ? '<span class="old"></span>' : '') + '<span class="nw"></span>';
+        if (nw) tile.querySelector('.old').textContent = it.text;
+        tile.querySelector('.nw').textContent = nw || it.text;
+        if (!sk) tile.addEventListener('click', () => { cutEditId = it.id; renderTodayChk(); });
+      }
+      li.querySelector('.skBtn').addEventListener('click', () => {
+        if (last) { cutWarnId = it.id; cutWarnNew = true; renderTodayChk(); return; }
+        const a = cutDraft.skip[t.id] = (cutDraft.skip[t.id] || []).filter(x => String(x) !== String(it.id));
+        if (!sk) a.push(it.id);
+        renderTodayChk();
+      });
+      todayChkList.appendChild(li);
+      if (cutWarnId === it.id) {
+        const w = document.createElement('li');
+        w.className = 'cutWarn';
+        w.innerHTML = '<div class="warnBox">할 일마다 항목 하나는 남아 있어야 해요</div>';
+        todayChkList.appendChild(w);
+      }
+    });
+  }
+  // 안내 칸은 다음 누름에 사라진다
+  document.getElementById('todayChkBox').addEventListener('click', () => {
+    if (cutWarnNew) { cutWarnNew = false; return; }
+    if (cutWarnId !== null) { cutWarnId = null; renderTodayChk(); }
+  });
   function openTodayChk(){
     renderTodayChk();
     todayChkBg.style.display = 'flex';
@@ -1680,23 +1820,45 @@
   const goalPopList = document.getElementById('goalPopList');
   function renderGoalPop(){
     let h = '';
+    const rows = [];
     tasks.forEach(t => {
-      const g = goalNow(t);                    // 체크리스트 전용·그 요일 목표 0은 빠진다
-      if (!g) return;
+      const base = goalOn(t, todayKey(), true);
+      if (!base) return;                         // 체크리스트 전용·그 요일 목표 0은 빠진다
+      const g = cutMode === 'goal' ? (cutDraft.g[t.id] != null ? cutDraft.g[t.id] : base) : goalNow(t);
       const ms = todayMs(t);
       const done = ms >= g;
-      // 남은 시간 = 오늘 목표 − 채운 시간(분 단위 내림) — 목표시간 막대 글자와 같은 셈
-      const fill = Math.floor(Math.min(ms, g) / 60000) * 60000;
-      const rem = done ? '<span class="gpRem ach">달성</span>' : '<span class="gpRem">' + fmtGoal(g - fill) + ' 남음</span>';
+      let right;
+      if (cutMode === 'goal') {
+        // 다 찬 줄은 칸 없이 '달성'. 줄인 줄은 왼쪽에 원래 값 가운데줄
+        right = '<span class="gpRight2">' + (g !== base ? '<span class="cutOld">' + fmtGoal(base) + '</span>' : '') +
+          (done ? '<span class="gpRem ach">달성</span>' : '<button class="cutBox" data-t="' + t.id + '">' + fmtGoal(g) + '</button>') + '</span>';
+      } else {
+        // 남은 시간 = 오늘 목표 − 채운 시간(분 단위 내림) — 목표시간 막대 글자와 같은 셈
+        const fill = Math.floor(Math.min(ms, g) / 60000) * 60000;
+        right = done ? '<span class="gpRem ach">달성</span>' : '<span class="gpRem">' + fmtGoal(g - fill) + ' 남음</span>';
+      }
       const w = Math.min(1, ms / g) * 100;
-      h += '<li class="gpRow"><div class="gpTop"><span class="gpName"></span>' + rem + '</div>' +
+      h += '<li class="gpRow"><div class="gpTop"><span class="gpName"></span>' + right + '</div>' +
            '<div class="gpMini"><i style="width:' + w + '%"></i></div></li>';
+      rows.push(t.name);
     });
     goalPopList.innerHTML = h;
-    const names = goalPopList.querySelectorAll('.gpName');
-    let i = 0;
-    tasks.forEach(t => { if (goalNow(t)) names[i++].textContent = t.name; });
+    goalPopList.querySelectorAll('.gpName').forEach((el, i) => { el.textContent = rows[i]; });
   }
+  // 칸을 누르면 시간 설정 팝업 (분에 01이 들어간다). 이미 한 시간보다 길고 원래 목표보다 길지 않아야 한다
+  goalPopList.addEventListener('click', e => {
+    const b = e.target.closest('.cutBox');
+    if (!b || cutMode !== 'goal') return;
+    const t = tasks.find(x => String(x.id) === b.dataset.t);
+    if (!t) return;
+    const base = goalOn(t, todayKey(), true);
+    const cur = cutDraft.g[t.id] != null ? cutDraft.g[t.id] : base;
+    tpOpen(t.name, hm(Math.round(cur / 60000)), v => {
+      const ms = parseHM(v) * 60000;
+      if (ms >= base) delete cutDraft.g[t.id]; else cutDraft.g[t.id] = ms;
+      renderGoalPop();
+    }, { cut: { done: todayMs(t), max: base } });
+  });
   function openGoalPop(){
     renderGoalPop();
     goalPopBg.style.display = 'flex';
@@ -1707,6 +1869,79 @@
   function goalPopOpen(){ return goalPopBg.style.display === 'flex'; }
   document.getElementById('goalPopClose').addEventListener('click', popLayer);
   goalPopBg.addEventListener('click', e => { if (e.target === goalPopBg) popLayer(); });
+
+  // ---- 오늘만 줄이기 모드 — 같은 팝업이 모드가 되고 버튼이 [취소] [완료]. 뒤로가기·바깥 누름 = 취소 ----
+  function openCut(mode){
+    const k = todayKey();
+    cutDraft = { g: {}, skip: {}, txt: {} };
+    tasks.forEach(t => {
+      const c = cutOf(k, t.id);
+      if (!c) return;
+      if (c.g != null) cutDraft.g[t.id] = c.g;
+      if (c.skip) cutDraft.skip[t.id] = c.skip.slice();
+      if (c.txt) cutDraft.txt[t.id] = Object.assign({}, c.txt);
+    });
+    cutMode = mode;
+    cutWarnId = null; cutEditId = null;
+    syncCutBtns();
+    if (mode === 'goal') renderGoalPop(); else renderTodayChk();
+    pushLayer(closeCut);
+  }
+  function closeCut(){
+    const m = cutMode;
+    cutMode = null; cutDraft = null; cutWarnId = null; cutEditId = null;
+    syncCutBtns();
+    if (m === 'goal' && goalPopOpen()) renderGoalPop();
+    if (m === 'chk' && todayChkBg.style.display === 'flex') renderTodayChk();
+    renderHome();
+  }
+  function syncCutBtns(){
+    document.getElementById('goalBtns').style.display = cutMode === 'goal' ? 'none' : 'flex';
+    document.getElementById('goalCutBtns').style.display = cutMode === 'goal' ? 'flex' : 'none';
+    document.getElementById('chkBtns').style.display = cutMode === 'chk' ? 'none' : 'flex';
+    document.getElementById('chkCutBtns').style.display = cutMode === 'chk' ? 'flex' : 'none';
+  }
+  // 빈 값은 지운다 — 저장·이력에는 실제로 바꾼 것만
+  function cutClean(c){
+    if (!c) return null;
+    const o = {};
+    if (c.g != null) o.g = c.g;
+    if (c.skip && c.skip.length) o.skip = c.skip.slice();
+    if (c.txt && Object.keys(c.txt).length) o.txt = Object.assign({}, c.txt);
+    return Object.keys(o).length ? o : null;
+  }
+  function setCut(k, id, c){
+    const v = cutClean(c);
+    if (v) { if (!cuts[k]) cuts[k] = {}; cuts[k][id] = v; }
+    else if (cuts[k]) { delete cuts[k][id]; if (!Object.keys(cuts[k]).length) delete cuts[k]; }
+  }
+  // [완료] — 오늘 기록(dayLog)에는 그날의 이름·목표·뺀 항목이 남고(save가 남긴다), 바꾼 것은 이력에 남는다
+  function applyCut(){
+    if (!cutDraft) return;
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    const k = todayKey();
+    tasks.forEach(t => {
+      const was = cutClean(cutOf(k, t.id));
+      const now = Object.assign({}, cutOf(k, t.id) || {});
+      if (cutMode === 'goal') { if (cutDraft.g[t.id] != null) now.g = cutDraft.g[t.id]; else delete now.g; }
+      else { now.skip = cutDraft.skip[t.id] || []; now.txt = cutDraft.txt[t.id] || {}; }
+      const to = cutClean(now);
+      if (JSON.stringify(was) === JSON.stringify(to)) return;
+      logHist({ k: 'cut', t: t.id, d: k, from: was, to: to });
+      setCut(k, t.id, now);
+    });
+    save();
+  }
+  document.getElementById('goalCutOpen').addEventListener('click', () => openCut('goal'));
+  document.getElementById('chkCutOpen').addEventListener('click', () => openCut('chk'));
+  document.getElementById('goalCutNo').addEventListener('click', popLayer);
+  document.getElementById('chkCutNo').addEventListener('click', popLayer);
+  document.getElementById('goalCutOk').addEventListener('click', () => { applyCut(); popLayer(); });
+  document.getElementById('chkCutOk').addEventListener('pointerdown', e => e.preventDefault());   // 이름을 고치던 칸이 먼저 닫히며 버튼이 밀리지 않게
+  document.getElementById('chkCutOk').addEventListener('click', () => {
+    if (cutEditId !== null) { const inp = todayChkList.querySelector('.cutTile input'); if (inp) inp.blur(); }
+    applyCut(); popLayer();
+  });
 
   // 막대는 14px라 누르기 어렵다 — 막대마다 위아래 12px, 바깥 옆 8px, 두 막대 사이는 반씩(4px)을 누름으로 본다
   barsEl.addEventListener('click', e => {
@@ -2217,8 +2452,8 @@
         draining = false;
         // pauseCount·startCount는 타이머 화면만 다시 그린다 — 홈(원·막대)과 열린 막대 팝업도 지금 상태로 맞춘다
         if (home.classList.contains('active')) renderHome();
-        if (goalPopOpen()) renderGoalPop();
-        if (todayChkBg.style.display === 'flex') renderTodayChk();
+        if (goalPopOpen() && !cutMode) renderGoalPop();
+        if (todayChkBg.style.display === 'flex' && !cutMode) renderTodayChk();
       });
     }).catch(() => { draining = false; });
   }
@@ -2384,7 +2619,7 @@
         }
       }
       if (home.classList.contains('active')) renderBars();
-      if (goalPopOpen()) renderGoalPop();      // 목표시간 막대 팝업도 실시간으로
+      if (goalPopOpen() && !cutMode) renderGoalPop();      // 목표시간 막대 팝업도 실시간으로 (줄이기 모드 중에는 그대로)
       lastGoalDone = reached;
       return;
     }
@@ -2885,7 +3120,11 @@
       t.goalMs = readHM(goalH, goalM);
     }
     const to = { g: t.goalMs || 0, d: t.goalDow ? t.goalDow.slice() : null };
-    if (JSON.stringify(from) !== JSON.stringify(to)) logHist({ k: 'goal', t: t.id, from: from, to: to });
+    if (JSON.stringify(from) !== JSON.stringify(to)) {
+      logHist({ k: 'goal', t: t.id, from: from, to: to });
+      const c = cutOf(todayKey(), t.id);
+      if (c && c.g != null) { const was = JSON.parse(JSON.stringify(c)); delete c.g; logHist({ k: 'cut', t: t.id, d: todayKey(), from: was, to: cutClean(c) }); setCut(todayKey(), t.id, c); }
+    }
     // 시간은 재지 않고 체크리스트만 쓰기
     const ntChanged = !!t.noTimer !== draft.noTimer;
     if (ntChanged) {
@@ -3476,7 +3715,7 @@
   backupBg.addEventListener('click', e => { if (e.target === backupBg) popLayer(); });
 
   document.getElementById('backupSave').addEventListener('click', () => {
-    const data = JSON.stringify({ tasks, nextId, records, taskNames, dayLog, nextItemId, schedules, nextSchedId, goalsSince, runs, hist, rests, nextRestId });
+    const data = JSON.stringify({ tasks, nextId, records, taskNames, dayLog, nextItemId, schedules, nextSchedId, goalsSince, runs, hist, rests, nextRestId, cuts });
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const now = new Date();
@@ -3508,6 +3747,7 @@
         // 일정은 할 일 번호에 묶여 있으므로 할 일과 함께 통째로 바뀐다 (옛 백업에는 일정이 없다)
         schedules = Array.isArray(d.schedules) ? d.schedules : [];
         rests = Array.isArray(d.rests) ? d.rests : [];          // 옛 백업에는 쉬는 날이 없다
+        cuts = d.cuts && typeof d.cuts === 'object' ? d.cuts : {};
         nextRestId = typeof d.nextRestId === 'number' ? d.nextRestId : (Math.max(0, ...rests.map(x => x.id)) + 1);
         nextSchedId = typeof d.nextSchedId === 'number' ? d.nextSchedId : (Math.max(0, ...schedules.map(x => x.id)) + 1);
         normTasks(tasks);
@@ -4007,6 +4247,62 @@
     renderSched();
   });
   document.getElementById('schMonth').addEventListener('click', openDayCal);
+
+  // ---- 요일별 목표 화면 — 보기만. 목표를 고치는 것은 홈의 목표 수정 모드 ----
+  const weekGoal = document.getElementById('weekGoal');
+  function hmm(ms){ const m = Math.round(ms / 60000); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); }
+  function renderWeekGoal(){
+    const tw = dowOf(todayKey());
+    const head = w => '<colgroup><col style="width:' + w + 'px">' + '<col>'.repeat(7) + '</colgroup><tr><th></th>' +
+      WEEK_ORDER.map(d => '<th class="' + (d === 0 ? 'sun' : '') + (d === tw ? ' td' : '') + '">' + DOW_KO[d] + '</th>').join('') + '</tr>';
+    // 목표시간 — 목표가 있는 할 일만, 홈의 원 순서. 0은 '–', 맨 아래 합계. 오늘 요일 열은 굵게
+    const gl = tasks.filter(hasGoalCfg);
+    const val = (t, d) => Array.isArray(t.goalDow) ? (t.goalDow[d] || 0) : (t.goalMs || 0);
+    let g = head(100);
+    gl.forEach(t => {
+      g += '<tr><td class="n"></td>' + WEEK_ORDER.map(d => { const v = val(t, d);
+        return '<td class="' + (v ? (d === tw ? 'b' : '') : 'z') + '">' + (v ? hmm(v) : '–') + '</td>'; }).join('') + '</tr>';
+    });
+    g += '<tr class="sum"><td class="n">합계</td>' + WEEK_ORDER.map(d => { const s = gl.reduce((a, t) => a + val(t, d), 0);
+      return '<td>' + (s ? hmm(s) : '–') + '</td>'; }).join('') + '</tr>';
+    const gt = document.getElementById('wgGoal');
+    gt.innerHTML = g;
+    gt.querySelectorAll('tr:not(.sum) td.n').forEach((el, i) => { el.textContent = gl[i].name; });
+    // 체크리스트 — 할 일별로 묶고, 그 요일에 해당하면 초록 점. 반복 안 함 항목은 뺀다
+    const cl = tasks.map(t => ({ t: t, items: (t.checklist || []).filter(isRep) })).filter(x => x.items.length);
+    let c = head(118);
+    const names = [];
+    cl.forEach(x => {
+      c += '<tr class="grpr"><td colspan="8"></td></tr>';
+      names.push(x.t.name);
+      x.items.forEach(it => {
+        c += '<tr><td class="it"></td>' + WEEK_ORDER.map(d => '<td>' + (it.daily || (it.dow || []).indexOf(d) >= 0 ? '<span class="dot6"></span>' : '') + '</td>').join('') + '</tr>';
+        names.push(it.text);
+      });
+    });
+    const ct = document.getElementById('wgChk');
+    ct.innerHTML = c;
+    ct.querySelectorAll('tr.grpr td, td.it').forEach((el, i) => { el.textContent = names[i]; });
+    document.getElementById('wgGoalCard').style.display = gl.length ? '' : 'none';
+    document.getElementById('wgChkCard').style.display = cl.length ? '' : 'none';
+    document.getElementById('wgEmpty').style.display = gl.length || cl.length ? 'none' : 'block';
+  }
+  function openWeekGoal(){
+    if (xMode) { exitX(); return; }
+    renderWeekGoal();
+    schedView.classList.remove('active');
+    weekGoal.classList.add('active');
+    document.getElementById('wgBody').scrollTop = 0;
+    pushLayer(closeWeekGoal);
+  }
+  function closeWeekGoal(){
+    weekGoal.classList.remove('active');
+    schedView.classList.add('active');
+    syncTabs();
+    renderSched();
+  }
+  document.getElementById('wgOpen').addEventListener('click', openWeekGoal);
+  document.getElementById('wgBack').addEventListener('click', popLayer);
   // + 는 보고 있는 날과 상관없이 지금 기준: 오늘 다음 정시부터 1시간 (지난 날짜를 보고 있어도 보인다)
   schAdd.addEventListener('click', () => {
     const today = todayKey();
@@ -4684,18 +4980,20 @@
   function tpPlaceLater(){ clearTimeout(tpPlaceT); tpPlaceT = setTimeout(() => { if (tp) tpPlace(); }, 120); }
   window.addEventListener('resize', tpPlaceLater);
 
-  function tpOpen(title, value, fn){
+  // opt.cut = { done, max } — 오늘만 줄이기: 분에 01이 들어가고, 이미 한 시간 이하·원래 목표보다 긴 값이면 [확인] 회색 + 안내 칸
+  function tpOpen(title, value, fn, opt){
     const p = value.split(':').map(Number);
     const hours = [], mins = [];
     for (let h = 0; h < 24; h++) hours.push(h);
-    for (let m = 0; m < 60; m += 5) mins.push(m);
+    for (let m = 0; m < 60; m += 5) { mins.push(m); if (m === 0 && opt && opt.cut) mins.push(1); }
     if (mins.indexOf(p[1]) < 0) { mins.push(p[1]); mins.sort((a, b) => a - b); }   // 5분 단위가 아닌 값은 끼워 넣어 보인다
-    tp = { lists: [hours, mins], pos: [hours.indexOf(p[0]), mins.indexOf(p[1])], fn: fn, typing: null };
+    tp = { lists: [hours, mins], pos: [hours.indexOf(p[0]), mins.indexOf(p[1])], fn: fn, typing: null, cut: opt && opt.cut };
     tpTitle.textContent = title;
     tpBg.classList.remove('typing');
     tpInput.style.display = 'none';
     tpBg.style.display = 'block';
     tpRender(0); tpRender(1);
+    tpCheck();
     tpBox.style.transition = 'none';
     tpPlace();
     void tpBox.offsetHeight;
@@ -4719,7 +5017,7 @@
       tp.pos[ci] = from + (to - from) * e;
       tpRender(ci);
       if (k < 1) tpAnim[ci] = requestAnimationFrame(step);
-      else { tp.pos[ci] = tpMod(to, tp.lists[ci].length); tpRender(ci); }
+      else { tp.pos[ci] = tpMod(to, tp.lists[ci].length); tpRender(ci); tpCheck(); }
     };
     tpAnim[ci] = requestAnimationFrame(step);
   }
@@ -4809,6 +5107,24 @@
     if (list.indexOf(v) < 0) { list.push(v); list.sort((a, b) => a - b); }
     tp.pos[ci] = list.indexOf(v);
     tpRender(ci);
+    tpCheck();
+  }
+  // 돌림판이 멈춘 값이 되는가 (오늘만 줄이기에서만) — 안 되면 [확인] 회색 + 돌림판 아래 안내 칸. 되는 값이면 사라진다
+  const tpWarn = document.getElementById('tpWarn'), tpOkBtn = document.getElementById('tpOk');
+  function tpBad(){
+    if (!tp || !tp.cut) return '';
+    const v = (tpVal(0) * 60 + tpVal(1)) * 60000;
+    if (v <= tp.cut.done) return '이미 한 시간(' + fmtGoal(Math.floor(tp.cut.done / 60000) * 60000) + ')보다 길게 정해 주세요';
+    if (v > tp.cut.max) return '원래 목표(' + fmtGoal(tp.cut.max) + ')보다 짧게 정해 주세요';
+    return '';
+  }
+  function tpCheck(){
+    const m = tpBad();
+    tpWarn.textContent = m;
+    const was = tpWarn.style.display;
+    tpWarn.style.display = m ? 'block' : 'none';
+    tpOkBtn.className = 'pBtn ' + (m ? 'dis' : 'go');
+    if (was !== tpWarn.style.display) tpPlaceLater();
   }
   // 입력을 마침 (숫자들이 다시 보이고 창은 가운데로)
   function tpCommit(){
@@ -4862,6 +5178,12 @@
   document.getElementById('tpOk').addEventListener('click', () => {
     if (!tp) return;
     if (tp.typing !== null) { tpTake(tp.typing); tp.typing = null; }   // 입력 중이면 친 값까지 넣고
+    if (tpBad()) {                                                     // 안 되는 값 — [확인]이 회색
+      tpInput.style.display = 'none'; tpBg.classList.remove('typing');
+      if (document.activeElement === tpInput) { tpForce = true; tpInput.blur(); tpForce = false; }
+      tpPlaceLater();
+      return;
+    }
     const v = pad2(tpVal(0)) + ':' + pad2(tpVal(1)), fn = tp.fn;
     popLayer();
     whenSettled(() => fn(v));
