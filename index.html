@@ -491,7 +491,7 @@
     display:flex;align-items:center;justify-content:center;
     font-size:13px;color:#fff;line-height:1;
   }
-  #checkView li.on .box, #todayChkList li.on .box{background:var(--run);border-color:var(--run);}
+  #checkView li.on .box, #todayChkList li.on .box{background:#2E9E5B;border-color:#2E9E5B;}   /* 체크된 상자 = 다 했다 → 체크리스트 초록 */
   #checkView li.on .txt, #todayChkList li.on .txt{text-decoration:line-through;color:var(--muted);}
   #checkView li .txt, #todayChkList li .txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #checkView li .tag, #todayChkList li .tag{
@@ -702,12 +702,12 @@
   .wtab th.sun{color:#D9705F;}
   .wtab th.td{color:var(--text);font-weight:700;}
   .wtab th.td::before{content:'';position:absolute;top:2px;left:50%;margin-left:-2px;width:4px;height:4px;border-radius:50%;background:var(--muted);}
-  .wtab td{font-size:12px;text-align:center;padding:5px 0;border-top:1px solid var(--bg);line-height:16px;}
+  .wtab td{font-size:12px;text-align:center;padding:7px 0;border-top:1px solid var(--bg);line-height:16px;}
   .wtab td.b{font-weight:700;}
   .wtab td.n{text-align:left;padding-left:4px;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .wtab td.it{text-align:left;padding-left:10px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .wtab td.z{color:#D2D8DF;}
-  .wtab tr.grpr td{border-top:1px solid var(--circle-edge);font-size:11px;color:var(--muted);text-align:left;padding:7px 4px 1px;}
+  .wtab tr.grpr td{border-top:1px solid var(--circle-edge);font-size:11px;color:var(--muted);text-align:left;padding:9px 4px 1px;}
   .wtab tr.sum td{border-top:1px solid var(--circle-edge);font-weight:700;color:var(--run-deep);}
   .wtab .dot6{display:inline-block;width:6px;height:6px;border-radius:50%;background:#2E9E5B;}
   #wgEmpty{color:var(--muted);font-size:15px;text-align:center;padding:32px 0;}
@@ -1248,7 +1248,7 @@
   // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
   const STORAGE_KEY = 'sunwork-v1';
   // 개발 중에만 — 이 index.html의 판 번호. sw.js의 캐시 이름(sunwork-vN)과 늘 같게 올린다. 앱을 공개할 때 없앤다
-  const APP_VER = 'v73';
+  const APP_VER = 'v74';
   let tasks = [{ id: 1, name: '할 일' }];
   let nextId = 2;
   let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
