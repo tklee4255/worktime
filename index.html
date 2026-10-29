@@ -271,7 +271,7 @@
   #dayPopClose{flex:0 0 auto;margin-top:14px;padding:12px 0;border-radius:10px;cursor:pointer;background:none;color:var(--muted);border:1px solid var(--circle-edge);font-size:15px;font-weight:500;font-family:inherit;}
 
   /* 개발 중에만 — 지금 보이는 판의 번호(앱을 공개할 때 없앤다, TK 2026-10-26) */
-  #verTag{position:absolute;top:28px;right:6px;padding:0 10px;line-height:32px;font-size:11px;font-weight:400;letter-spacing:0;color:#B4BCC5;font-variant-numeric:tabular-nums;cursor:pointer;}
+  #verTag{position:absolute;top:28px;right:16px;line-height:32px;font-size:11px;font-weight:400;letter-spacing:0;color:#B4BCC5;font-variant-numeric:tabular-nums;pointer-events:none;}
   /* 홈 막대 — 제목 줄 바로 아래 한 줄에 나란히. 양 끝은 화면 가장자리에서 68px(햄버거 오른쪽 끝 43px + 25px),
      사이 8px, 폭은 목표시간 2 : 체크리스트 1. 하나뿐인 날은 혼자 전체 폭.
      위아래로 12px씩 더 받아 누르기 쉽게(제목 줄 아래 여백·원 목록 위 여백 안) — 모양과 자리는 그대로 */
@@ -1248,7 +1248,7 @@
   // 자동으로 메모리 모드로 동작해 새로고침 시 초기화됨.
   const STORAGE_KEY = 'sunwork-v1';
   // 개발 중에만 — 이 index.html의 판 번호. sw.js의 캐시 이름(sunwork-vN)과 늘 같게 올린다. 앱을 공개할 때 없앤다
-  const APP_VER = 'v75';
+  const APP_VER = 'v76';
   let tasks = [{ id: 1, name: '할 일' }];
   let nextId = 2;
   let records = {};              // { 'YYYY-MM-DD': { taskId: ms } } — 초기화/삭제와 무관하게 보존
@@ -2499,60 +2499,34 @@
   }
 
   // 알림 아이콘 — 파일 주소를 넘기면 폰이 그때그때 내려받다 실패할 때 주소 첫 글자('T')로 대신 그린다.
-  // 서비스워커가 미리 캐시해 둔 파일을 data URL로 바꿔 넣는다(앱을 켤 때 한 번). 바꾸기 전이면 파일 주소 그대로
+  // 서비스워커가 미리 캐시해 둔 파일을 data URL로 바꿔 넣는다(앱을 켤 때 한 번). v75 시험에서 폰이 data URL을 받는 것을 확인했다.
+  // 바꾸기가 끝나기 전에는 알림을 띄우지 않고 기다린다(최대 2초) — 앱을 열자마자 원을 누르면 파일 주소로 뜨던 틈을 막는다
   const NOTI_ICONS = ['icon-192.png', 'icon-pause-192.png', 'icon-badge.png', 'icon-badge-pause.png'];
   const notiIcon = {};
   function loadNotiIcons(){
-    NOTI_ICONS.forEach(f => {
-      fetch(f).then(r => r.ok ? r.blob() : null).then(b => {
-        if (!b) return;
+    return Promise.all(NOTI_ICONS.map(f =>
+      fetch(f).then(r => r.ok ? r.blob() : null).then(b => b && new Promise(res => {
         const fr = new FileReader();
-        fr.onload = () => { notiIcon[f] = fr.result; };
+        fr.onload = () => { notiIcon[f] = fr.result; res(); };
+        fr.onerror = () => res();
         fr.readAsDataURL(b);
-      }).catch(() => {});
-    });
+      })).catch(() => {})
+    ));
   }
   const iconOf = f => notiIcon[f] || f;
-  loadNotiIcons();
-  // [진단, v75 — 다음 판에서 지운다] 알림 아이콘을 넣는 방식 셋을 한꺼번에 띄워 폰에서 어느 쪽이 링으로 나오는지 본다
-  async function diagNotify(){
-    if (!('Notification' in window)) return;
-    if (Notification.permission !== 'granted') {
-      if ((await Notification.requestPermission()) !== 'granted') return;
-    }
-    const reg = swReady();
-    if (!reg) return;
-    const r = await reg;
-    let data = null;
-    try {
-      const b = await (await fetch('icon-192.png')).blob();
-      data = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(b); });
-    } catch (err) {}
-    const abs = new URL('icon-192.png', location.href).href;
-    const badge = new URL('icon-badge.png', location.href).href;
-    const t = new Date(), hm = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + ':' + String(t.getSeconds()).padStart(2, '0');
-    const list = [
-      ['A', '파일 주소', 'icon-192.png'],
-      ['B', '전체 주소', abs],
-      ['C', 'data URL', data || 'icon-192.png']
-    ];
-    for (const [k, name, icon] of list) {
-      try {
-        await r.showNotification('시험 ' + k + ' — ' + name, {
-          tag: 'diag-' + k, body: hm + (navigator.onLine ? ' · 인터넷 켜짐' : ' · 인터넷 꺼짐') + (k === 'C' && !data ? ' · data URL 못 만듦' : ''),
-          icon: icon, badge: badge, silent: true, renotify: true
-        });
-      } catch (err) {}
-    }
-  }
-
+  let notiReady = false, notiWaiting = false;
+  Promise.race([loadNotiIcons(), new Promise(res => setTimeout(res, 2000))]).then(() => {
+    notiReady = true;
+    if (notiWaiting) { notiWaiting = false; updateNotification(); }   // 기다리던 사이의 마지막 상태로 띄운다
+  });
   // 타이머 화면에 있을 때만 알림을 띄우고, 상태가 바뀌면 내용을 갱신
   function updateNotification(){
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     const reg = swReady();
     if (!reg) return;
     const t = tasks.find(x => x.id === focusId);
-    if (!t) { clearNotification(); return; }
+    if (!t) { notiWaiting = false; clearNotification(); return; }
+    if (!notiReady) { notiWaiting = true; return; }
     const running = !!runningSince;
     const ic = running ? 'icon-192.png' : 'icon-pause-192.png', bd = running ? 'icon-badge.png' : 'icon-badge-pause.png';
     const opts = (icon, badge) => ({
@@ -5250,8 +5224,6 @@
 
   (function showVer(){
     const el = document.getElementById('verTag');
-    // [진단, v75 — 다음 판에서 지운다] 판 번호를 누르면 아이콘 넣는 방식이 다른 시험 알림 셋을 띄운다
-    el.addEventListener('click', e => { e.stopPropagation(); diagNotify(); });
     el.textContent = APP_VER;
     if (!('caches' in window)) return;
     caches.keys().then(ks => {
